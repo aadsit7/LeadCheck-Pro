@@ -790,6 +790,10 @@ Aaron</div>
               </select>
             </div>
           </div>
+          <div class="field" id="f-company-new-wrap" style="display:none; margin-top:8px">
+            <label class="field__label" for="f-company-new">New company name</label>
+            <input class="input" type="text" id="f-company-new" placeholder="e.g. Acme Technologies">
+          </div>
           <button class="btn btn--primary" id="research-btn" type="button" disabled style="width:100%; margin-top:8px; justify-content:center;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">
               <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -1631,6 +1635,9 @@ function openModal(mode,contact){
   }
   const statusEl=document.getElementById('save-status');
   if(statusEl) statusEl.textContent='';
+  const newCoInput=document.getElementById('f-company-new');
+  if(newCoInput) newCoInput.value='';
+  if(typeof toggleNewCompanyField==='function') toggleNewCompanyField();
   backdrop.classList.add('open');
   if(typeof updateResearchBtnState==='function') updateResearchBtnState();
   setTimeout(()=>document.getElementById('f-name').focus(),50);
@@ -1957,19 +1964,21 @@ function showToast(msg){
 /* ========== AI Research Agent (Milestone 1) ========== */
 
 function RESEARCH_PROMPT(name, company){
+  const companyKnown = !!(company && company.trim());
+  const companyTarget = companyKnown ? company : '(unknown — identify the current employer from their LinkedIn profile)';
   return `You are a B2B sales research assistant. Find verifiable public information about a specific person so a salesperson can prepare for outreach.
 
 Target person: ${name}
-Target company: ${company}
+Target company: ${companyTarget}
 
 RESEARCH STEPS
-1. Search LinkedIn for "${name}" at "${company}". Capture exact current title, location, education, certifications, LinkedIn URL.
-2. Search the company website and "${company}" leadership/team pages.
+1. Search LinkedIn for "${name}"${companyKnown?` at "${company}"`:''}. Capture exact current title, location, education, certifications, LinkedIn URL${companyKnown?'':', and the exact canonical name of their current employer'}.
+2. Search the company website and ${companyKnown?`"${company}"`:"the identified company's"} leadership/team pages.
 3. Google the person with terms like "article", "blog", "podcast", "webinar", "keynote", "speaker" to surface recent public content.
 4. Determine the company's email pattern (rocketreach, hunter, LinkedIn contact info, press releases). If the pattern is well-sourced, construct the person's email from it.
 5. Find upcoming events where they speak or appear in the agenda.
 6. Reporting chain: CEO, the function head (SVP/EVP) they ladder up to, their direct manager, and 2-4 peer directors. Use leadership pages, press releases, and LinkedIn.
-7. Company profile: industry, HQ, size, revenue, founded, current CEO (note recent transitions), partners, website, email domain, notable achievements, recent news.
+7. Company profile: the canonical company name, industry, HQ, size, revenue, founded, current CEO (note recent transitions), partners, website, email domain, notable achievements, recent news.
 
 RULES
 - Only include information you can verify from public sources. If unknown, use null, empty string, or empty array. Do NOT fabricate.
@@ -2018,6 +2027,7 @@ Respond with ONLY a single valid JSON object in the exact shape below. No markdo
     { "label": "", "url": "" }
   ],
   "company_info": {
+    "name": "",
     "industry": "",
     "hq": "",
     "size": "",
@@ -2087,20 +2097,46 @@ function getSelectedCompanyName(){
   return (opt.text || '').trim();
 }
 
+function getCompanyForResearch(){
+  const sel = document.getElementById('f-company');
+  if(!sel) return '';
+  if(sel.value === '__new'){
+    const newInput = document.getElementById('f-company-new');
+    return (newInput && newInput.value || '').trim();
+  }
+  return getSelectedCompanyName();
+}
+
 function updateResearchBtnState(){
   const btn = document.getElementById('research-btn');
   const hint = document.getElementById('research-btn-hint');
   if(!btn) return;
   if(btn.classList.contains('research-loading')) return;
   const name = (document.getElementById('f-name').value || '').trim();
-  const companyName = getSelectedCompanyName();
   const sel = document.getElementById('f-company');
-  const ready = !!name && !!companyName;
+  const newInput = document.getElementById('f-company-new');
+  const needsNewName = !!(sel && sel.value === '__new');
+  const newTyped = !!(newInput && newInput.value.trim());
+  const ready = !!name && (!needsNewName || newTyped);
   btn.disabled = !ready;
   if(hint){
-    if(ready) hint.textContent = 'Looks up public info and pre-fills the form.';
-    else if(sel && sel.value === '__new') hint.textContent = 'Pick an existing company to enable research.';
-    else hint.textContent = 'Enter a name and select a company to enable.';
+    if(!name) hint.textContent = 'Enter a name to enable research.';
+    else if(needsNewName && !newTyped) hint.textContent = 'Type the new company name to enable research.';
+    else hint.textContent = 'Looks up public info and pre-fills the form.';
+  }
+}
+
+function toggleNewCompanyField(){
+  const sel = document.getElementById('f-company');
+  const wrap = document.getElementById('f-company-new-wrap');
+  const newInput = document.getElementById('f-company-new');
+  if(!sel || !wrap) return;
+  if(sel.value === '__new'){
+    wrap.style.display = '';
+    setTimeout(()=>{ if(newInput) newInput.focus(); }, 50);
+  } else {
+    wrap.style.display = 'none';
+    if(newInput) newInput.value = '';
   }
 }
 
@@ -2120,25 +2156,88 @@ function prefillFromResearch(r){
 }
 
 document.getElementById('f-name').addEventListener('input', updateResearchBtnState);
-document.getElementById('f-company').addEventListener('change', updateResearchBtnState);
+document.getElementById('f-company').addEventListener('change', ()=>{
+  toggleNewCompanyField();
+  updateResearchBtnState();
+});
+document.getElementById('f-company-new').addEventListener('input', updateResearchBtnState);
+
+async function createCompanyFromResearch(resolvedName, companyInfo){
+  const ci = companyInfo || {};
+  const newCoId = 'CO' + String(Date.now()).slice(-6);
+  const data = { company_id: newCoId, name: resolvedName };
+  if(ci.industry) data.industry = ci.industry;
+  if(ci.hq) data.hq = ci.hq;
+  if(ci.size) data.size = ci.size;
+  if(ci.revenue) data.revenue = ci.revenue;
+  if(ci.founded) data.founded = String(ci.founded);
+  if(ci.ceo) data.ceo = ci.ceo;
+  if(ci.ceo_prior) data.prior_ceo = ci.ceo_prior;
+  if(ci.core_focus) data.description = ci.core_focus;
+  if(Array.isArray(ci.partners) && ci.partners.length) data.partners = ci.partners.filter(Boolean).join('|');
+  if(Array.isArray(ci.badges) && ci.badges.length) data.badges = ci.badges.filter(Boolean).join('|');
+  if(ci.email_format) data.email_format = ci.email_format;
+  if(ci.email_format_confidence) data.email_format_confidence = String(ci.email_format_confidence);
+  if(ci.website) data.website = ci.website;
+  await postToSheet({ action:'append', tab:'Companies', data });
+  const D = window.__DATA || (window.__DATA = {});
+  if(!Array.isArray(D.companies)) D.companies = [];
+  D.companies.push(Object.assign({}, data, {
+    partners: Array.isArray(ci.partners) ? ci.partners : [],
+    badges: Array.isArray(ci.badges) ? ci.badges : []
+  }));
+  buildIndexes();
+  populateCompanySelect();
+  const sel = document.getElementById('f-company');
+  if(sel) sel.value = newCoId;
+  toggleNewCompanyField();
+  return newCoId;
+}
 
 document.getElementById('research-btn').addEventListener('click', async () => {
   const btn = document.getElementById('research-btn');
   const label = document.getElementById('research-btn-label');
   const modalBody = document.querySelector('.modal__body');
+  const sel = document.getElementById('f-company');
+  const newInput = document.getElementById('f-company-new');
   const name = (document.getElementById('f-name').value || '').trim();
-  const companyName = getSelectedCompanyName();
-  if(!name || !companyName){
-    showToast('Enter a name and select a company first');
+  if(!name){
+    showToast('Enter a name first');
     return;
   }
+  const isNewMode = sel && sel.value === '__new';
+  const typedNew = (newInput && newInput.value || '').trim();
+  if(isNewMode && !typedNew){
+    showToast('Type the new company name first');
+    return;
+  }
+  const companyForPrompt = getCompanyForResearch();
+  const existingCompanyId = (sel && sel.value && sel.value !== '__new') ? sel.value : '';
+
   btn.disabled = true;
   btn.classList.add('research-loading');
   if(modalBody) modalBody.classList.add('research-dimmed');
   label.textContent = 'Researching '+name+'…';
   try {
-    const result = await callResearchAPI(name, companyName);
+    const result = await callResearchAPI(name, companyForPrompt);
     console.log('[LeadCheck] Research result:', result);
+
+    if(!existingCompanyId){
+      const ci = (result && result.company_info) || {};
+      const resolvedName = (typedNew || (ci.name && String(ci.name).trim()) || companyForPrompt || '').trim();
+      if(resolvedName){
+        try {
+          const newCoId = await createCompanyFromResearch(resolvedName, ci);
+          console.log('[LeadCheck] Created new company', newCoId, resolvedName);
+        } catch(err){
+          console.error('[LeadCheck] Failed to create new company', err);
+          showToast('Could not create new company: '+(err.message || err));
+        }
+      } else {
+        showToast('Research complete but no company could be identified');
+      }
+    }
+
     window.__lastResearch = result;
     prefillFromResearch(result);
     showToast('Research complete — review and save');
