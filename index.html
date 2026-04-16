@@ -398,8 +398,8 @@ main{flex:1;padding-bottom:var(--s-9)}
       </div>
 
       <div class="action-bar">
-        <a href="mailto:jane.smith@acme.example.com" class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span>Email</span></a>
-        <a href="https://linkedin.com" target="_blank" rel="noopener" class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg><span>LinkedIn</span></a>
+        <a id="contact-email" href="#" class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span>Email</span></a>
+        <a id="contact-linkedin" href="#" target="_blank" rel="noopener" class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg><span>LinkedIn</span></a>
         <button class="btn btn--ghost" id="edit-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Edit</span></button>
       </div>
 
@@ -1143,6 +1143,15 @@ function itemHTML(c){
 const SVG_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
 const SVG_CLOCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
 const SVG_DOC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+const SVG_MIC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+const SVG_PODCAST='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+
+function activityIcon(type){
+  const t=String(type||'').toLowerCase();
+  if(t.includes('podcast')) return SVG_PODCAST;
+  if(t.includes('talk')||t.includes('keynote')||t.includes('speak')||t.includes('panel')) return SVG_MIC;
+  return SVG_DOC;
+}
 
 function renderContactDetail(id){
   const IDX=window.__INDEX||{contactById:{},companyById:{},byContact:{sources:{}}};
@@ -1173,6 +1182,333 @@ function renderContactDetail(id){
     parts.push(`<span>${SVG_DOC}${sourceCount} source${sourceCount===1?'':'s'}</span>`);
     meta.innerHTML=parts.join('');
   }
+
+  renderActionBar(raw);
+  renderProfilePanel(raw, c.id);
+  renderCompanyPanel(raw, c.id);
+  renderOrgPanel(raw, c.id);
+  renderPlaybookPanel(raw, c.id);
+  renderSourceLog(c.id);
+}
+
+function renderActionBar(raw){
+  const IDX=window.__INDEX||{};
+  const emailBtn=document.getElementById('contact-email');
+  if(emailBtn){
+    if(raw.email){ emailBtn.href='mailto:'+raw.email; emailBtn.style.display=''; }
+    else { emailBtn.style.display='none'; }
+  }
+  const linkedinBtn=document.getElementById('contact-linkedin');
+  if(linkedinBtn){
+    const links=(IDX.byContact&&IDX.byContact.contact_links&&IDX.byContact.contact_links[raw.contact_id])||[];
+    const li=links.find(l=>String(l.link_type||'').toLowerCase().includes('linkedin'));
+    if(li && li.url){ linkedinBtn.href=li.url; linkedinBtn.style.display=''; }
+    else { linkedinBtn.style.display='none'; }
+  }
+}
+
+function renderProfilePanel(raw, id){
+  const panel=document.querySelector('.panel[data-panel="profile"]');
+  if(!panel) return;
+  const IDX=window.__INDEX||{};
+  const activities=(IDX.byContact&&IDX.byContact.activities&&IDX.byContact.activities[id])||[];
+  const events=(IDX.byContact&&IDX.byContact.events&&IDX.byContact.events[id])||[];
+  const affiliations=(IDX.byContact&&IDX.byContact.affiliations&&IDX.byContact.affiliations[id])||[];
+  const themes=Array.isArray(raw.themes)?raw.themes:[];
+  const certs=Array.isArray(raw.certifications)?raw.certifications:[];
+
+  const activityHtml=activities.map(a=>{
+    const srcParts=[];
+    if(a.date) srcParts.push(escapeHtml(a.date));
+    if(a.url||a.source_name){
+      const label=a.source_name||a.url||'';
+      srcParts.push(a.url?`<a href="${escapeHtml(a.url)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>`:escapeHtml(label));
+    }
+    return `<div class="activity">
+      <div class="activity__icon">${activityIcon(a.activity_type)}</div>
+      <div class="activity__body">
+        <div class="activity__text">${escapeHtml(a.title||'')}${a.description?' — '+escapeHtml(a.description):''}</div>
+        ${srcParts.length?`<div class="activity__src">${srcParts.join(' · ')}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  const themeHtml=themes.length?`${activities.length?'<hr class="divider">':''}<div class="pill-row">${themes.map(t=>`<span class="pill pill--amber">${escapeHtml(t)}</span>`).join('')}</div>`:'';
+
+  const eventsHtml=events.map(e=>`
+    <div class="event">
+      <div class="event__head">
+        <span class="event__name">${escapeHtml(e.name||'')}</span>
+        ${e.date?`<span class="pill pill--blue">${escapeHtml(e.date)}</span>`:''}
+        ${e.role?`<span class="pill pill--gray">${escapeHtml(e.role)}</span>`:''}
+      </div>
+      ${(e.location||e.source_url)?`<div class="event__loc">${escapeHtml(e.location||'')}${e.source_url?` · <a href="${escapeHtml(e.source_url)}" target="_blank" rel="noopener">Source</a>`:''}</div>`:''}
+      ${e.insight_callout?`<div class="callout">${escapeHtml(e.insight_callout)}</div>`:''}
+    </div>`).join('');
+
+  const affHtml=affiliations.length?`<div class="pill-row" style="margin-bottom:12px">${affiliations.map(a=>`<span class="pill pill--blue">${escapeHtml(a.label||a.name||'')}</span>`).join('')}</div>`:'';
+  const kvRows=[];
+  if(raw.education) kvRows.push(`<dt>Education</dt><dd>${escapeHtml(raw.education)}</dd>`);
+  if(certs.length) kvRows.push(`<dt>Certifications</dt><dd>${certs.map(escapeHtml).join(' · ')}</dd>`);
+  if(raw.email) kvRows.push(`<dt>Email</dt><dd class="mono">${escapeHtml(raw.email)}</dd>`);
+
+  panel.innerHTML=`
+    ${raw.outreach_angle?`<div class="section"><div class="section__head"><span class="section__title">Pre-Call Briefing</span></div><div class="section__body"><div class="highlight">${escapeHtml(raw.outreach_angle).replace(/\n/g,'<br>')}</div></div></div>`:''}
+    ${raw.decision_role?`<div class="section"><div class="section__head"><span class="section__title">Decision-Making Authority</span></div><div class="section__body"><p class="prose">${escapeHtml(raw.decision_role)}</p></div></div>`:''}
+    ${raw.background?`<div class="section"><div class="section__head"><span class="section__title">Background</span></div><div class="section__body"><p class="prose">${escapeHtml(raw.background)}</p></div></div>`:''}
+    ${(activities.length||themes.length)?`<div class="section"><div class="section__head"><span class="section__title">What They're Talking About</span></div><div class="section__body">${activityHtml}${themeHtml}</div></div>`:''}
+    ${events.length?`<div class="section"><div class="section__head"><span class="section__title">Coming Up</span></div><div class="section__body">${eventsHtml}</div></div>`:''}
+    ${(affiliations.length||kvRows.length)?`<div class="section"><div class="section__head"><span class="section__title">Affiliations &amp; Background</span></div><div class="section__body">${affHtml}${kvRows.length?`<dl class="kv">${kvRows.join('')}</dl>`:''}</div></div>`:''}
+  `;
+}
+
+function renderCompanyPanel(raw, id){
+  const panel=document.querySelector('.panel[data-panel="company"]');
+  if(!panel) return;
+  const D=window.__DATA||{};
+  const IDX=window.__INDEX||{};
+  const co=(IDX.companyById&&IDX.companyById[raw.company_id])||null;
+  if(!co){ panel.innerHTML='<div class="section"><div class="section__body"><p class="prose">Company record not found.</p></div></div>'; return; }
+  const companyName=co.name||'';
+  const companyId=co.company_id;
+  const links=(IDX.byCompany&&IDX.byCompany.company_links&&IDX.byCompany.company_links[companyId])||[];
+  const achievements=(IDX.byCompany&&IDX.byCompany.company_achievements&&IDX.byCompany.company_achievements[companyId])||[];
+  const others=(D.contacts||[]).filter(c=>c.company_id===companyId && c.contact_id!==id);
+
+  const kv=[];
+  if(co.industry) kv.push(['Industry', co.industry]);
+  if(co.hq) kv.push(['HQ', co.hq]);
+  if(co.size) kv.push(['Size', co.size]);
+  if(co.revenue) kv.push(['Revenue', co.revenue]);
+  if(co.founded) kv.push(['Founded', co.founded]);
+  if(co.ceo) kv.push(['CEO', co.ceo]);
+  if(co.prior_ceo) kv.push(['Prior CEO', co.prior_ceo]);
+  const partners=Array.isArray(co.partners)?co.partners:[];
+  if(partners.length) kv.push(['Partners', partners.join(' · ')]);
+
+  const descHtml=co.description?`<p class="prose" style="margin-bottom:16px">${escapeHtml(co.description)}</p>`:'';
+  const kvHtml=kv.map(([k,v])=>`<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('');
+  const linksHtml=links.length?`<hr class="divider"><div class="pill-row">${links.map(l=>`<a class="pill pill--gray" href="${escapeHtml(l.url||'#')}"${l.url?' target="_blank" rel="noopener"':''}>${escapeHtml(l.label||l.link_type||'Link')}</a>`).join('')}</div>`:'';
+
+  const othersHtml=others.length?`
+    <div class="section">
+      <div class="section__head"><span class="section__title">Other Contacts at ${escapeHtml(companyName)}</span></div>
+      <div class="section__body" style="padding:8px">
+        ${others.map(o=>{
+          const conf=Number(o.overall_confidence)||0;
+          const tier=tierFromEmailConf(o.email_confidence);
+          const init=(o.initials&&String(o.initials).trim())||deriveInitials(o.full_name);
+          const verif=String(o.verified||'').toUpperCase()==='TRUE';
+          const ac=(verif && tier==='high')?'avatar--blue':'avatar--amber';
+          return `<button class="contact-item" data-route="contact" data-id="${escapeHtml(o.contact_id)}">
+            <div class="avatar avatar--md ${ac}">${escapeHtml(init)}</div>
+            <div class="contact-item__body">
+              <div class="contact-item__name">${escapeHtml(o.full_name||'')}</div>
+              <div class="contact-item__sub">${escapeHtml(o.title||'')}</div>
+            </div>
+            <div class="contact-item__meta">
+              <div class="conf conf--${tier}"><span class="conf__dots"><span class="conf__dot"></span><span class="conf__dot"></span><span class="conf__dot"></span></span><span class="conf__num">${conf}</span></div>
+            </div>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`:'';
+
+  const achvHtml=achievements.length?`
+    <div class="section">
+      <div class="section__head"><span class="section__title">What's Happening</span></div>
+      <div class="section__body">
+        ${achievements.map((a,i)=>`${i>0?'<hr class="divider">':''}<p class="prose">${a.title?`<b>${escapeHtml(a.title)}:</b> `:''}${escapeHtml(a.summary||a.description||'')}</p>`).join('')}
+      </div>
+    </div>`:'';
+
+  const emailHtml=co.email_format?`
+    <div class="section">
+      <div class="section__head"><span class="section__title">Email Pattern</span></div>
+      <div class="section__body">
+        <p class="prose mono" style="margin-bottom:6px">${escapeHtml(co.email_format)}</p>
+        ${co.email_format_confidence?`<p style="font-size:12px;color:var(--ink-3)">${escapeHtml(co.email_format_confidence)}</p>`:''}
+      </div>
+    </div>`:'';
+
+  panel.innerHTML=`
+    <div class="section">
+      <div class="section__head"><span class="section__title">${escapeHtml(companyName)}</span></div>
+      <div class="section__body">
+        ${descHtml}
+        ${kvHtml?`<dl class="kv">${kvHtml}</dl>`:''}
+        ${linksHtml}
+      </div>
+    </div>
+    ${othersHtml}
+    ${achvHtml}
+    ${emailHtml}
+  `;
+}
+
+function orgNodeHtml(node){
+  const kind=String(node.confidence||'').toLowerCase();
+  let cls='';
+  if(node.role_type==='target') cls='org-node--target';
+  else if(kind==='confirmed') cls='org-node--confirmed';
+  else if(kind==='inferred') cls='org-node--inferred';
+  const chipText=node.role_type==='target'?'Target':(kind?(kind.charAt(0).toUpperCase()+kind.slice(1)):'');
+  return `<div class="org-node ${cls}">
+    <div class="org-node__name">${escapeHtml(node.name||'')}</div>
+    <div class="org-node__title">${escapeHtml(node.title||'')}</div>
+    ${chipText?`<span class="org-node__chip">${escapeHtml(chipText)}</span>`:''}
+  </div>`;
+}
+
+function renderOrgPanel(raw, id){
+  const panel=document.querySelector('.panel[data-panel="org"]');
+  if(!panel) return;
+  const IDX=window.__INDEX||{};
+  const nodes=(IDX.byContact&&IDX.byContact.org_chart&&IDX.byContact.org_chart[id])||[];
+  const reporting=nodes.filter(n=>['topExec','functionHead','manager','target'].indexOf(n.role_type)>=0)
+    .slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
+  const peers=nodes.filter(n=>n.role_type==='peer');
+  const reports=nodes.filter(n=>n.role_type==='directReport');
+
+  const reportingHtml=reporting.length?`<div class="org-tree">${reporting.map((n,i)=>`${i>0?'<div class="org-connector"></div>':''}${orgNodeHtml(n)}`).join('')}</div>`:'';
+
+  const peerAvatar=(n)=>{
+    const init=(n.initials&&String(n.initials).trim())||deriveInitials(n.name);
+    const color=String(n.confidence||'').toLowerCase()==='confirmed'?'avatar--green':'avatar--amber';
+    return `<div class="avatar avatar--sm ${color}">${escapeHtml(init)}</div>`;
+  };
+  const peerHtml=peers.length?`
+    <div class="peer-section">
+      <div class="peer-section__head">Peers · ${peers.length}</div>
+      ${peers.map((p)=>{
+        const confLower=String(p.confidence||'').toLowerCase();
+        const chipCls=confLower==='confirmed'?'pill--green':'pill--amber';
+        const chipTxt=confLower==='confirmed'?'Confirmed':(confLower?'Inferred':'');
+        const hasDetail=!!(p.note||p.source_url);
+        return `<div class="peer-row"${hasDetail?' data-peer="1"':''}>
+          ${peerAvatar(p)}
+          <div class="peer-row__body"><div class="peer-row__name">${escapeHtml(p.name||'')}</div><div class="peer-row__title">${escapeHtml(p.title||'')}</div></div>
+          ${chipTxt?`<span class="pill ${chipCls}">${chipTxt}</span>`:''}
+        </div>${hasDetail?`<div class="peer-detail">${escapeHtml(p.note||'')}${p.source_url?` <a href="${escapeHtml(p.source_url)}" target="_blank" rel="noopener">Source →</a>`:''}</div>`:''}`;
+      }).join('')}
+    </div>`:'';
+
+  const reportsHtml=reports.length?`
+    <div class="peer-section">
+      <div class="peer-section__head">Direct Reports · ${reports.length}</div>
+      ${reports.map(r=>{
+        const init=(r.initials&&String(r.initials).trim())||deriveInitials(r.name);
+        return `<div class="peer-row">
+          <div class="avatar avatar--sm avatar--blue">${escapeHtml(init)}</div>
+          <div class="peer-row__body"><div class="peer-row__name">${escapeHtml(r.name||'')}</div><div class="peer-row__title">${escapeHtml(r.title||'')}</div></div>
+        </div>`;
+      }).join('')}
+    </div>`:'';
+
+  const mgr=nodes.find(n=>n.role_type==='manager');
+  const howHtml=`
+    <div class="section">
+      <div class="section__head"><span class="section__title">How to Read the Org</span></div>
+      <div class="section__body">
+        <p class="prose"><b>Reporting line:</b> chain above goes from top down to the target. Solid borders indicate confirmed relationships; amber borders indicate inferred.</p>
+        ${mgr?`<p class="prose"><b>Budget holder:</b> ${escapeHtml(mgr.name||'')}${mgr.title?` (${escapeHtml(mgr.title)})`:''} — one level above the target.</p>`:''}
+        <p class="prose"><b>If target goes cold:</b> warmer peers are your re-entry candidates; avoid re-pitching the same angle.</p>
+      </div>
+    </div>`;
+
+  panel.innerHTML=`
+    <div class="section">
+      <div class="section__head"><span class="section__title">Reporting Line</span></div>
+      <div class="section__body">
+        ${reportingHtml}
+        ${peerHtml}
+        ${reportsHtml}
+      </div>
+    </div>
+    ${howHtml}
+  `;
+}
+
+function templateColorClass(color){
+  const c=String(color||'').toLowerCase();
+  if(c==='amber') return 'template__label--amber';
+  if(c==='green') return 'template__label--green';
+  if(c==='gray'||c==='grey') return 'template__label--gray';
+  return 'template__label--blue';
+}
+function priorityClass(p){
+  const v=String(p||'').toLowerCase();
+  if(v==='primary') return 'priority--primary';
+  if(v==='secondary') return 'priority--secondary';
+  return 'priority--tertiary';
+}
+
+function renderPlaybookPanel(raw, id){
+  const panel=document.querySelector('.panel[data-panel="playbook"]');
+  if(!panel) return;
+  const IDX=window.__INDEX||{};
+  const steps=((IDX.byContact&&IDX.byContact.playbook_steps&&IDX.byContact.playbook_steps[id])||[]).slice().sort((a,b)=>(Number(a.step_order)||0)-(Number(b.step_order)||0));
+  const templates=(IDX.byContact&&IDX.byContact.templates&&IDX.byContact.templates[id])||[];
+  const priorities=(IDX.byContact&&IDX.byContact.priority_matrix&&IDX.byContact.priority_matrix[id])||[];
+
+  const stepsHtml=steps.map((s,i)=>{
+    const n=s.step_order||String(i+1);
+    return `<div class="step">
+      <div class="step__box" data-step="${escapeHtml(n)}">${escapeHtml(n)}</div>
+      <div><div class="step__title">${escapeHtml(s.title||'')}</div><div class="step__detail">${escapeHtml(s.detail||'')}</div></div>
+    </div>`;
+  }).join('');
+
+  const tplHtml=templates.map(t=>`
+    <div class="template">
+      <div class="template__label ${templateColorClass(t.color)}">${escapeHtml(t.label||'')}</div>
+      <div class="template__body">${escapeHtml(t.body||'')}</div>
+    </div>`).join('');
+
+  const matrixHtml=priorities.length?`
+    <table class="matrix">
+      <thead><tr><th>Contact</th><th>Channel</th><th>Priority</th><th>Notes</th></tr></thead>
+      <tbody>
+        ${priorities.map(p=>`
+          <tr>
+            <td class="name" data-label="Contact">${escapeHtml(p.contact_name||p.name||'')}</td>
+            <td data-label="Channel">${escapeHtml(p.channel||'')}</td>
+            <td class="priority ${priorityClass(p.priority)}" data-label="Priority">${escapeHtml(p.priority||'')}</td>
+            <td data-label="Notes">${escapeHtml(p.notes||'')}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`:'';
+
+  panel.innerHTML=`
+    ${steps.length?`<div class="section"><div class="section__head"><span class="section__title">Outreach Sequence</span></div><div class="section__body">${stepsHtml}</div></div>`:''}
+    ${templates.length?`<div class="section"><div class="section__head"><span class="section__title">Message Templates</span></div><div class="section__body">${tplHtml}</div></div>`:''}
+    ${priorities.length?`<div class="section"><div class="section__head"><span class="section__title">Priority Order</span></div><div class="section__body" style="padding:0">${matrixHtml}</div></div>`:''}
+  `;
+}
+
+function renderSourceLog(id){
+  const IDX=window.__INDEX||{};
+  const checks=((IDX.byContact&&IDX.byContact.confidence_checks&&IDX.byContact.confidence_checks[id])||[]).slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
+  const sources=((IDX.byContact&&IDX.byContact.sources&&IDX.byContact.sources[id])||[]).slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
+  const passed=checks.filter(c=>String(c.passed||'').toUpperCase()==='TRUE').length;
+
+  const triggerLabel=document.querySelector('.source-trigger__label');
+  if(triggerLabel) triggerLabel.textContent=`Sources · ${sources.length} cited · ${passed} of ${checks.length} checks passed`;
+
+  const content=document.querySelector('.source-content');
+  if(!content) return;
+  const checksHtml=checks.length?`<div class="checks">${checks.map(c=>{
+    const isPass=String(c.passed||'').toUpperCase()==='TRUE';
+    return `<div class="check"><span class="check__mark ${isPass?'check__mark--pass':'check__mark--fail'}">${isPass?'✓':'✗'}</span><span>${escapeHtml(c.check_name||c.label||'')}</span></div>`;
+  }).join('')}</div>`:'';
+  const sourcesHtml=sources.length?`<ol class="source-list">${sources.map(s=>{
+    const label=s.label||s.title||s.url||'Source';
+    return `<li>${s.url?`<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>`:escapeHtml(label)}</li>`;
+  }).join('')}</ol>`:'';
+  content.innerHTML=`
+    ${checksHtml}
+    ${checks.length&&sources.length?'<hr class="coral-divider">':''}
+    ${sourcesHtml}
+  `;
 }
 
 document.querySelectorAll('.chip').forEach(chip=>{
@@ -1210,26 +1546,28 @@ document.querySelectorAll('.tab').forEach(tab=>{
   });
 });
 
-const stepStates=['','in-progress','done'];
-document.querySelectorAll('.step__box').forEach(box=>{
-  let state=0;
-  box.addEventListener('click',()=>{
-    state=(state+1)%3;
+// Delegated handlers — panel HTML is re-rendered on each contact view.
+document.addEventListener('click',e=>{
+  const box=e.target.closest('.step__box');
+  if(box){
+    const state=((Number(box.dataset.state)||0)+1)%3;
+    box.dataset.state=String(state);
     box.classList.remove('in-progress','done');
-    if(stepStates[state])box.classList.add(stepStates[state]);
-    box.textContent=state===0?box.dataset.step:state===1?'◔':'✓';
-  });
+    if(state===1) box.classList.add('in-progress');
+    if(state===2) box.classList.add('done');
+    const orig=box.dataset.step||box.textContent;
+    box.textContent=state===0?orig:state===1?'◔':'✓';
+    return;
+  }
+  const row=e.target.closest('.peer-row[data-peer]');
+  if(row){
+    const d=row.nextElementSibling;
+    if(d && d.classList.contains('peer-detail')) d.classList.toggle('open');
+  }
 });
 
 const log=document.getElementById('source-log');
 document.getElementById('source-trigger').addEventListener('click',()=>log.classList.toggle('open'));
-
-document.querySelectorAll('.peer-row[data-peer]').forEach(row=>{
-  row.addEventListener('click',()=>{
-    const d=document.getElementById('peer-'+row.dataset.peer);
-    if(d)d.classList.toggle('open');
-  });
-});
 
 const backdrop=document.getElementById('modal-backdrop');
 const modalTitle=document.getElementById('modal-title');
