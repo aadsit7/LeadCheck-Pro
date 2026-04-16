@@ -434,6 +434,7 @@ main{flex:1;padding-bottom:var(--s-9)}
       <div class="action-bar">
         <a id="contact-email" href="#" class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span>Email</span></a>
         <a id="contact-linkedin" href="#" target="_blank" rel="noopener" class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg><span>LinkedIn</span></a>
+        <button class="btn btn--ghost" id="refresh-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg><span>Refresh</span></button>
         <button class="btn btn--ghost" id="edit-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Edit</span></button>
       </div>
 
@@ -1675,6 +1676,89 @@ document.getElementById('edit-btn').addEventListener('click',()=>{
   const all=getContactsForList();
   const c=all.find(x=>x.id===id)||all[0];
   if(c) openModal('edit',c);
+});
+
+function buildContactUpdateFields(researchResult){
+  const r=researchResult||{};
+  const today=new Date().toISOString().slice(0,10);
+  const fields={ last_updated: today };
+  if(r.title) fields.title=r.title;
+  if(r.location) fields.location=r.location;
+  if(r.email) fields.email=r.email;
+  if(r.email_confidence) fields.email_confidence=String(r.email_confidence).toUpperCase();
+  if(r.linkedin_url) fields.linkedin_url=r.linkedin_url;
+  if(r.education) fields.education=r.education;
+  if(Array.isArray(r.certifications) && r.certifications.length) fields.certifications=r.certifications.filter(Boolean).join('|');
+  if(r.background) fields.background=r.background;
+  if(r.decision_role) fields.decision_role=r.decision_role;
+  if(r.outreach_angle) fields.outreach_angle=r.outreach_angle;
+  if(Array.isArray(r.themes) && r.themes.length) fields.themes=r.themes.filter(Boolean).join('|');
+  if(r.dual_role) fields.dual_role=r.dual_role;
+  if(r.overall_confidence!=null && r.overall_confidence!=='') fields.overall_confidence=String(r.overall_confidence);
+  if(r.verified===true || r.verified===false) fields.verified = r.verified?'TRUE':'FALSE';
+  return fields;
+}
+
+document.getElementById('refresh-btn').addEventListener('click', async ()=>{
+  const id=(location.hash.split('/')[2])||'';
+  const IDX=window.__INDEX||{contactById:{},companyById:{}};
+  const raw=IDX.contactById[id];
+  if(!raw){ showToast('Contact not found'); return; }
+  const co=IDX.companyById[raw.company_id]||{};
+  const name=raw.full_name||'';
+  const companyName=co.name||'';
+  if(!name){ showToast('Contact has no name'); return; }
+
+  const btn=document.getElementById('refresh-btn');
+  btn.disabled=true;
+  btn.classList.add('research-loading');
+  showLookupStatus('Refreshing research on '+name+'…', 'Searching online for public information');
+
+  try {
+    const result=await callResearchAPI(name, companyName);
+    if(lookupCancelled) return;
+
+    updateLookupStatus('Saving updates…', 'Updating '+name+'\u2019s profile');
+    const fields=buildContactUpdateFields(result);
+    await postToSheet({ action:'update', tab:'Contacts', idColumn:'contact_id', idValue:id, data:fields });
+    if(lookupCancelled) return;
+
+    const tasks=buildResearchChildTasks(id, raw.company_id, name, result);
+    let childErrors=0;
+    for(let i=0;i<tasks.length;i++){
+      if(lookupCancelled) return;
+      const t=tasks[i];
+      updateLookupStatus('Saving '+t.label+' ('+(i+1)+'/'+tasks.length+')…', 'Storing research details');
+      try {
+        await postToSheet(Object.assign({ action:t.action, tab:t.tab, data:t.data }, t.extra||{}));
+      } catch(err){
+        childErrors++;
+        console.error('[LeadCheck] '+t.tab+' row failed', err, t.data);
+      }
+    }
+    if(lookupCancelled) return;
+
+    updateLookupStatus('Refreshing profile…', 'Reloading data');
+    await loadAllData();
+    buildIndexes();
+    if(typeof populateCompanySelect==='function') populateCompanySelect();
+    renderList();
+    renderContactDetail(id);
+    hideLookupStatus();
+    if(childErrors>0){
+      showToast('Research updated for '+name+' ('+childErrors+' child error'+(childErrors===1?'':'s')+')');
+    } else {
+      showToast('Research updated for '+name);
+    }
+  } catch(err){
+    console.error('[LeadCheck] Refresh failed', err);
+    updateLookupStatus('Refresh failed', String(err.message || err));
+    setTimeout(hideLookupStatus, 3000);
+    showToast('Refresh failed: '+(err.message || err));
+  } finally {
+    btn.disabled=false;
+    btn.classList.remove('research-loading');
+  }
 });
 document.getElementById('modal-close').addEventListener('click',closeModal);
 document.getElementById('modal-cancel').addEventListener('click',closeModal);
