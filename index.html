@@ -396,6 +396,9 @@ main{flex:1;padding-bottom:var(--s-9)}
 .org-edit-form__btn--remove:hover{background:var(--red-bg);border-color:var(--red)}
 .peer-row--editing{background:var(--bg-tint);padding:10px 12px;border-radius:var(--r-sm);display:block;cursor:default}
 .peer-row--editing:hover{background:var(--bg-tint)}
+.org-add-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;font-size:11px;font-weight:600;color:var(--primary);background:var(--primary-50);border:1px dashed var(--primary);border-radius:var(--r-sm);transition:background var(--t-fast) var(--ease);cursor:pointer}
+.org-add-btn:hover{background:var(--primary-100)}
+.org-add-row{display:flex;gap:var(--s-2);margin:var(--s-2) 0;flex-wrap:wrap;justify-content:center}
 </style>
 </head>
 <body>
@@ -1643,9 +1646,13 @@ function renderCompanyPanel(raw, id){
 /* ========== Org Chart Inline Editing ========== */
 let orgEditMode=false;
 let orgEditingId=null;       // org_id currently showing an inline edit form
+let orgAddingKey=null;       // e.g. "new:manager" or "new:peer" — an add form currently open
 let orgPanelContactId=null;  // contact id that the org panel was last rendered for
 
-function orgNodeBaseClass(node){
+const ORG_ROLE_LABEL={topExec:'top exec',functionHead:'function head',manager:'manager',target:'target',peer:'peer',directReport:'direct report'};
+const ORG_CHAIN_ORDER={topExec:1,functionHead:2,manager:3,target:4};
+
+function orgNodeClass(node){
   const kind=String(node.confidence||'').toLowerCase();
   if(node.role_type==='target') return 'org-node--target';
   if(kind==='confirmed') return 'org-node--confirmed';
@@ -1663,6 +1670,7 @@ function orgEditFormBody(node){
   const confidence=String(node.confidence||'').toLowerCase();
   const confVal=confidence==='confirmed'?'confirmed':confidence==='inferred'?'inferred':'';
   const orderVal=node.display_order!=null&&node.display_order!==''?String(node.display_order):'';
+  const isNew=!node.org_id;
   return `<div class="org-edit-form">
     <div class="org-edit-form__label">Name</div>
     <input class="input" type="text" data-org-field="name" value="${escapeHtml(node.name||'')}" placeholder="e.g. Jane Smith">
@@ -1687,7 +1695,7 @@ function orgEditFormBody(node){
     <div class="org-edit-form__label">Note</div>
     <input class="input" type="text" data-org-field="note" value="${escapeHtml(node.note||'')}" placeholder="Optional context">
     <div class="org-edit-form__actions">
-      <button type="button" class="org-edit-form__btn org-edit-form__btn--remove" data-org-action="remove">Remove</button>
+      ${isNew?'':'<button type="button" class="org-edit-form__btn org-edit-form__btn--remove" data-org-action="remove">Remove</button>'}
       <button type="button" class="org-edit-form__btn org-edit-form__btn--cancel" data-org-action="cancel">Cancel</button>
       <button type="button" class="org-edit-form__btn org-edit-form__btn--save" data-org-action="save">Save</button>
     </div>
@@ -1698,7 +1706,7 @@ function orgNodeHtml(node,opts){
   opts=opts||{};
   const editable=opts.editable;
   const editing=editable && node.org_id && node.org_id===orgEditingId;
-  const baseCls=orgNodeBaseClass(node);
+  const baseCls=orgNodeClass(node);
   if(editing){
     return `<div class="org-node ${baseCls} org-node--editing" data-org-id="${escapeHtml(node.org_id)}" data-org-role="${escapeHtml(node.role_type||'')}">
       ${orgEditFormBody(node)}
@@ -1711,6 +1719,13 @@ function orgNodeHtml(node,opts){
     <div class="org-node__name">${escapeHtml(node.name||'')}</div>
     <div class="org-node__title">${escapeHtml(node.title||'')}</div>
     ${chipText?`<span class="org-node__chip">${escapeHtml(chipText)}</span>`:''}
+  </div>`;
+}
+
+function orgNewNodeHtml(roleType,contactId){
+  const blank={role_type:roleType,contact_id:contactId,name:'',title:'',confidence:'',source_url:'',note:'',display_order:computeNextDisplayOrder(roleType,contactId)};
+  return `<div class="org-node org-node--editing" data-org-new="${escapeHtml(roleType)}" data-org-role="${escapeHtml(roleType)}">
+    ${orgEditFormBody(blank)}
   </div>`;
 }
 
@@ -1741,12 +1756,36 @@ function orgPeerRowHtml(p,opts){
   </div>${detailHtml}`;
 }
 
+function orgNewPeerRowHtml(roleType,contactId){
+  const blank={role_type:roleType,contact_id:contactId,name:'',title:'',confidence:'',source_url:'',note:'',display_order:computeNextDisplayOrder(roleType,contactId)};
+  return `<div class="peer-row peer-row--editing" data-org-new="${escapeHtml(roleType)}" data-org-role="${escapeHtml(roleType)}">
+    ${orgEditFormBody(blank)}
+  </div>`;
+}
+
+function computeNextDisplayOrder(roleType,contactId){
+  if(ORG_CHAIN_ORDER[roleType]!=null) return ORG_CHAIN_ORDER[roleType];
+  const IDX=window.__INDEX||{};
+  const rows=(IDX.byContact&&IDX.byContact.org_chart&&IDX.byContact.org_chart[contactId])||[];
+  let max=9;
+  rows.filter(r=>r.role_type===roleType).forEach(r=>{
+    const v=Number(r.display_order);
+    if(!isNaN(v)&&v>max) max=v;
+  });
+  return max+1;
+}
+
+function orgAddBtnHtml(roleType){
+  return `<button type="button" class="org-add-btn" data-org-add="${escapeHtml(roleType)}">+ Add ${escapeHtml(ORG_ROLE_LABEL[roleType]||roleType)}</button>`;
+}
+
 function renderOrgPanel(raw, id){
   const panel=document.querySelector('.panel[data-panel="org"]');
   if(!panel) return;
   if(orgPanelContactId!==id){
     orgEditMode=false;
     orgEditingId=null;
+    orgAddingKey=null;
     orgPanelContactId=id;
   }
   const IDX=window.__INDEX||{};
@@ -1770,19 +1809,62 @@ function renderOrgPanel(raw, id){
   const reports=nodes.filter(n=>n.role_type==='directReport')
     .slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
 
-  const opts={editable:orgEditMode};
-  const reportingHtml=reporting.length?`<div class="org-tree">${reporting.map((n,i)=>`${i>0?'<div class="org-connector"></div>':''}${orgNodeHtml(n,opts)}`).join('')}</div>`:'';
+  const rolesPresent=new Set(reporting.map(n=>n.role_type));
+  const chainOpts={editable:orgEditMode};
 
-  const peerHtml=peers.length?`
+  const chainNextRole=(role)=>{
+    if(role==='topExec') return rolesPresent.has('functionHead')?null:'functionHead';
+    if(role==='functionHead') return rolesPresent.has('manager')?null:'manager';
+    return null;
+  };
+
+  let chainPieces=[];
+  reporting.forEach((n,i)=>{
+    if(i>0) chainPieces.push('<div class="org-connector"></div>');
+    chainPieces.push(orgNodeHtml(n,chainOpts));
+    if(orgEditMode){
+      const next=chainNextRole(n.role_type);
+      if(next && orgAddingKey!=='new:'+next){
+        chainPieces.push(`<div class="org-connector"></div>`);
+        chainPieces.push(orgAddBtnHtml(next));
+      }
+      if(next && orgAddingKey==='new:'+next){
+        chainPieces.push('<div class="org-connector"></div>');
+        chainPieces.push(orgNewNodeHtml(next,id));
+      }
+    }
+  });
+  if(orgEditMode && reporting.length===0){
+    // Empty state: let user seed the chain.
+    ['topExec','functionHead','manager','target'].forEach(rt=>{
+      if(orgAddingKey==='new:'+rt) chainPieces.push(orgNewNodeHtml(rt,id));
+    });
+    if(!chainPieces.length){
+      chainPieces.push(`<div class="org-add-row">
+        ${orgAddBtnHtml('topExec')}${orgAddBtnHtml('functionHead')}${orgAddBtnHtml('manager')}${orgAddBtnHtml('target')}
+      </div>`);
+    }
+  }
+  const reportingHtml=chainPieces.length?`<div class="org-tree">${chainPieces.join('')}</div>`:'';
+
+  const peerAddingHtml=(orgEditMode && orgAddingKey==='new:peer')?orgNewPeerRowHtml('peer',id):'';
+  const peerSectionVisible=peers.length || orgEditMode;
+  const peerHtml=peerSectionVisible?`
     <div class="peer-section">
       <div class="peer-section__head">Peers · ${peers.length}</div>
-      ${peers.map(p=>orgPeerRowHtml(p,opts)).join('')}
+      ${peers.map(p=>orgPeerRowHtml(p,{editable:orgEditMode})).join('')}
+      ${peerAddingHtml}
+      ${orgEditMode && orgAddingKey!=='new:peer'?`<div class="org-add-row">${orgAddBtnHtml('peer')}</div>`:''}
     </div>`:'';
 
-  const reportsHtml=reports.length?`
+  const reportAddingHtml=(orgEditMode && orgAddingKey==='new:directReport')?orgNewPeerRowHtml('directReport',id):'';
+  const reportSectionVisible=reports.length || orgEditMode;
+  const reportsHtml=reportSectionVisible?`
     <div class="peer-section">
       <div class="peer-section__head">Direct Reports · ${reports.length}</div>
-      ${reports.map(r=>orgPeerRowHtml(r,opts)).join('')}
+      ${reports.map(r=>orgPeerRowHtml(r,{editable:orgEditMode})).join('')}
+      ${reportAddingHtml}
+      ${orgEditMode && orgAddingKey!=='new:directReport'?`<div class="org-add-row">${orgAddBtnHtml('directReport')}</div>`:''}
     </div>`:'';
 
   const mgr=nodes.find(n=>n.role_type==='manager');
@@ -1806,7 +1888,7 @@ function renderOrgPanel(raw, id){
         </div>
       </div>
       <div class="${bodyCls}">
-        ${reportingHtml}
+        ${reportingHtml||(orgEditMode?'':'<p class="prose" style="color:var(--ink-3)">No reporting line data yet.</p>')}
         ${peerHtml}
         ${reportsHtml}
       </div>
@@ -1830,28 +1912,49 @@ function orgFormValues(formEl){
   };
 }
 
-async function handleOrgSave(formEl,orgId){
+async function handleOrgSave(formEl,orgId,roleType){
   const contactId=orgPanelContactId;
-  if(!contactId||!orgId) return;
+  if(!contactId) return;
   const vals=orgFormValues(formEl);
   if(!vals.name){ showToast('Name is required'); return; }
   const saveBtn=formEl.querySelector('[data-org-action="save"]');
   if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='Saving…'; }
   try {
-    const data={
-      name:vals.name, title:vals.title, confidence:vals.confidence,
-      source_url:vals.source_url, note:vals.note
-    };
-    if(vals.display_order!=='') data.display_order=vals.display_order;
-    await postToSheet({action:'update',tab:'Org_Chart',idColumn:'org_id',idValue:orgId,data});
-    const D=window.__DATA||{};
-    const row=(D.org_chart||[]).find(r=>r.org_id===orgId);
-    if(row) Object.assign(row,data);
-    orgEditingId=null;
-    buildIndexes();
-    const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[contactId])||{};
-    renderOrgPanel(raw,contactId);
-    showToast('Org chart updated');
+    if(orgId){
+      const data={
+        name:vals.name, title:vals.title, confidence:vals.confidence,
+        source_url:vals.source_url, note:vals.note
+      };
+      if(vals.display_order!=='') data.display_order=vals.display_order;
+      await postToSheet({action:'update',tab:'Org_Chart',idColumn:'org_id',idValue:orgId,data});
+      const D=window.__DATA||{};
+      const row=(D.org_chart||[]).find(r=>r.org_id===orgId);
+      if(row) Object.assign(row,data);
+      orgEditingId=null;
+      orgAddingKey=null;
+      buildIndexes();
+      const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[contactId])||{};
+      renderOrgPanel(raw,contactId);
+      showToast('Org chart updated');
+    } else {
+      const newId='OC'+Date.now();
+      const data={
+        org_id:newId, contact_id:contactId, role_type:roleType,
+        name:vals.name, title:vals.title, confidence:vals.confidence,
+        source_url:vals.source_url, note:vals.note,
+        display_order: vals.display_order!=='' ? vals.display_order : String(computeNextDisplayOrder(roleType,contactId))
+      };
+      await postToSheet({action:'append',tab:'Org_Chart',data});
+      const D=window.__DATA||{};
+      if(!Array.isArray(D.org_chart)) D.org_chart=[];
+      D.org_chart.push(Object.assign({},data));
+      orgEditingId=null;
+      orgAddingKey=null;
+      buildIndexes();
+      const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[contactId])||{};
+      renderOrgPanel(raw,contactId);
+      showToast('Node added');
+    }
   } catch(err){
     console.error('[LeadCheck] Org save failed',err);
     showToast('Save failed: '+(err.message||err));
@@ -1870,6 +1973,7 @@ async function handleOrgRemove(orgId){
       if(idx>=0) D.org_chart.splice(idx,1);
     }
     orgEditingId=null;
+    orgAddingKey=null;
     buildIndexes();
     const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[contactId])||{};
     renderOrgPanel(raw,contactId);
@@ -1889,6 +1993,7 @@ document.addEventListener('click',e=>{
     e.preventDefault();
     orgEditMode=!orgEditMode;
     orgEditingId=null;
+    orgAddingKey=null;
     const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[orgPanelContactId])||{};
     renderOrgPanel(raw,orgPanelContactId);
     return;
@@ -1899,12 +2004,12 @@ document.addEventListener('click',e=>{
   const action=e.target.closest('[data-org-action]');
   if(action){
     e.preventDefault();
-    e.stopPropagation();
     const kind=action.getAttribute('data-org-action');
-    const host=action.closest('[data-org-id]');
+    const host=action.closest('[data-org-id],[data-org-new]');
     if(!host) return;
     const orgId=host.getAttribute('data-org-id')||'';
-    if(kind==='save'){ handleOrgSave(host,orgId); return; }
+    const roleType=host.getAttribute('data-org-role')||host.getAttribute('data-org-new')||'';
+    if(kind==='save'){ handleOrgSave(host,orgId,roleType); return; }
     if(kind==='remove'){
       if(!orgId) return;
       if(!confirm('Remove this org chart node?')) return;
@@ -1913,21 +2018,32 @@ document.addEventListener('click',e=>{
     }
     if(kind==='cancel'){
       orgEditingId=null;
+      orgAddingKey=null;
       const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[orgPanelContactId])||{};
       renderOrgPanel(raw,orgPanelContactId);
       return;
     }
   }
 
-  if(e.target.closest('.org-node--editing,.peer-row--editing')) return;
+  const addBtn=e.target.closest('[data-org-add]');
+  if(addBtn){
+    e.preventDefault();
+    const roleType=addBtn.getAttribute('data-org-add');
+    orgEditingId=null;
+    orgAddingKey='new:'+roleType;
+    const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[orgPanelContactId])||{};
+    renderOrgPanel(raw,orgPanelContactId);
+    return;
+  }
 
   const nodeHost=e.target.closest('[data-org-id]');
-  if(nodeHost){
+  if(nodeHost && !e.target.closest('.org-node--editing,.peer-row--editing')){
     e.preventDefault();
     e.stopPropagation();
     const orgId=nodeHost.getAttribute('data-org-id');
     if(!orgId || orgId===orgEditingId) return;
     orgEditingId=orgId;
+    orgAddingKey=null;
     const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[orgPanelContactId])||{};
     renderOrgPanel(raw,orgPanelContactId);
   }
