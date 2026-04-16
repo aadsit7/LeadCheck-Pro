@@ -326,6 +326,8 @@ main{flex:1;padding-bottom:var(--s-9)}
   .action-bar .btn{padding:8px 10px}
   .modal{max-height:95vh}
 }
+.research-loading{animation:research-pulse 1.5s ease-in-out infinite}
+@keyframes research-pulse{0%,100%{opacity:.9}50%{opacity:.55}}
 </style>
 </head>
 <body>
@@ -782,6 +784,13 @@ Aaron</div>
               </select>
             </div>
           </div>
+          <button class="btn btn--primary" id="research-btn" type="button" disabled style="width:100%; margin-top:8px; justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">
+              <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <span id="research-btn-label">Research this person</span>
+          </button>
+          <div class="field__hint" id="research-btn-hint">Enter a name and select a company to enable.</div>
         </div>
       </div>
 
@@ -871,6 +880,7 @@ Aaron</div>
 const CONFIG = {
   SHEET_ID: '11JvRXvlZAPoJTf5SwVRUD4EP32Q74Z7yd1ikZQ6NY2g',
   WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbyazU2KQWeqr7BtK9OdnYMUs4XGxBhcZUmrq8sR3I72BY3W7rmKR3sdMLwo2kjFI92U/exec',
+  ANTHROPIC_API_KEY: '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',
   TABS: [
     'Contacts', 'Companies', 'Contact_Links', 'Company_Links',
     'Company_Achievements', 'Affiliations', 'Activities', 'Events',
@@ -1612,6 +1622,7 @@ function openModal(mode,contact){
     setChips('chip-certs',[]);
   }
   backdrop.classList.add('open');
+  if(typeof updateResearchBtnState==='function') updateResearchBtnState();
   setTimeout(()=>document.getElementById('f-name').focus(),50);
 }
 function closeModal(){backdrop.classList.remove('open');}
@@ -1757,6 +1768,187 @@ function showToast(msg){
   clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>toast.classList.remove('show'),2400);
 }
+
+/* ========== AI Research Agent (Milestone 1) ========== */
+
+function RESEARCH_PROMPT(name, company){
+  return `You are a B2B sales research assistant. Find verifiable public information about a specific person so a salesperson can prepare for outreach.
+
+Target person: ${name}
+Target company: ${company}
+
+RESEARCH STEPS
+1. Search LinkedIn for "${name}" at "${company}". Capture exact current title, location, education, certifications, LinkedIn URL.
+2. Search the company website and "${company}" leadership/team pages.
+3. Google the person with terms like "article", "blog", "podcast", "webinar", "keynote", "speaker" to surface recent public content.
+4. Determine the company's email pattern (rocketreach, hunter, LinkedIn contact info, press releases). If the pattern is well-sourced, construct the person's email from it.
+5. Find upcoming events where they speak or appear in the agenda.
+6. Reporting chain: CEO, the function head (SVP/EVP) they ladder up to, their direct manager, and 2-4 peer directors. Use leadership pages, press releases, and LinkedIn.
+7. Company profile: industry, HQ, size, revenue, founded, current CEO (note recent transitions), partners, website, email domain, notable achievements, recent news.
+
+RULES
+- Only include information you can verify from public sources. If unknown, use null, empty string, or empty array. Do NOT fabricate.
+- Include a source_url on every claim that carries one in the schema.
+- email_confidence: "HIGH" if the address is directly verified; "MEDIUM" if constructed from a verified pattern; "LOW" if guessed.
+- overall_confidence: integer 0-100 reflecting how well-sourced the overall record is.
+- org_chart entries: verified is "CONFIRMED" when sourced directly, "INFERRED" when deduced.
+- All dates in YYYY-MM-DD format.
+
+OUTPUT
+Respond with ONLY a single valid JSON object in the exact shape below. No markdown, no backticks, no preamble, no trailing commentary — just the JSON.
+
+{
+  "title": "",
+  "location": "",
+  "email": "",
+  "email_confidence": "",
+  "linkedin_url": "",
+  "education": "",
+  "certifications": [],
+  "verified": false,
+  "overall_confidence": 0,
+  "background": "",
+  "decision_role": "",
+  "outreach_angle": "",
+  "themes": [],
+  "dual_role": "",
+  "recent_activities": [
+    { "type": "", "text": "", "date": "", "source_url": "" }
+  ],
+  "upcoming_events": [
+    { "event_name": "", "event_date": "", "status": "", "location": "", "source_url": "", "insight_callout": "" }
+  ],
+  "affiliations": [
+    { "name": "", "source_url": "" }
+  ],
+  "org_chart": {
+    "topExec":      { "name": "", "title": "", "verified": "", "source_url": "" },
+    "functionHead": { "name": "", "title": "", "verified": "", "source_url": "" },
+    "manager":      { "name": "", "title": "", "verified": "", "source_url": "" },
+    "peers": [
+      { "name": "", "title": "", "verified": "", "source_url": "", "note": "" }
+    ]
+  },
+  "sources": [
+    { "label": "", "url": "" }
+  ],
+  "company_info": {
+    "industry": "",
+    "hq": "",
+    "size": "",
+    "revenue": "",
+    "founded": "",
+    "ceo": "",
+    "ceo_prior": "",
+    "core_focus": "",
+    "partners": [],
+    "website": "",
+    "email_domain": "",
+    "email_format": "",
+    "email_format_confidence": 0,
+    "badges": [],
+    "achievements": [
+      { "label": "", "description": "", "source_url": "", "date": "" }
+    ]
+  }
+}
+
+The JSON must be valid and parseable — no trailing commas, no comments, no extra keys.`;
+}
+
+async function callResearchAPI(name, company){
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': CONFIG.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 10 }],
+      messages: [{ role: 'user', content: RESEARCH_PROMPT(name, company) }]
+    })
+  });
+  if(!resp.ok){
+    const errText = await resp.text().catch(()=> '');
+    throw new Error('API '+resp.status+': '+errText.slice(0,200));
+  }
+  const data = await resp.json();
+  const text = (data.content||[])
+    .filter(b => b && b.type === 'text')
+    .map(b => b.text || '')
+    .join('\n')
+    .trim();
+  let raw = text;
+  const fence = raw.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+  if(fence) raw = fence[1].trim();
+  try {
+    return JSON.parse(raw);
+  } catch(e) {
+    console.error('[LeadCheck] Failed to parse research JSON. Raw text:', text);
+    throw new Error("Research completed but couldn't parse results — try again");
+  }
+}
+
+function getSelectedCompanyName(){
+  const sel = document.getElementById('f-company');
+  if(!sel) return '';
+  const opt = sel.options[sel.selectedIndex];
+  if(!opt) return '';
+  if(!sel.value || sel.value === '__new') return '';
+  return (opt.text || '').trim();
+}
+
+function updateResearchBtnState(){
+  const btn = document.getElementById('research-btn');
+  const hint = document.getElementById('research-btn-hint');
+  if(!btn) return;
+  if(btn.classList.contains('research-loading')) return;
+  const name = (document.getElementById('f-name').value || '').trim();
+  const companyName = getSelectedCompanyName();
+  const sel = document.getElementById('f-company');
+  const ready = !!name && !!companyName;
+  btn.disabled = !ready;
+  if(hint){
+    if(ready) hint.textContent = 'Looks up public info and pre-fills the form.';
+    else if(sel && sel.value === '__new') hint.textContent = 'Pick an existing company to enable research.';
+    else hint.textContent = 'Enter a name and select a company to enable.';
+  }
+}
+
+document.getElementById('f-name').addEventListener('input', updateResearchBtnState);
+document.getElementById('f-company').addEventListener('change', updateResearchBtnState);
+
+document.getElementById('research-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('research-btn');
+  const label = document.getElementById('research-btn-label');
+  const name = (document.getElementById('f-name').value || '').trim();
+  const companyName = getSelectedCompanyName();
+  if(!name || !companyName){
+    showToast('Enter a name and select a company first');
+    return;
+  }
+  btn.disabled = true;
+  btn.classList.add('research-loading');
+  label.textContent = 'Researching '+name+'…';
+  try {
+    const result = await callResearchAPI(name, companyName);
+    console.log('[LeadCheck] Research result:', result);
+    showToast('Research complete — see console');
+  } catch(err) {
+    console.error('[LeadCheck] Research failed', err);
+    showToast('Research failed: '+(err.message || err));
+  } finally {
+    btn.classList.remove('research-loading');
+    label.textContent = 'Research this person';
+    updateResearchBtnState();
+  }
+});
+
+/* ========== End AI Research Agent (Milestone 1) ========== */
 
 // Bootstrap: fetch live data, then render.
 showDataLoading();
