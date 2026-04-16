@@ -1248,7 +1248,8 @@ function renderList(){
     mount.innerHTML=`<div class="list-section"><div class="contact-list">${items.map(itemHTML).join('')}</div></div>`;
   }
 }
-function orgKey(name,title){return String(name||'').toLowerCase().trim()+'|'+String(title||'').toLowerCase().trim();}
+function orgKey(name){return String(name||'').toLowerCase().trim().replace(/\s+/g,' ');}
+const ORG_ROLE_PRIORITY={topExec:6,functionHead:5,manager:4,target:3,peer:2,directReport:1};
 
 function renderCompanyExpanded(companyId){
   const D=window.__DATA||{};
@@ -1295,19 +1296,31 @@ function renderCompanyExpanded(companyId){
   const chainRoles=new Set(['topExec','functionHead','manager','target']);
   const nodeMap=new Map();
   function getNode(r){
-    const k=orgKey(r.name,r.title);
-    if(!nodeMap.has(k)){
-      const nameLower=String(r.name||'').toLowerCase().trim();
-      nodeMap.set(k,{
+    const k=orgKey(r.name);
+    if(!k) return null;
+    let node=nodeMap.get(k);
+    const prio=ORG_ROLE_PRIORITY[r.role_type]||0;
+    if(!node){
+      node={
         key:k,name:r.name||'',title:r.title||'',
         confidence:r.confidence||'',initials:r.initials||'',
-        dbContactId:nameToContactId.get(nameLower)||null,
+        dbContactId:nameToContactId.get(k)||null,
+        priority:prio,roleType:r.role_type,
         children:new Map(),parents:new Map(),
         peers:[],reports:[]
-      });
+      };
+      nodeMap.set(k,node);
+    } else if(prio>node.priority){
+      if(r.name) node.name=r.name;
+      if(r.title) node.title=r.title;
+      if(r.confidence) node.confidence=r.confidence;
+      if(r.initials) node.initials=r.initials;
+      node.priority=prio;
+      node.roleType=r.role_type;
     }
-    return nodeMap.get(k);
+    return node;
   }
+  const targetByContact=new Map();
   contactsAtCo.forEach(c=>{
     const rows=((IDX.byContact&&IDX.byContact.org_chart&&IDX.byContact.org_chart[c.contact_id])||[]).slice()
       .sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
@@ -1315,14 +1328,28 @@ function renderCompanyExpanded(companyId){
     let prev=null,targetNode=null;
     chain.forEach(r=>{
       const n=getNode(r);
+      if(!n) return;
       if(r.role_type==='target'){ n.dbContactId=n.dbContactId||c.contact_id; targetNode=n; }
       if(prev && prev!==n){ prev.children.set(n.key,n); n.parents.set(prev.key,prev); }
       prev=n;
     });
-    if(targetNode){
-      rows.filter(r=>r.role_type==='peer').forEach(p=>targetNode.peers.push(p));
-      rows.filter(r=>r.role_type==='directReport').forEach(p=>targetNode.reports.push(p));
-    }
+    if(targetNode) targetByContact.set(c.contact_id,targetNode);
+  });
+  const placedNames=new Set(nodeMap.keys());
+  contactsAtCo.forEach(c=>{
+    const targetNode=targetByContact.get(c.contact_id);
+    if(!targetNode) return;
+    const rows=((IDX.byContact&&IDX.byContact.org_chart&&IDX.byContact.org_chart[c.contact_id])||[]).slice()
+      .sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
+    rows.forEach(p=>{
+      const rt=p.role_type;
+      if(rt!=='peer' && rt!=='directReport') return;
+      const key=orgKey(p.name);
+      if(!key || placedNames.has(key)) return;
+      if(rt==='peer') targetNode.peers.push(p);
+      else targetNode.reports.push(p);
+      placedNames.add(key);
+    });
   });
 
   let orgBodyHtml='';
@@ -1790,23 +1817,23 @@ function renderOrgPanel(raw, id){
   }
   const IDX=window.__INDEX||{};
   const nodes=(IDX.byContact&&IDX.byContact.org_chart&&IDX.byContact.org_chart[id])||[];
-  const CHAIN_PRIORITY={topExec:4,functionHead:3,manager:2,target:1};
-  const normName=(v)=>String(v||'').trim().toLowerCase().replace(/\s+/g,' ');
-  const chainByName=new Map();
+  const byName=new Map();
   for(const n of nodes){
-    if(!(n.role_type in CHAIN_PRIORITY)) continue;
-    const key=normName(n.name);
+    if(!(n.role_type in ORG_ROLE_PRIORITY)) continue;
+    const key=orgKey(n.name);
     if(!key) continue;
-    const existing=chainByName.get(key);
-    const nextPrio=CHAIN_PRIORITY[n.role_type]||0;
-    const prevPrio=existing?(CHAIN_PRIORITY[existing.role_type]||0):-1;
-    if(!existing || nextPrio>prevPrio) chainByName.set(key,n);
+    const existing=byName.get(key);
+    const nextPrio=ORG_ROLE_PRIORITY[n.role_type]||0;
+    const prevPrio=existing?(ORG_ROLE_PRIORITY[existing.role_type]||0):-1;
+    if(!existing || nextPrio>prevPrio) byName.set(key,n);
   }
-  const reporting=[...chainByName.values()]
+  const deduped=[...byName.values()];
+  const chainRoleSet=new Set(['topExec','functionHead','manager','target']);
+  const reporting=deduped.filter(n=>chainRoleSet.has(n.role_type))
     .slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
-  const peers=nodes.filter(n=>n.role_type==='peer')
+  const peers=deduped.filter(n=>n.role_type==='peer')
     .slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
-  const reports=nodes.filter(n=>n.role_type==='directReport')
+  const reports=deduped.filter(n=>n.role_type==='directReport')
     .slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
 
   const rolesPresent=new Set(reporting.map(n=>n.role_type));
