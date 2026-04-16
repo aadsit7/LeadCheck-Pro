@@ -60,11 +60,23 @@ main{flex:1;padding-bottom:var(--s-9)}
 .btn--ghost:hover{background:var(--bg-tint);border-color:var(--border-strong)}
 
 .search-wrap{position:relative;padding:0 0 var(--s-3)}
-.search-input{width:100%;padding:10px 14px 10px 38px;background:var(--bg-tint);border:1px solid transparent;border-radius:var(--r-md);font-size:14px;color:var(--ink);transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
+.search-input{width:100%;padding:10px 58px 10px 38px;background:var(--bg-tint);border:1px solid transparent;border-radius:var(--r-md);font-size:14px;color:var(--ink);transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
 .search-input::placeholder{color:var(--ink-4)}
 .search-input:hover{background:var(--border)}
 .search-input:focus{outline:none;background:var(--bg);border-color:var(--primary)}
 .search-icon{position:absolute;left:12px;top:11px;width:16px;height:16px;color:var(--ink-4);pointer-events:none}
+.go-btn{position:absolute;right:8px;top:10px;background:var(--primary);color:#fff;border:0;border-radius:4px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;display:none;transition:background var(--t-fast) var(--ease)}
+.go-btn:hover{background:var(--primary-700)}
+.go-btn.show{display:inline-flex}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lookup-status{padding:8px 0}
+.lookup-status__inner{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg-tint);border-left:3px solid var(--primary);border-radius:0 var(--r-md) var(--r-md) 0}
+.lookup-status__spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
+.lookup-status__body{flex:1;min-width:0}
+.lookup-status__title{font-size:13px;font-weight:600;color:var(--ink)}
+.lookup-status__detail{font-size:12px;color:var(--ink-3);margin-top:2px}
+.lookup-status__cancel{font-size:12px;color:var(--ink-3);text-decoration:underline;background:none;border:0;cursor:pointer;padding:0;white-space:nowrap}
+.lookup-status__cancel:hover{color:var(--ink)}
 
 .filter-row{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:0 0 var(--s-3);flex-wrap:wrap}
 .filter-chips{display:flex;gap:4px;flex-wrap:wrap}
@@ -354,7 +366,8 @@ main{flex:1;padding-bottom:var(--s-9)}
     </div>
     <div class="search-wrap">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" class="search-input" id="search-input" placeholder="Search contacts, companies, or emails…" autocomplete="off" spellcheck="false" aria-label="Search">
+      <input type="search" class="search-input" id="search-input" placeholder="Look up a contact — type name, email, or 'name at company'…" autocomplete="off" spellcheck="false" aria-label="Look up contact">
+      <button class="go-btn" id="go-btn" type="button" aria-label="Look up">Go</button>
     </div>
     <div class="filter-row" id="filter-row">
       <div class="filter-chips">
@@ -373,6 +386,19 @@ main{flex:1;padding-bottom:var(--s-9)}
     </div>
   </div>
 </header>
+
+<div class="lookup-status" id="lookup-status" style="display:none">
+  <div class="container">
+    <div class="lookup-status__inner">
+      <div class="lookup-status__spinner" id="lookup-spinner"></div>
+      <div class="lookup-status__body">
+        <div class="lookup-status__title" id="lookup-status-title">Researching…</div>
+        <div class="lookup-status__detail" id="lookup-status-detail">Searching online for public information</div>
+      </div>
+      <button class="lookup-status__cancel" id="lookup-cancel" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <main>
   <section class="view active" id="view-home">
@@ -2257,6 +2283,249 @@ document.getElementById('research-btn').addEventListener('click', async () => {
 });
 
 /* ========== End AI Research Agent (Milestone 1) ========== */
+
+/* ========== Smart Lookup Bar ========== */
+
+function parseInput(text){
+  const raw=String(text||'').trim();
+  const out={ name:'', email:'', company:'' };
+  if(!raw) return out;
+  if(raw.includes('@') && /\S+@\S+\.\S+/.test(raw)){
+    out.email=raw.split(/\s+/).find(tok=>/\S+@\S+\.\S+/.test(tok))||raw;
+    return out;
+  }
+  let left=raw, right='';
+  const atMatch=raw.match(/\s+(?:at|@)\s+/i);
+  if(atMatch){ left=raw.slice(0, atMatch.index); right=raw.slice(atMatch.index+atMatch[0].length); }
+  else if(raw.includes(',')){ const i=raw.indexOf(','); left=raw.slice(0,i); right=raw.slice(i+1); }
+  else if(/\s+-\s+/.test(raw)){ const m=raw.match(/\s+-\s+/); left=raw.slice(0,m.index); right=raw.slice(m.index+m[0].length); }
+  out.name=left.trim();
+  out.company=right.trim();
+  return out;
+}
+
+function findContact(parsed){
+  const contacts=(window.__DATA && window.__DATA.contacts) || [];
+  if(parsed.email){
+    const email=parsed.email.toLowerCase();
+    const hit=contacts.find(c=>c.email && String(c.email).toLowerCase()===email);
+    if(hit) return { type:'exact', contacts:[hit] };
+  }
+  const results=[];
+  if(parsed.name){
+    const searchName=parsed.name.toLowerCase();
+    for(const c of contacts){
+      const fullName=String(c.full_name||'').toLowerCase();
+      const shortName=String(c.short_name||'').toLowerCase();
+      if(!fullName && !shortName) continue;
+      if(fullName===searchName || (shortName && shortName===searchName)){
+        results.push({ score:100, contact:c });
+      } else if(fullName && (fullName.includes(searchName) || searchName.includes(fullName))){
+        results.push({ score:80, contact:c });
+      } else if(shortName && shortName.includes(searchName)){
+        results.push({ score:60, contact:c });
+      }
+    }
+  }
+  if(!results.length) return { type:'none', contacts:[] };
+  results.sort((a,b)=>b.score-a.score);
+  const top=results[0].score;
+  const topMatches=results.filter(r=>r.score===top);
+  if(topMatches.length===1) return { type:'exact', contacts:[topMatches[0].contact] };
+  return { type:'multiple', contacts:results.map(r=>r.contact) };
+}
+
+let lookupCancelled=false;
+function showLookupStatus(title, detail){
+  lookupCancelled=false;
+  const el=document.getElementById('lookup-status');
+  if(!el) return;
+  updateLookupStatus(title, detail);
+  el.style.display='';
+}
+function updateLookupStatus(title, detail){
+  const t=document.getElementById('lookup-status-title');
+  const d=document.getElementById('lookup-status-detail');
+  if(t && title!=null) t.textContent=title;
+  if(d && detail!=null) d.textContent=detail;
+}
+function hideLookupStatus(){
+  const el=document.getElementById('lookup-status');
+  if(el) el.style.display='none';
+}
+
+async function smartLookup(inputText){
+  const parsed=parseInput(inputText);
+  if(!parsed.name && !parsed.email){ showToast('Type a name, email, or \"name at company\"'); return; }
+
+  const result=findContact(parsed);
+
+  if(result.type==='exact'){
+    const c=result.contacts[0];
+    showToast('Found: '+(c.full_name||c.short_name||c.email||'contact'));
+    activeSearch='';
+    const si=document.getElementById('search-input');
+    if(si) si.value='';
+    updateGoBtn();
+    navigate('contact', c.contact_id);
+    return;
+  }
+
+  if(result.type==='multiple'){
+    showToast(result.contacts.length+' matches found');
+    activeSearch=parsed.name || parsed.email || inputText;
+    const si=document.getElementById('search-input');
+    if(si) si.value=activeSearch;
+    updateGoBtn();
+    if(location.hash!=='#/') location.hash='#/';
+    renderList();
+    return;
+  }
+
+  // type==='none' — kick off research, save, navigate
+  const subject=parsed.name || parsed.email;
+  const researchTarget=parsed.name || parsed.email;
+  showLookupStatus('No match found — researching '+subject+'…', 'Searching online for public information');
+
+  try {
+    updateLookupStatus('Searching online…', parsed.company ? 'Looking up '+subject+' at '+parsed.company : 'Looking up '+subject);
+    const researchResult=await callResearchAPI(researchTarget, parsed.company || '');
+    if(lookupCancelled) return;
+
+    updateLookupStatus('Analyzing results…', 'Matching company and contact records');
+
+    // Resolve company: reuse existing match or create a new one via research.
+    const D=window.__DATA || (window.__DATA={});
+    if(!Array.isArray(D.companies)) D.companies=[];
+    if(!Array.isArray(D.contacts)) D.contacts=[];
+
+    const ci=(researchResult && researchResult.company_info) || {};
+    const resolvedCompanyName=(ci.name && String(ci.name).trim()) || parsed.company || '';
+    let companyId='';
+    if(resolvedCompanyName){
+      const existing=D.companies.find(co=>co.name && String(co.name).toLowerCase()===resolvedCompanyName.toLowerCase());
+      if(existing){
+        companyId=existing.company_id;
+      } else {
+        updateLookupStatus('Saving to database…', 'Creating company record for '+resolvedCompanyName);
+        companyId=await createCompanyFromResearch(resolvedCompanyName, ci);
+      }
+    }
+    if(lookupCancelled) return;
+
+    // Build contact row. Name + short_name use the parsed name when available,
+    // otherwise fall back to the email local part so there's always a label.
+    const fullName=parsed.name || (parsed.email ? parsed.email.split('@')[0] : subject);
+    const shortName=(fullName.split(/\s+/)[0] || '').trim();
+    const today=new Date().toISOString().slice(0,10);
+    const contactId='C'+String(Date.now()).slice(-6);
+
+    const contactFields={
+      contact_id: contactId,
+      full_name: fullName,
+      short_name: shortName,
+      initials: deriveInitials(fullName),
+      title: researchResult.title || '',
+      dual_role: researchResult.dual_role || '',
+      company_id: companyId,
+      location: researchResult.location || '',
+      education: researchResult.education || '',
+      certifications: Array.isArray(researchResult.certifications) ? researchResult.certifications.filter(Boolean).join('|') : '',
+      email: researchResult.email || parsed.email || '',
+      email_confidence: String(researchResult.email_confidence || 'LOW').toUpperCase(),
+      overall_confidence: researchResult.overall_confidence != null ? String(researchResult.overall_confidence) : '50',
+      linkedin_url: researchResult.linkedin_url || '',
+      verified: researchResult.verified ? 'TRUE' : 'FALSE',
+      background: researchResult.background || '',
+      decision_role: researchResult.decision_role || '',
+      outreach_angle: researchResult.outreach_angle || '',
+      themes: Array.isArray(researchResult.themes) ? researchResult.themes.filter(Boolean).join('|') : '',
+      date_added: today,
+      last_updated: today
+    };
+
+    updateLookupStatus('Saving to database…', 'Adding '+fullName+' to your contacts');
+    await postToSheet({ action:'append', tab:'Contacts', data:contactFields });
+    if(lookupCancelled) return;
+
+    // Optimistic local insert so the navigate-to-profile render has data.
+    D.contacts.push(Object.assign({}, contactFields, {
+      themes: splitPipe(contactFields.themes),
+      certifications: splitPipe(contactFields.certifications)
+    }));
+    buildIndexes();
+
+    // Child tab rows (activities, org chart, sources, confidence checks, etc.)
+    const tasks=buildResearchChildTasks(contactId, companyId, fullName, researchResult);
+    let childErrors=0;
+    for(let i=0;i<tasks.length;i++){
+      if(lookupCancelled) return;
+      const t=tasks[i];
+      updateLookupStatus('Saving '+t.label+' ('+(i+1)+'/'+tasks.length+')…', 'Storing research details');
+      try {
+        await postToSheet(Object.assign({ action:t.action, tab:t.tab, data:t.data }, t.extra||{}));
+      } catch(err){
+        childErrors++;
+        console.error('[LeadCheck] '+t.tab+' row failed', err, t.data);
+      }
+    }
+    if(lookupCancelled) return;
+
+    updateLookupStatus('Done — opening profile', childErrors ? 'Saved with '+childErrors+' minor errors' : 'Research complete');
+    await new Promise(r=>setTimeout(r, 600));
+    if(lookupCancelled) return;
+
+    // Clear the search bar, hide the status panel, navigate.
+    activeSearch='';
+    const si=document.getElementById('search-input');
+    if(si) si.value='';
+    updateGoBtn();
+    hideLookupStatus();
+    showToast('Added: '+fullName);
+    renderList();
+    navigate('contact', contactId);
+
+    // Background resync to pick up anything the server derived.
+    setTimeout(()=>{
+      loadAllData()
+        .then(()=>{ buildIndexes(); if(typeof populateCompanySelect==='function') populateCompanySelect(); renderList();
+          const v=(location.hash.split('/')[2])||''; if(v) renderContactDetail(v); })
+        .catch(err=>console.error('[LeadCheck] Refresh failed', err));
+    }, 2000);
+  } catch(err){
+    console.error('[LeadCheck] Smart lookup research failed', err);
+    updateLookupStatus('Research failed', String(err.message || err));
+    setTimeout(hideLookupStatus, 3000);
+    showToast('Lookup failed: '+(err.message || err));
+  }
+}
+
+function updateGoBtn(){
+  const btn=document.getElementById('go-btn');
+  const si=document.getElementById('search-input');
+  if(!btn || !si) return;
+  btn.classList.toggle('show', !!si.value.trim());
+}
+
+document.getElementById('go-btn').addEventListener('click', ()=>{
+  const si=document.getElementById('search-input');
+  smartLookup(si ? si.value : '');
+});
+document.getElementById('lookup-cancel').addEventListener('click', ()=>{
+  lookupCancelled=true;
+  hideLookupStatus();
+  showToast('Lookup cancelled');
+});
+searchInput.addEventListener('keydown', e=>{
+  if(e.key==='Enter'){
+    e.preventDefault();
+    clearTimeout(searchTimer);
+    smartLookup(e.target.value);
+  }
+});
+searchInput.addEventListener('input', updateGoBtn);
+
+/* ========== End Smart Lookup Bar ========== */
 
 // Bootstrap: fetch live data, then render.
 showDataLoading();
