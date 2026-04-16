@@ -234,6 +234,9 @@ main{flex:1;padding-bottom:var(--s-9)}
 .org-node--confirmed .org-node__chip{background:var(--green-bg);color:var(--green)}
 .org-node--inferred .org-node__chip{background:var(--amber-bg);color:var(--amber)}
 .org-node--target .org-node__chip{background:rgba(255,255,255,.20);color:#fff}
+.org-node--gap{border-style:dashed;border-color:var(--border-strong);background:transparent;color:var(--ink-3);padding:6px 10px;max-width:200px}
+.org-node--gap .org-node__name{font-size:14px;color:var(--ink-3)}
+.org-node--gap .org-node__title{font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em}
 .org-connector{width:1px;height:24px;background-image:linear-gradient(to bottom,var(--border-strong) 50%,transparent 50%);background-size:1px 5px}
 
 .peer-section{margin-top:var(--s-5);padding-top:var(--s-4);border-top:1px solid var(--border)}
@@ -1244,8 +1247,39 @@ function renderList(){
     mount.innerHTML=`<div class="list-section"><div class="contact-list">${items.map(itemHTML).join('')}</div></div>`;
   }
 }
-function orgKey(name){return String(name||'').toLowerCase().trim().replace(/\s+/g,' ');}
+function orgKey(name){return String(name||'').toLowerCase().replace(/\./g,' ').replace(/\s+/g,' ').trim();}
 const ORG_ROLE_PRIORITY={topExec:6,functionHead:5,manager:4,target:3,peer:2,directReport:1};
+const ORG_ROLE_LABEL_LOOKUP={topExec:'top exec',functionHead:'function head',manager:'manager',target:'target',peer:'peer',directReport:'direct report'};
+function isJunkOrgNode(n){
+  const raw=String((n&&n.name)||'').trim();
+  if(!raw) return true;
+  const lower=raw.toLowerCase();
+  if(lower==='unknown') return true;
+  if(lower.includes('cannot determine')) return true;
+  if(lower.includes('unable to')) return true;
+  if(lower.includes('target person not verified')) return true;
+  if(/^unknown\s*[—–-]/.test(lower)) return true;
+  if(/^unknown\s+\S/.test(lower)) return true;
+  const rt=String((n&&n.role_type)||'');
+  if(rt && lower===rt.toLowerCase()) return true;
+  const label=ORG_ROLE_LABEL_LOOKUP[rt];
+  if(label && lower===label) return true;
+  return false;
+}
+function orgNodeCompleteness(n){
+  if(!n) return 0;
+  let s=0;
+  if(n.source_url && String(n.source_url).trim()) s+=4;
+  if(String(n.confidence||'').toLowerCase()==='confirmed') s+=2;
+  if(n.note && String(n.note).trim()) s+=1;
+  return s;
+}
+function isSparseOrgRow(r){
+  if(!r) return false;
+  if(r.dbContactId) return false;
+  const conf=String(r.confidence||'').toLowerCase();
+  return conf!=='confirmed';
+}
 
 function renderCompanyExpanded(companyId){
   const D=window.__DATA||{};
@@ -1292,6 +1326,7 @@ function renderCompanyExpanded(companyId){
   const chainRoles=new Set(['topExec','functionHead','manager','target']);
   const nodeMap=new Map();
   function getNode(r){
+    if(isJunkOrgNode(r)) return null;
     const k=orgKey(r.name);
     if(!k) return null;
     let node=nodeMap.get(k);
@@ -1300,19 +1335,27 @@ function renderCompanyExpanded(companyId){
       node={
         key:k,name:r.name||'',title:r.title||'',
         confidence:r.confidence||'',initials:r.initials||'',
+        source_url:r.source_url||'',note:r.note||'',
         dbContactId:nameToContactId.get(k)||null,
         priority:prio,roleType:r.role_type,
         children:new Map(),parents:new Map(),
         peers:[],reports:[]
       };
       nodeMap.set(k,node);
-    } else if(prio>node.priority){
-      if(r.name) node.name=r.name;
-      if(r.title) node.title=r.title;
-      if(r.confidence) node.confidence=r.confidence;
-      if(r.initials) node.initials=r.initials;
-      node.priority=prio;
-      node.roleType=r.role_type;
+    } else {
+      const prevComp=orgNodeCompleteness(node);
+      const nextComp=orgNodeCompleteness(r);
+      const shouldOverwrite=prio>node.priority || (prio===node.priority && nextComp>prevComp);
+      if(shouldOverwrite){
+        if(r.name) node.name=r.name;
+        if(r.title) node.title=r.title;
+        if(r.confidence) node.confidence=r.confidence;
+        if(r.initials) node.initials=r.initials;
+        if(r.source_url) node.source_url=r.source_url;
+        if(r.note) node.note=r.note;
+        node.priority=prio;
+        node.roleType=r.role_type;
+      }
     }
     return node;
   }
@@ -1340,6 +1383,7 @@ function renderCompanyExpanded(companyId){
     rows.forEach(p=>{
       const rt=p.role_type;
       if(rt!=='peer' && rt!=='directReport') return;
+      if(isJunkOrgNode(p)) return;
       const key=orgKey(p.name);
       if(!key || placedNames.has(key)) return;
       if(rt==='peer') targetNode.peers.push(p);
@@ -1353,21 +1397,51 @@ function renderCompanyExpanded(companyId){
     orgBodyHtml='<p class="prose" style="color:var(--ink-3)">No org chart data available yet for this company.</p>';
   } else {
     const roots=[...nodeMap.values()].filter(n=>n.parents.size===0);
+    const gapHtml=(count)=>`<div class="org-node org-node--gap"><div class="org-node__name">…</div><div class="org-node__title">${count} unverified level${count===1?'':'s'}</div></div>`;
     const renderNode=(node,visited)=>{
       if(visited.has(node.key)) return '';
-      visited.add(node.key);
-      const html=[orgNodeHtmlCombined(node)];
-      const kids=[...node.children.values()];
-      if(kids.length===1){
-        html.push('<div class="org-connector"></div>',renderNode(kids[0],visited));
-      } else if(kids.length>1){
-        html.push('<div class="org-connector"></div>');
-        html.push(`<div class="org-branch">${kids.map(k=>`<div class="org-branch__col"><div class="org-tree">${renderNode(k,visited)}</div></div>`).join('')}</div>`);
+      const parts=[];
+      let sparseRun=[];
+      const flushSparse=()=>{
+        if(sparseRun.length>2){
+          if(parts.length) parts.push('<div class="org-connector"></div>');
+          parts.push(gapHtml(sparseRun.length));
+        } else {
+          for(const sn of sparseRun){
+            if(parts.length) parts.push('<div class="org-connector"></div>');
+            parts.push(orgNodeHtmlCombined(sn));
+          }
+        }
+        sparseRun=[];
+      };
+      let cur=node;
+      while(cur){
+        if(visited.has(cur.key)) break;
+        visited.add(cur.key);
+        const kids=[...cur.children.values()];
+        if(isSparseOrgRow(cur)){
+          sparseRun.push(cur);
+        } else {
+          flushSparse();
+          if(parts.length) parts.push('<div class="org-connector"></div>');
+          parts.push(orgNodeHtmlCombined(cur));
+          if(cur.dbContactId && (cur.peers.length||cur.reports.length)){
+            parts.push(renderNodeSideGroups(cur));
+          }
+        }
+        if(kids.length===1){
+          cur=kids[0];
+        } else if(kids.length>1){
+          flushSparse();
+          if(parts.length) parts.push('<div class="org-connector"></div>');
+          parts.push(`<div class="org-branch">${kids.map(k=>`<div class="org-branch__col"><div class="org-tree">${renderNode(k,visited)}</div></div>`).join('')}</div>`);
+          cur=null;
+        } else {
+          cur=null;
+        }
       }
-      if(node.dbContactId && (node.peers.length||node.reports.length)){
-        html.push(renderNodeSideGroups(node));
-      }
-      return html.join('');
+      flushSparse();
+      return parts.join('');
     };
     if(roots.length===1){
       orgBodyHtml=`<div class="org-tree">${renderNode(roots[0],new Set())}</div>`;
@@ -1816,12 +1890,19 @@ function renderOrgPanel(raw, id){
   const byName=new Map();
   for(const n of nodes){
     if(!(n.role_type in ORG_ROLE_PRIORITY)) continue;
+    if(isJunkOrgNode(n)) continue;
     const key=orgKey(n.name);
     if(!key) continue;
     const existing=byName.get(key);
     const nextPrio=ORG_ROLE_PRIORITY[n.role_type]||0;
     const prevPrio=existing?(ORG_ROLE_PRIORITY[existing.role_type]||0):-1;
-    if(!existing || nextPrio>prevPrio) byName.set(key,n);
+    if(!existing){
+      byName.set(key,n);
+    } else if(nextPrio>prevPrio){
+      byName.set(key,n);
+    } else if(nextPrio===prevPrio && orgNodeCompleteness(n)>orgNodeCompleteness(existing)){
+      byName.set(key,n);
+    }
   }
   const deduped=[...byName.values()];
   const chainRoleSet=new Set(['topExec','functionHead','manager','target']);
@@ -1842,8 +1923,33 @@ function renderOrgPanel(raw, id){
   };
 
   let chainPieces=[];
-  reporting.forEach((n,i)=>{
+  const gapHtmlPanel=(count)=>`<div class="org-node org-node--gap"><div class="org-node__name">…</div><div class="org-node__title">${count} unverified level${count===1?'':'s'}</div></div>`;
+  const renderSequence=[];
+  if(orgEditMode){
+    reporting.forEach(n=>renderSequence.push({kind:'node',node:n}));
+  } else {
+    let sparseRun=[];
+    const flushSparse=()=>{
+      if(sparseRun.length>2){
+        renderSequence.push({kind:'gap',count:sparseRun.length});
+      } else {
+        sparseRun.forEach(sn=>renderSequence.push({kind:'node',node:sn}));
+      }
+      sparseRun=[];
+    };
+    reporting.forEach(n=>{
+      if(isSparseOrgRow(n)) sparseRun.push(n);
+      else { flushSparse(); renderSequence.push({kind:'node',node:n}); }
+    });
+    flushSparse();
+  }
+  renderSequence.forEach((entry,i)=>{
     if(i>0) chainPieces.push('<div class="org-connector"></div>');
+    if(entry.kind==='gap'){
+      chainPieces.push(gapHtmlPanel(entry.count));
+      return;
+    }
+    const n=entry.node;
     chainPieces.push(orgNodeHtml(n,chainOpts));
     if(orgEditMode){
       const next=chainNextRole(n.role_type);
