@@ -386,10 +386,10 @@ main{flex:1;padding-bottom:var(--s-9)}
         <div class="contact-head__body">
           <div class="contact-head__name-row">
             <span class="contact-head__name" id="contact-name">Jane Smith</span>
-            <span class="pill pill--green">Verified</span>
+            <span class="pill pill--green" id="contact-verified">Verified</span>
           </div>
           <div class="contact-head__title" id="contact-title">Director of End User Computing · Acme Technologies</div>
-          <div class="contact-head__meta">
+          <div class="contact-head__meta" id="contact-meta">
             <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Seattle, WA</span>
             <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Updated 2 days ago</span>
             <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>12 sources</span>
@@ -1140,15 +1140,39 @@ function itemHTML(c){
   </button>`;
 }
 
+const SVG_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+const SVG_CLOCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+const SVG_DOC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+
 function renderContactDetail(id){
+  const IDX=window.__INDEX||{contactById:{},companyById:{},byContact:{sources:{}}};
   const all=getContactsForList();
   const c=all.find(x=>x.id===id)||all[0];
   if(!c) return;
+  const raw=IDX.contactById[c.id]||{};
+  const co=IDX.companyById[raw.company_id]||{};
+  const companyName=co.name||c.company||'';
+
   const av=document.getElementById('contact-avatar');
   av.textContent=c.initials;
   av.className='avatar avatar--lg '+avatarClass(c);
   document.getElementById('contact-name').textContent=c.name;
-  document.getElementById('contact-title').textContent=(c.title||'')+(c.company?' · '+c.company:'');
+  document.getElementById('contact-title').textContent=(c.title||'')+(companyName?' · '+companyName:'');
+
+  const verified=document.getElementById('contact-verified');
+  if(verified) verified.style.display=c.verified?'':'none';
+
+  const meta=document.getElementById('contact-meta');
+  if(meta){
+    const location=raw.location||'';
+    const stale=formatStale(raw.last_updated);
+    const sourceCount=((IDX.byContact&&IDX.byContact.sources&&IDX.byContact.sources[c.id])||[]).length;
+    const parts=[];
+    if(location) parts.push(`<span>${SVG_PIN}${escapeHtml(location)}</span>`);
+    if(stale) parts.push(`<span>${SVG_CLOCK}Updated ${escapeHtml(stale)}</span>`);
+    parts.push(`<span>${SVG_DOC}${sourceCount} source${sourceCount===1?'':'s'}</span>`);
+    meta.innerHTML=parts.join('');
+  }
 }
 
 document.querySelectorAll('.chip').forEach(chip=>{
