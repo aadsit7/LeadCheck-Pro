@@ -2059,8 +2059,24 @@ async function callResearchAPI(name, company){
     const errText = await resp.text().catch(()=> '');
     throw new Error('API '+resp.status+': '+errText.slice(0,200));
   }
-  const data = await resp.json();
-  const text = (data.content||[])
+  const rawBody = await resp.text();
+  console.log('[LeadCheck Research] Raw response:', rawBody);
+
+  let data;
+  try { data = JSON.parse(rawBody); }
+  catch(e){ throw new Error("Server returned non-JSON response"); }
+
+  // Unwrap common Apps Script response shapes until we reach the Claude payload.
+  for(let i=0; i<4 && data && typeof data === 'object' && !Array.isArray(data.content); i++){
+    const next = data.data ?? data.response ?? data.result ?? data.body ?? data.payload;
+    if(next == null) break;
+    data = (typeof next === 'string') ? (()=>{ try{ return JSON.parse(next); } catch(e){ return next; } })() : next;
+  }
+  if(typeof data === 'string'){
+    try { data = JSON.parse(data); } catch(e) {}
+  }
+
+  const text = (data && Array.isArray(data.content) ? data.content : [])
     .filter(b => b && b.type === 'text')
     .map(b => b.text || '')
     .join('\n')
