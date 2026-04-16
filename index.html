@@ -2283,24 +2283,51 @@ document.getElementById('edit-btn').addEventListener('click',()=>{
   if(c) openModal('edit',c);
 });
 
-function buildContactUpdateFields(researchResult){
+// Refresh merge helpers — a new research result should never replace existing
+// data with nothing. Use these whenever refresh/update logic decides what to
+// write back to a row that already has data.
+function hasResearchValue(v){
+  if(v === null || v === undefined || v === '' || v === 'null') return false;
+  if(Array.isArray(v) && v.length === 0) return false;
+  return true;
+}
+function mergeField(oldVal, newVal){
+  if(!hasResearchValue(newVal)) return oldVal;
+  return newVal;
+}
+
+function buildContactUpdateFields(researchResult, existingContact){
   const r=researchResult||{};
+  const old=existingContact||{};
   const today=new Date().toISOString().slice(0,10);
   const fields={ last_updated: today };
-  if(r.title) fields.title=r.title;
-  if(r.location) fields.location=r.location;
-  if(r.email) fields.email=r.email;
-  if(r.email_confidence) fields.email_confidence=String(r.email_confidence).toUpperCase();
-  if(r.linkedin_url) fields.linkedin_url=r.linkedin_url;
-  if(r.education) fields.education=r.education;
+  // Non-empty research values overwrite; empty/'null' values leave the row untouched.
+  if(hasResearchValue(r.title)) fields.title=r.title;
+  if(hasResearchValue(r.location)) fields.location=r.location;
+  if(hasResearchValue(r.email)) fields.email=r.email;
+  if(hasResearchValue(r.email_confidence)) fields.email_confidence=String(r.email_confidence).toUpperCase();
+  if(hasResearchValue(r.linkedin_url)) fields.linkedin_url=r.linkedin_url;
+  if(hasResearchValue(r.education)) fields.education=r.education;
   if(Array.isArray(r.certifications) && r.certifications.length) fields.certifications=r.certifications.filter(Boolean).join('|');
-  if(r.background) fields.background=r.background;
-  if(r.decision_role) fields.decision_role=r.decision_role;
-  if(r.outreach_angle) fields.outreach_angle=r.outreach_angle;
+  if(hasResearchValue(r.background)) fields.background=r.background;
+  if(hasResearchValue(r.decision_role)) fields.decision_role=r.decision_role;
+  if(hasResearchValue(r.outreach_angle)) fields.outreach_angle=r.outreach_angle;
   if(Array.isArray(r.themes) && r.themes.length) fields.themes=r.themes.filter(Boolean).join('|');
-  if(r.dual_role) fields.dual_role=r.dual_role;
-  if(r.overall_confidence!=null && r.overall_confidence!=='') fields.overall_confidence=String(r.overall_confidence);
-  if(r.verified===true || r.verified===false) fields.verified = r.verified?'TRUE':'FALSE';
+  if(hasResearchValue(r.dual_role)) fields.dual_role=r.dual_role;
+  // overall_confidence: take the higher of old and new — a refresh can only
+  // add verification, never lower the score.
+  if(hasResearchValue(r.overall_confidence)){
+    const newScore=Number(r.overall_confidence)||0;
+    const oldScore=Number(old.overall_confidence)||0;
+    fields.overall_confidence=String(Math.max(newScore, oldScore));
+  }
+  // verified: once TRUE on the existing row, never reset to FALSE on refresh.
+  const oldVerifiedTrue=String(old.verified||'').toUpperCase()==='TRUE';
+  if(r.verified===true){
+    fields.verified='TRUE';
+  } else if(r.verified===false && !oldVerifiedTrue){
+    fields.verified='FALSE';
+  }
   return fields;
 }
 
@@ -2324,7 +2351,7 @@ document.getElementById('refresh-btn').addEventListener('click', async ()=>{
     if(lookupCancelled) return;
 
     updateLookupStatus('Saving updates…', 'Updating '+name+'\u2019s profile');
-    const fields=buildContactUpdateFields(result);
+    const fields=buildContactUpdateFields(result, raw);
     await postToSheet({ action:'update', tab:'Contacts', idColumn:'contact_id', idValue:id, data:fields });
     if(lookupCancelled) return;
 
@@ -2421,7 +2448,11 @@ function buildResearchChildTasks(contactId, companyId, targetName, r, existing){
   const exSourceUrls     = new Set((ex&&ex.sources||[]).map(s=>norm(s.url)).filter(Boolean));
   const exEventKeys      = new Set((ex&&ex.events||[]).map(e=>norm(e.name)+'|'+norm(e.date)).filter(k=>k!=='|'));
   const exAffNames       = new Set((ex&&ex.affiliations||[]).map(a=>norm(a.name||a.label)).filter(Boolean));
-  const exCheckNames     = new Set((ex&&ex.confidence_checks||[]).map(c=>norm(c.check_name||c.label)).filter(Boolean));
+  const exCheckByName    = {};
+  (ex&&ex.confidence_checks||[]).forEach(c=>{
+    const k=norm(c.check_name||c.label);
+    if(k) exCheckByName[k]=c;
+  });
   const exAchTitles      = new Set((ex&&ex.company_achievements||[]).map(a=>norm(a.title)).filter(Boolean));
   const exPatternKeys    = new Set((ex&&ex.email_patterns||[]).map(p=>norm(p.pattern)).filter(Boolean));
   const exOrgByRole={}, exPeerNames=new Set();
@@ -2552,9 +2583,9 @@ function buildResearchChildTasks(contactId, companyId, targetName, r, existing){
   });
 
   // Confidence_Checks — 12-item checklist derived from what research found.
-  // On refresh, dedup by check_name so we don't accumulate duplicate rows.
-  // True replace-all needs a deleteByContact action server-side; until then
-  // existing rows stay put and only new check_names get appended.
+  // Merge rule: once a check was TRUE it stays TRUE. On refresh, if the
+  // existing row is TRUE we leave it alone; if it's FALSE and the new run
+  // says TRUE we flip it to TRUE; otherwise we skip. New check_names append.
   const typeMatches=(arr, re)=> Array.isArray(arr) && arr.some(x => x && re.test(String(x.type||x.status||'')));
   const checks=[
     { name:'Name + title on LinkedIn', pass: !!(r.linkedin_url && r.title) },
@@ -2571,7 +2602,19 @@ function buildResearchChildTasks(contactId, companyId, targetName, r, existing){
     { name:'Conference speaking',      pass: typeMatches(r.upcoming_events, /speaker|keynote/i) || typeMatches(r.recent_activities, /talk|keynote|speak|panel/i) }
   ];
   checks.forEach((c,i)=>{
-    if(ex && exCheckNames.has(norm(c.name))) return;
+    const key=norm(c.name);
+    const existingCheck = ex ? exCheckByName[key] : null;
+    if(existingCheck){
+      const existingPass = String(existingCheck.passed||'').toUpperCase()==='TRUE';
+      // TRUE stays TRUE. FALSE + new FALSE stays FALSE. Only FALSE→TRUE writes.
+      if(existingPass || !c.pass) return;
+      if(existingCheck.check_id){
+        tasks.push({label:'check', tab:'Confidence_Checks', action:'update',
+          data:{ passed:'TRUE' },
+          extra:{ idColumn:'check_id', idValue:existingCheck.check_id }});
+      }
+      return;
+    }
     tasks.push({label:'check', tab:'Confidence_Checks', action:'append', data:{
       check_id: uid('CC'), contact_id: contactId,
       check_name: c.name, label: c.name,
@@ -2610,11 +2653,25 @@ document.getElementById('modal-save').addEventListener('click',async()=>{
   };
 
   const researchData=window.__lastResearch;
+  // When editing, merge research-derived fields against the existing row so a
+  // refresh never wipes previously-verified data or lowers the score.
+  const existingForMerge = editingId
+    ? ((window.__DATA && window.__DATA.contacts || []).find(c=>c.contact_id===editingId) || {})
+    : {};
   if(researchData && typeof researchData==='object'){
-    if(researchData.email_confidence) fields.email_confidence=String(researchData.email_confidence).toUpperCase();
-    if(researchData.overall_confidence!=null && researchData.overall_confidence!=='') fields.overall_confidence=String(researchData.overall_confidence);
-    if(researchData.education) fields.education=researchData.education;
-    if(researchData.verified===true || researchData.verified===false) fields.verified = researchData.verified?'TRUE':'FALSE';
+    if(hasResearchValue(researchData.email_confidence)) fields.email_confidence=String(researchData.email_confidence).toUpperCase();
+    if(hasResearchValue(researchData.education)) fields.education=researchData.education;
+    if(hasResearchValue(researchData.overall_confidence)){
+      const newScore=Number(researchData.overall_confidence)||0;
+      const oldScore=Number(existingForMerge.overall_confidence)||0;
+      fields.overall_confidence=String(editingId ? Math.max(newScore, oldScore) : newScore);
+    }
+    const oldVerifiedTrue = String(existingForMerge.verified||'').toUpperCase()==='TRUE';
+    if(researchData.verified===true){
+      fields.verified='TRUE';
+    } else if(researchData.verified===false && !oldVerifiedTrue){
+      fields.verified='FALSE';
+    }
   }
 
   let payload, contactId;
@@ -2949,7 +3006,9 @@ function toggleNewCompanyField(){
 
 function prefillFromResearch(r){
   if(!r || typeof r !== 'object') return;
-  const setVal = (id, v) => { const el = document.getElementById(id); if(el && v != null && v !== '') el.value = String(v); };
+  // Only overwrite a form field when research returned a real value — never
+  // wipe a populated input (e.g. on a re-Research for an existing contact).
+  const setVal = (id, v) => { const el = document.getElementById(id); if(el && hasResearchValue(v)) el.value = String(v); };
   setVal('f-title', r.title);
   setVal('f-email', r.email);
   setVal('f-location', r.location);
@@ -2957,9 +3016,9 @@ function prefillFromResearch(r){
   setVal('f-decision', r.decision_role);
   setVal('f-angle', r.outreach_angle);
   const bg = document.querySelector('.editor__content');
-  if(bg && r.background) bg.textContent = String(r.background);
-  if(Array.isArray(r.themes)) setChips('chip-themes', r.themes.map(t=>String(t||'').trim()).filter(Boolean));
-  if(Array.isArray(r.certifications)) setChips('chip-certs', r.certifications.map(t=>String(t||'').trim()).filter(Boolean));
+  if(bg && hasResearchValue(r.background)) bg.textContent = String(r.background);
+  if(Array.isArray(r.themes) && r.themes.length) setChips('chip-themes', r.themes.map(t=>String(t||'').trim()).filter(Boolean));
+  if(Array.isArray(r.certifications) && r.certifications.length) setChips('chip-certs', r.certifications.map(t=>String(t||'').trim()).filter(Boolean));
 }
 
 document.getElementById('f-name').addEventListener('input', updateResearchBtnState);
