@@ -367,6 +367,35 @@ main{flex:1;padding-bottom:var(--s-9)}
 .modal__body.research-dimmed .editor,
 .modal__body.research-dimmed .chip-input{opacity:.5;transition:opacity var(--t-med) var(--ease)}
 .save-status{font-size:11px;color:var(--ink-3);flex:1;text-align:left}
+
+.org-section-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);width:100%}
+.org-edit-toggle{font-size:12px;padding:5px 10px;border-radius:var(--r-sm);font-weight:600;border:1px solid var(--border);background:var(--bg);color:var(--ink-2);transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
+.org-edit-toggle:hover{background:var(--bg-tint);border-color:var(--border-strong)}
+.org-edit-toggle.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.org-editable .org-node{cursor:pointer;position:relative}
+.org-editable .org-node:hover:not(.org-node--editing){box-shadow:var(--elev-2)}
+.org-editable .org-node:not(.org-node--editing)::after{content:'';position:absolute;top:6px;right:6px;width:12px;height:12px;opacity:0;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B6B7A' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7'/><path d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'/></svg>");background-repeat:no-repeat;background-size:contain;transition:opacity var(--t-fast) var(--ease);pointer-events:none}
+.org-editable .org-node:hover:not(.org-node--editing)::after{opacity:.7}
+.org-editable .org-node--target:not(.org-node--editing)::after{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7'/><path d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'/></svg>")}
+.org-editable .peer-row{cursor:pointer;position:relative}
+.org-node--editing{text-align:left;padding:10px 12px;cursor:default;max-width:320px}
+.org-node--editing.org-node--target{background:var(--bg);border-color:var(--primary)}
+.org-node--editing.org-node--target .org-edit-form__label{color:var(--ink-3)}
+.org-edit-form{display:flex;flex-direction:column;gap:6px;color:var(--ink)}
+.org-edit-form .input,.org-edit-form .select{padding:6px 8px;font-size:12px}
+.org-edit-form__row{display:grid;grid-template-columns:1fr 90px;gap:6px}
+.org-edit-form__label{font-size:10px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.org-edit-form__actions{display:flex;gap:6px;margin-top:6px;justify-content:flex-end;flex-wrap:wrap;align-items:center}
+.org-edit-form__btn{padding:5px 10px;font-size:11px;font-weight:600;border-radius:var(--r-sm);transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease),color var(--t-fast) var(--ease);white-space:nowrap;cursor:pointer}
+.org-edit-form__btn--save{background:var(--primary);color:#fff;border:1px solid var(--primary)}
+.org-edit-form__btn--save:hover{background:var(--primary-700);border-color:var(--primary-700)}
+.org-edit-form__btn--save:disabled{opacity:.6;cursor:wait}
+.org-edit-form__btn--cancel{color:var(--ink-2);border:1px solid var(--border);background:var(--bg)}
+.org-edit-form__btn--cancel:hover{background:var(--bg-tint)}
+.org-edit-form__btn--remove{color:var(--red);border:1px solid var(--border);background:var(--bg);margin-right:auto}
+.org-edit-form__btn--remove:hover{background:var(--red-bg);border-color:var(--red)}
+.peer-row--editing{background:var(--bg-tint);padding:10px 12px;border-radius:var(--r-sm);display:block;cursor:default}
+.peer-row--editing:hover{background:var(--bg-tint)}
 </style>
 </head>
 <body>
@@ -1611,23 +1640,115 @@ function renderCompanyPanel(raw, id){
   `;
 }
 
-function orgNodeHtml(node){
+/* ========== Org Chart Inline Editing ========== */
+let orgEditMode=false;
+let orgEditingId=null;       // org_id currently showing an inline edit form
+let orgPanelContactId=null;  // contact id that the org panel was last rendered for
+
+function orgNodeBaseClass(node){
   const kind=String(node.confidence||'').toLowerCase();
-  let cls='';
-  if(node.role_type==='target') cls='org-node--target';
-  else if(kind==='confirmed') cls='org-node--confirmed';
-  else if(kind==='inferred') cls='org-node--inferred';
-  const chipText=node.role_type==='target'?'Target':(kind?(kind.charAt(0).toUpperCase()+kind.slice(1)):'');
-  return `<div class="org-node ${cls}">
+  if(node.role_type==='target') return 'org-node--target';
+  if(kind==='confirmed') return 'org-node--confirmed';
+  if(kind==='inferred') return 'org-node--inferred';
+  return '';
+}
+
+function orgChipText(node){
+  const kind=String(node.confidence||'').toLowerCase();
+  if(node.role_type==='target') return 'Target';
+  return kind?(kind.charAt(0).toUpperCase()+kind.slice(1)):'';
+}
+
+function orgEditFormBody(node){
+  const confidence=String(node.confidence||'').toLowerCase();
+  const confVal=confidence==='confirmed'?'confirmed':confidence==='inferred'?'inferred':'';
+  const orderVal=node.display_order!=null&&node.display_order!==''?String(node.display_order):'';
+  return `<div class="org-edit-form">
+    <div class="org-edit-form__label">Name</div>
+    <input class="input" type="text" data-org-field="name" value="${escapeHtml(node.name||'')}" placeholder="e.g. Jane Smith">
+    <div class="org-edit-form__label">Title</div>
+    <input class="input" type="text" data-org-field="title" value="${escapeHtml(node.title||'')}" placeholder="e.g. Director, EUC">
+    <div class="org-edit-form__row">
+      <div>
+        <div class="org-edit-form__label">Verification</div>
+        <select class="select" data-org-field="confidence">
+          <option value="confirmed"${confVal==='confirmed'?' selected':''}>CONFIRMED</option>
+          <option value="inferred"${confVal==='inferred'?' selected':''}>INFERRED</option>
+          <option value=""${confVal===''?' selected':''}>UNKNOWN</option>
+        </select>
+      </div>
+      <div>
+        <div class="org-edit-form__label">Order</div>
+        <input class="input" type="number" data-org-field="display_order" value="${escapeHtml(orderVal)}" step="1">
+      </div>
+    </div>
+    <div class="org-edit-form__label">Source URL</div>
+    <input class="input" type="url" data-org-field="source_url" value="${escapeHtml(node.source_url||'')}" placeholder="https://…">
+    <div class="org-edit-form__label">Note</div>
+    <input class="input" type="text" data-org-field="note" value="${escapeHtml(node.note||'')}" placeholder="Optional context">
+    <div class="org-edit-form__actions">
+      <button type="button" class="org-edit-form__btn org-edit-form__btn--remove" data-org-action="remove">Remove</button>
+      <button type="button" class="org-edit-form__btn org-edit-form__btn--cancel" data-org-action="cancel">Cancel</button>
+      <button type="button" class="org-edit-form__btn org-edit-form__btn--save" data-org-action="save">Save</button>
+    </div>
+  </div>`;
+}
+
+function orgNodeHtml(node,opts){
+  opts=opts||{};
+  const editable=opts.editable;
+  const editing=editable && node.org_id && node.org_id===orgEditingId;
+  const baseCls=orgNodeBaseClass(node);
+  if(editing){
+    return `<div class="org-node ${baseCls} org-node--editing" data-org-id="${escapeHtml(node.org_id)}" data-org-role="${escapeHtml(node.role_type||'')}">
+      ${orgEditFormBody(node)}
+    </div>`;
+  }
+  const orgIdAttr=node.org_id?` data-org-id="${escapeHtml(node.org_id)}"`:'';
+  const roleAttr=node.role_type?` data-org-role="${escapeHtml(node.role_type)}"`:'';
+  const chipText=orgChipText(node);
+  return `<div class="org-node ${baseCls}"${orgIdAttr}${roleAttr}>
     <div class="org-node__name">${escapeHtml(node.name||'')}</div>
     <div class="org-node__title">${escapeHtml(node.title||'')}</div>
     ${chipText?`<span class="org-node__chip">${escapeHtml(chipText)}</span>`:''}
   </div>`;
 }
 
+function orgPeerRowHtml(p,opts){
+  opts=opts||{};
+  const editable=opts.editable;
+  const editing=editable && p.org_id && p.org_id===orgEditingId;
+  if(editing){
+    return `<div class="peer-row peer-row--editing" data-org-id="${escapeHtml(p.org_id)}" data-org-role="${escapeHtml(p.role_type||'')}">
+      ${orgEditFormBody(p)}
+    </div>`;
+  }
+  const init=(p.initials&&String(p.initials).trim())||deriveInitials(p.name);
+  const confLower=String(p.confidence||'').toLowerCase();
+  const isReport=p.role_type==='directReport';
+  const avatarColor=isReport?'avatar--blue':(confLower==='confirmed'?'avatar--green':'avatar--amber');
+  const hasDetail=!isReport && !!(p.note||p.source_url);
+  const chipTxt=isReport?'':(confLower==='confirmed'?'Confirmed':(confLower?'Inferred':''));
+  const chipCls=confLower==='confirmed'?'pill--green':'pill--amber';
+  const orgIdAttr=p.org_id?` data-org-id="${escapeHtml(p.org_id)}"`:'';
+  const roleAttr=p.role_type?` data-org-role="${escapeHtml(p.role_type)}"`:'';
+  const peerAttr=(hasDetail&&!editable)?' data-peer="1"':'';
+  const detailHtml=(hasDetail&&!editable)?`<div class="peer-detail">${escapeHtml(p.note||'')}${p.source_url?` <a href="${escapeHtml(p.source_url)}" target="_blank" rel="noopener">Source →</a>`:''}</div>`:'';
+  return `<div class="peer-row"${orgIdAttr}${roleAttr}${peerAttr}>
+    <div class="avatar avatar--sm ${avatarColor}">${escapeHtml(init)}</div>
+    <div class="peer-row__body"><div class="peer-row__name">${escapeHtml(p.name||'')}</div><div class="peer-row__title">${escapeHtml(p.title||'')}</div></div>
+    ${chipTxt?`<span class="pill ${chipCls}">${chipTxt}</span>`:''}
+  </div>${detailHtml}`;
+}
+
 function renderOrgPanel(raw, id){
   const panel=document.querySelector('.panel[data-panel="org"]');
   if(!panel) return;
+  if(orgPanelContactId!==id){
+    orgEditMode=false;
+    orgEditingId=null;
+    orgPanelContactId=id;
+  }
   const IDX=window.__INDEX||{};
   const nodes=(IDX.byContact&&IDX.byContact.org_chart&&IDX.byContact.org_chart[id])||[];
   const CHAIN_PRIORITY={topExec:4,functionHead:3,manager:2,target:1};
@@ -1644,42 +1765,24 @@ function renderOrgPanel(raw, id){
   }
   const reporting=[...chainByName.values()]
     .slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
-  const peers=nodes.filter(n=>n.role_type==='peer');
-  const reports=nodes.filter(n=>n.role_type==='directReport');
+  const peers=nodes.filter(n=>n.role_type==='peer')
+    .slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
+  const reports=nodes.filter(n=>n.role_type==='directReport')
+    .slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
 
-  const reportingHtml=reporting.length?`<div class="org-tree">${reporting.map((n,i)=>`${i>0?'<div class="org-connector"></div>':''}${orgNodeHtml(n)}`).join('')}</div>`:'';
+  const opts={editable:orgEditMode};
+  const reportingHtml=reporting.length?`<div class="org-tree">${reporting.map((n,i)=>`${i>0?'<div class="org-connector"></div>':''}${orgNodeHtml(n,opts)}`).join('')}</div>`:'';
 
-  const peerAvatar=(n)=>{
-    const init=(n.initials&&String(n.initials).trim())||deriveInitials(n.name);
-    const color=String(n.confidence||'').toLowerCase()==='confirmed'?'avatar--green':'avatar--amber';
-    return `<div class="avatar avatar--sm ${color}">${escapeHtml(init)}</div>`;
-  };
   const peerHtml=peers.length?`
     <div class="peer-section">
       <div class="peer-section__head">Peers · ${peers.length}</div>
-      ${peers.map((p)=>{
-        const confLower=String(p.confidence||'').toLowerCase();
-        const chipCls=confLower==='confirmed'?'pill--green':'pill--amber';
-        const chipTxt=confLower==='confirmed'?'Confirmed':(confLower?'Inferred':'');
-        const hasDetail=!!(p.note||p.source_url);
-        return `<div class="peer-row"${hasDetail?' data-peer="1"':''}>
-          ${peerAvatar(p)}
-          <div class="peer-row__body"><div class="peer-row__name">${escapeHtml(p.name||'')}</div><div class="peer-row__title">${escapeHtml(p.title||'')}</div></div>
-          ${chipTxt?`<span class="pill ${chipCls}">${chipTxt}</span>`:''}
-        </div>${hasDetail?`<div class="peer-detail">${escapeHtml(p.note||'')}${p.source_url?` <a href="${escapeHtml(p.source_url)}" target="_blank" rel="noopener">Source →</a>`:''}</div>`:''}`;
-      }).join('')}
+      ${peers.map(p=>orgPeerRowHtml(p,opts)).join('')}
     </div>`:'';
 
   const reportsHtml=reports.length?`
     <div class="peer-section">
       <div class="peer-section__head">Direct Reports · ${reports.length}</div>
-      ${reports.map(r=>{
-        const init=(r.initials&&String(r.initials).trim())||deriveInitials(r.name);
-        return `<div class="peer-row">
-          <div class="avatar avatar--sm avatar--blue">${escapeHtml(init)}</div>
-          <div class="peer-row__body"><div class="peer-row__name">${escapeHtml(r.name||'')}</div><div class="peer-row__title">${escapeHtml(r.title||'')}</div></div>
-        </div>`;
-      }).join('')}
+      ${reports.map(r=>orgPeerRowHtml(r,opts)).join('')}
     </div>`:'';
 
   const mgr=nodes.find(n=>n.role_type==='manager');
@@ -1693,10 +1796,16 @@ function renderOrgPanel(raw, id){
       </div>
     </div>`;
 
+  const bodyCls=orgEditMode?'section__body org-editable':'section__body';
   panel.innerHTML=`
     <div class="section">
-      <div class="section__head"><span class="section__title">Reporting Line</span></div>
-      <div class="section__body">
+      <div class="section__head">
+        <div class="org-section-head">
+          <span class="section__title">Reporting Line</span>
+          <button type="button" class="org-edit-toggle${orgEditMode?' active':''}" data-org-toggle>${orgEditMode?'Done':'Edit Org'}</button>
+        </div>
+      </div>
+      <div class="${bodyCls}">
         ${reportingHtml}
         ${peerHtml}
         ${reportsHtml}
@@ -1705,6 +1814,125 @@ function renderOrgPanel(raw, id){
     ${howHtml}
   `;
 }
+
+function orgFormValues(formEl){
+  const get=(field)=>{
+    const el=formEl.querySelector(`[data-org-field="${field}"]`);
+    return el?String(el.value||'').trim():'';
+  };
+  return {
+    name:get('name'),
+    title:get('title'),
+    confidence:get('confidence'),
+    source_url:get('source_url'),
+    note:get('note'),
+    display_order:get('display_order')
+  };
+}
+
+async function handleOrgSave(formEl,orgId){
+  const contactId=orgPanelContactId;
+  if(!contactId||!orgId) return;
+  const vals=orgFormValues(formEl);
+  if(!vals.name){ showToast('Name is required'); return; }
+  const saveBtn=formEl.querySelector('[data-org-action="save"]');
+  if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='Saving…'; }
+  try {
+    const data={
+      name:vals.name, title:vals.title, confidence:vals.confidence,
+      source_url:vals.source_url, note:vals.note
+    };
+    if(vals.display_order!=='') data.display_order=vals.display_order;
+    await postToSheet({action:'update',tab:'Org_Chart',idColumn:'org_id',idValue:orgId,data});
+    const D=window.__DATA||{};
+    const row=(D.org_chart||[]).find(r=>r.org_id===orgId);
+    if(row) Object.assign(row,data);
+    orgEditingId=null;
+    buildIndexes();
+    const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[contactId])||{};
+    renderOrgPanel(raw,contactId);
+    showToast('Org chart updated');
+  } catch(err){
+    console.error('[LeadCheck] Org save failed',err);
+    showToast('Save failed: '+(err.message||err));
+    if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Save'; }
+  }
+}
+
+async function handleOrgRemove(orgId){
+  const contactId=orgPanelContactId;
+  if(!contactId||!orgId) return;
+  try {
+    await postToSheet({action:'delete',tab:'Org_Chart',idColumn:'org_id',idValue:orgId});
+    const D=window.__DATA||{};
+    if(Array.isArray(D.org_chart)){
+      const idx=D.org_chart.findIndex(r=>r.org_id===orgId);
+      if(idx>=0) D.org_chart.splice(idx,1);
+    }
+    orgEditingId=null;
+    buildIndexes();
+    const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[contactId])||{};
+    renderOrgPanel(raw,contactId);
+    showToast('Node removed');
+  } catch(err){
+    console.error('[LeadCheck] Org remove failed',err);
+    showToast('Remove failed: '+(err.message||err));
+  }
+}
+
+document.addEventListener('click',e=>{
+  const panel=document.querySelector('.panel[data-panel="org"]');
+  if(!panel || !panel.contains(e.target)) return;
+
+  const toggle=e.target.closest('[data-org-toggle]');
+  if(toggle){
+    e.preventDefault();
+    orgEditMode=!orgEditMode;
+    orgEditingId=null;
+    const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[orgPanelContactId])||{};
+    renderOrgPanel(raw,orgPanelContactId);
+    return;
+  }
+
+  if(!orgEditMode) return;
+
+  const action=e.target.closest('[data-org-action]');
+  if(action){
+    e.preventDefault();
+    e.stopPropagation();
+    const kind=action.getAttribute('data-org-action');
+    const host=action.closest('[data-org-id]');
+    if(!host) return;
+    const orgId=host.getAttribute('data-org-id')||'';
+    if(kind==='save'){ handleOrgSave(host,orgId); return; }
+    if(kind==='remove'){
+      if(!orgId) return;
+      if(!confirm('Remove this org chart node?')) return;
+      handleOrgRemove(orgId);
+      return;
+    }
+    if(kind==='cancel'){
+      orgEditingId=null;
+      const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[orgPanelContactId])||{};
+      renderOrgPanel(raw,orgPanelContactId);
+      return;
+    }
+  }
+
+  if(e.target.closest('.org-node--editing,.peer-row--editing')) return;
+
+  const nodeHost=e.target.closest('[data-org-id]');
+  if(nodeHost){
+    e.preventDefault();
+    e.stopPropagation();
+    const orgId=nodeHost.getAttribute('data-org-id');
+    if(!orgId || orgId===orgEditingId) return;
+    orgEditingId=orgId;
+    const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[orgPanelContactId])||{};
+    renderOrgPanel(raw,orgPanelContactId);
+  }
+},true);
+/* ========== End Org Chart Inline Editing ========== */
 
 function templateColorClass(color){
   const c=String(color||'').toLowerCase();
