@@ -386,10 +386,10 @@ main{flex:1;padding-bottom:var(--s-9)}
         <div class="contact-head__body">
           <div class="contact-head__name-row">
             <span class="contact-head__name" id="contact-name">Jane Smith</span>
-            <span class="pill pill--green">Verified</span>
+            <span class="pill pill--green" id="contact-verified">Verified</span>
           </div>
           <div class="contact-head__title" id="contact-title">Director of End User Computing · Acme Technologies</div>
-          <div class="contact-head__meta">
+          <div class="contact-head__meta" id="contact-meta">
             <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Seattle, WA</span>
             <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Updated 2 days ago</span>
             <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>12 sources</span>
@@ -398,8 +398,8 @@ main{flex:1;padding-bottom:var(--s-9)}
       </div>
 
       <div class="action-bar">
-        <a href="mailto:jane.smith@acme.example.com" class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span>Email</span></a>
-        <a href="https://linkedin.com" target="_blank" rel="noopener" class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg><span>LinkedIn</span></a>
+        <a id="contact-email" href="#" class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span>Email</span></a>
+        <a id="contact-linkedin" href="#" target="_blank" rel="noopener" class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg><span>LinkedIn</span></a>
         <button class="btn btn--ghost" id="edit-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Edit</span></button>
       </div>
 
@@ -864,13 +864,200 @@ Aaron</div>
 </div>
 
 <script>
-const CONTACTS = [
-  {id:'C001',name:'Jane Smith',initials:'JS',title:'Director of End User Computing',company:'Acme Technologies',companyId:'CO001',conf:85,tier:'high',verified:true,stale:'2 days ago',added:5},
-  {id:'C002',name:'Marcus Delaney',initials:'MD',title:'VP IT Infrastructure',company:'Acme Technologies',companyId:'CO001',conf:78,tier:'high',verified:true,stale:'5 days ago',added:4},
-  {id:'C003',name:'Lin Park',initials:'LP',title:'CIO',company:'Northwind Health',companyId:'CO002',conf:62,tier:'med',verified:true,stale:'1 week ago',added:3},
-  {id:'C004',name:'Derek Okonkwo',initials:'DO',title:'VP Endpoint Strategy',company:'Sentinel Logistics',companyId:'CO003',conf:81,tier:'high',verified:true,stale:'3 days ago',added:2},
-  {id:'C005',name:'Priya Raman',initials:'PR',title:'Director, Cloud Operations',company:'Acme Technologies',companyId:'CO001',conf:55,tier:'med',verified:false,stale:'2 weeks ago',added:1}
-];
+/* ========== Data Layer ==========
+   Fetches all 15 Google Sheet tabs via gviz CSV, parses, indexes.
+   Provides getContactsForList() in the shape used by renderList. */
+
+const CONFIG = {
+  SHEET_ID: '11JvRXvlZAPoJTf5SwVRUD4EP32Q74Z7yd1ikZQ6NY2g',
+  WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbyazU2KQWeqr7BtK9OdnYMUs4XGxBhcZUmrq8sR3I72BY3W7rmKR3sdMLwo2kjFI92U/exec',
+  TABS: [
+    'Contacts', 'Companies', 'Contact_Links', 'Company_Links',
+    'Company_Achievements', 'Affiliations', 'Activities', 'Events',
+    'Org_Chart', 'Sources', 'Confidence_Checks', 'Playbook_Steps',
+    'Templates', 'Priority_Matrix', 'Email_Patterns'
+  ]
+};
+const csvUrl = (tab) =>
+  `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+
+const TAB_KEY = {
+  'Contacts':'contacts','Companies':'companies','Contact_Links':'contact_links',
+  'Company_Links':'company_links','Company_Achievements':'company_achievements',
+  'Affiliations':'affiliations','Activities':'activities','Events':'events',
+  'Org_Chart':'org_chart','Sources':'sources','Confidence_Checks':'confidence_checks',
+  'Playbook_Steps':'playbook_steps','Templates':'templates',
+  'Priority_Matrix':'priority_matrix','Email_Patterns':'email_patterns'
+};
+
+function parseCSV(text){
+  if(!text) return [];
+  if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+  const rows=[]; let row=[], field='', inQuotes=false, i=0; const len=text.length;
+  while(i<len){
+    const ch=text[i];
+    if(inQuotes){
+      if(ch==='"'){
+        if(i+1<len && text[i+1]==='"'){ field+='"'; i+=2; continue; }
+        inQuotes=false; i++; continue;
+      }
+      field+=ch; i++;
+    }else{
+      if(ch==='"'){ inQuotes=true; i++; }
+      else if(ch===','){ row.push(field); field=''; i++; }
+      else if(ch==='\r'){
+        row.push(field); field=''; rows.push(row); row=[];
+        if(i+1<len && text[i+1]==='\n') i+=2; else i++;
+      }
+      else if(ch==='\n'){ row.push(field); field=''; rows.push(row); row=[]; i++; }
+      else { field+=ch; i++; }
+    }
+  }
+  if(field.length>0 || row.length>0){ row.push(field); rows.push(row); }
+  while(rows.length && rows[rows.length-1].every(c=>c==='')) rows.pop();
+  return rows;
+}
+
+function rowsToObjects(rows){
+  if(!rows.length) return [];
+  const headers=rows[0].map(h=>(h||'').trim());
+  return rows.slice(1).map(r=>{
+    const o={};
+    for(let i=0;i<headers.length;i++) o[headers[i]] = r[i]!=null ? r[i] : '';
+    return o;
+  });
+}
+
+function splitPipe(v){
+  if(v==null) return [];
+  return String(v).split('|').map(s=>s.trim()).filter(Boolean);
+}
+
+function groupBy(arr,key){
+  const m={};
+  for(const r of (arr||[])){
+    const k=r[key]; if(!k) continue;
+    (m[k] || (m[k]=[])).push(r);
+  }
+  return m;
+}
+
+async function loadAllData(){
+  window.__DATA = {};
+  for(const k of Object.values(TAB_KEY)) window.__DATA[k] = [];
+  const results = await Promise.all(
+    CONFIG.TABS.map(tab =>
+      fetch(csvUrl(tab))
+        .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+        .then(text => ({ tab, rows: rowsToObjects(parseCSV(text)) }))
+        .catch(err => { console.error('[LeadCheck] Failed tab:', tab, err); return { tab, rows: [] }; })
+    )
+  );
+  results.forEach(({tab,rows})=>{
+    const key=TAB_KEY[tab];
+    if(key==='contacts'){
+      rows.forEach(r=>{ r.certifications=splitPipe(r.certifications); r.themes=splitPipe(r.themes); });
+    } else if(key==='companies'){
+      rows.forEach(r=>{ r.partners=splitPipe(r.partners); r.badges=splitPipe(r.badges); });
+    }
+    window.__DATA[key] = rows;
+  });
+  return window.__DATA;
+}
+
+function buildIndexes(){
+  const D = window.__DATA || {};
+  const idx = {
+    contactById: {},
+    companyById: {},
+    byContact: {
+      activities: groupBy(D.activities,'contact_id'),
+      events: groupBy(D.events,'contact_id'),
+      org_chart: groupBy(D.org_chart,'contact_id'),
+      sources: groupBy(D.sources,'contact_id'),
+      confidence_checks: groupBy(D.confidence_checks,'contact_id'),
+      playbook_steps: groupBy(D.playbook_steps,'contact_id'),
+      templates: groupBy(D.templates,'contact_id'),
+      priority_matrix: groupBy(D.priority_matrix,'contact_id'),
+      affiliations: groupBy(D.affiliations,'contact_id'),
+      contact_links: groupBy(D.contact_links,'contact_id')
+    },
+    byCompany: {
+      company_links: groupBy(D.company_links,'company_id'),
+      company_achievements: groupBy(D.company_achievements,'company_id'),
+      email_patterns: groupBy(D.email_patterns,'company_id')
+    }
+  };
+  for(const c of (D.contacts||[])) if(c.contact_id) idx.contactById[c.contact_id]=c;
+  for(const co of (D.companies||[])) if(co.company_id) idx.companyById[co.company_id]=co;
+  window.__INDEX = idx;
+  return idx;
+}
+
+function deriveInitials(fullName){
+  if(!fullName) return '??';
+  const parts=String(fullName).trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return '??';
+  const first=parts[0][0]||'';
+  const last=parts.length>1 ? (parts[parts.length-1][0]||'') : '';
+  return ((first+last).toUpperCase()) || '??';
+}
+
+function formatStale(lastUpdated){
+  if(!lastUpdated) return '';
+  const d=new Date(lastUpdated);
+  if(isNaN(d.getTime())) return '';
+  const days=Math.floor((Date.now()-d.getTime())/86400000);
+  if(days<=0) return 'today';
+  if(days===1) return '1 day ago';
+  if(days<14) return days+' days ago';
+  const weeks=Math.floor(days/7);
+  if(weeks===1) return '1 week ago';
+  if(weeks<8) return weeks+' weeks ago';
+  const months=Math.floor(days/30);
+  return months+' month'+(months===1?'':'s')+' ago';
+}
+
+function tierFromEmailConf(val){
+  const v=String(val||'').toUpperCase();
+  if(v==='HIGH') return 'high';
+  if(v==='LOW') return 'low';
+  return 'med';
+}
+
+function getContactsForList(){
+  const D=window.__DATA||{}; const IDX=window.__INDEX||{companyById:{}};
+  return (D.contacts||[]).filter(r=>r.contact_id).map(r=>{
+    const co=IDX.companyById[r.company_id];
+    const companyName = co ? (co.name||'') : '';
+    const initials = (r.initials && String(r.initials).trim()) ? String(r.initials).trim() : deriveInitials(r.full_name);
+    return {
+      id: r.contact_id,
+      name: r.full_name||'',
+      initials,
+      title: r.title||'',
+      company: companyName,
+      companyId: r.company_id||'',
+      conf: Number(r.overall_confidence)||0,
+      tier: tierFromEmailConf(r.email_confidence),
+      verified: String(r.verified||'').toUpperCase()==='TRUE',
+      stale: formatStale(r.last_updated),
+      added: Date.parse(r.date_added||'')||0
+    };
+  });
+}
+
+function showDataLoading(){
+  const mount=document.getElementById('list-mount');
+  if(mount) mount.innerHTML='<div class="list-section"><div class="list-section__head">Loading live data…</div></div>';
+}
+
+function escapeHtml(v){
+  if(v==null) return '';
+  return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ========== End Data Layer ========== */
 
 let activeFilter='all',activeSort='recent',activeSearch='',editingId=null;
 
@@ -898,28 +1085,38 @@ function avatarClass(c){
   return'avatar--amber';
 }
 
+function updateChipCounts(all){
+  const allChip=document.querySelector('.chip[data-filter="all"] .chip__count');
+  const highChip=document.querySelector('.chip[data-filter="high"] .chip__count');
+  if(allChip) allChip.textContent=all.length;
+  if(highChip) highChip.textContent=all.filter(c=>c.tier==='high').length;
+}
+
 function renderList(){
   const mount=document.getElementById('list-mount');
   const empty=document.getElementById('empty-state');
   const term=activeSearch.trim().toLowerCase();
 
-  let items=CONTACTS.slice();
-  if(term){items=items.filter(c=>c.name.toLowerCase().includes(term)||c.title.toLowerCase().includes(term)||c.company.toLowerCase().includes(term));}
+  const all=getContactsForList();
+  let items=all.slice();
+  if(term){items=items.filter(c=>(c.name||'').toLowerCase().includes(term)||(c.title||'').toLowerCase().includes(term)||(c.company||'').toLowerCase().includes(term));}
   if(activeFilter==='high')items=items.filter(c=>c.tier==='high');
 
-  if(activeSort==='name')items.sort((a,b)=>a.name.localeCompare(b.name));
+  if(activeSort==='name')items.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   else if(activeSort==='confidence')items.sort((a,b)=>b.conf-a.conf);
   else items.sort((a,b)=>b.added-a.added);
+
+  updateChipCounts(all);
 
   if(items.length===0){mount.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
 
   if(activeFilter==='company'){
     const groups={};
-    items.forEach(c=>{if(!groups[c.company])groups[c.company]=[];groups[c.company].push(c);});
+    items.forEach(c=>{const k=c.company||'—';if(!groups[k])groups[k]=[];groups[k].push(c);});
     mount.innerHTML=Object.keys(groups).sort().map(co=>`
       <div class="list-section">
-        <div class="list-section__head">${co} · ${groups[co].length}</div>
+        <div class="list-section__head">${escapeHtml(co)} · ${groups[co].length}</div>
         <div class="contact-list">${groups[co].map(itemHTML).join('')}</div>
       </div>`).join('');
   }else{
@@ -927,29 +1124,391 @@ function renderList(){
   }
 }
 function itemHTML(c){
-  return`<button class="contact-item" data-route="contact" data-id="${c.id}">
-    <div class="avatar avatar--md ${avatarClass(c)}">${c.initials}</div>
+  return`<button class="contact-item" data-route="contact" data-id="${escapeHtml(c.id)}">
+    <div class="avatar avatar--md ${avatarClass(c)}">${escapeHtml(c.initials)}</div>
     <div class="contact-item__body">
-      <div class="contact-item__name">${c.name}</div>
-      <div class="contact-item__sub">${c.title} · <b>${c.company}</b></div>
+      <div class="contact-item__name">${escapeHtml(c.name)}</div>
+      <div class="contact-item__sub">${escapeHtml(c.title)} · <b>${escapeHtml(c.company)}</b></div>
     </div>
     <div class="contact-item__meta">
-      <span class="stale">${c.stale}</span>
+      <span class="stale">${escapeHtml(c.stale)}</span>
       <div class="conf conf--${c.tier}">
         <span class="conf__dots"><span class="conf__dot"></span><span class="conf__dot"></span><span class="conf__dot"></span></span>
-        <span class="conf__num">${c.conf}</span>
+        <span class="conf__num">${escapeHtml(c.conf)}</span>
       </div>
     </div>
   </button>`;
 }
 
+const SVG_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+const SVG_CLOCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+const SVG_DOC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+const SVG_MIC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+const SVG_PODCAST='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+
+function activityIcon(type){
+  const t=String(type||'').toLowerCase();
+  if(t.includes('podcast')) return SVG_PODCAST;
+  if(t.includes('talk')||t.includes('keynote')||t.includes('speak')||t.includes('panel')) return SVG_MIC;
+  return SVG_DOC;
+}
+
 function renderContactDetail(id){
-  const c=CONTACTS.find(x=>x.id===id)||CONTACTS[0];
+  const IDX=window.__INDEX||{contactById:{},companyById:{},byContact:{sources:{}}};
+  const all=getContactsForList();
+  const c=all.find(x=>x.id===id)||all[0];
+  if(!c) return;
+  const raw=IDX.contactById[c.id]||{};
+  const co=IDX.companyById[raw.company_id]||{};
+  const companyName=co.name||c.company||'';
+
   const av=document.getElementById('contact-avatar');
   av.textContent=c.initials;
   av.className='avatar avatar--lg '+avatarClass(c);
   document.getElementById('contact-name').textContent=c.name;
-  document.getElementById('contact-title').textContent=c.title+' · '+c.company;
+  document.getElementById('contact-title').textContent=(c.title||'')+(companyName?' · '+companyName:'');
+
+  const verified=document.getElementById('contact-verified');
+  if(verified) verified.style.display=c.verified?'':'none';
+
+  const meta=document.getElementById('contact-meta');
+  if(meta){
+    const location=raw.location||'';
+    const stale=formatStale(raw.last_updated);
+    const sourceCount=((IDX.byContact&&IDX.byContact.sources&&IDX.byContact.sources[c.id])||[]).length;
+    const parts=[];
+    if(location) parts.push(`<span>${SVG_PIN}${escapeHtml(location)}</span>`);
+    if(stale) parts.push(`<span>${SVG_CLOCK}Updated ${escapeHtml(stale)}</span>`);
+    parts.push(`<span>${SVG_DOC}${sourceCount} source${sourceCount===1?'':'s'}</span>`);
+    meta.innerHTML=parts.join('');
+  }
+
+  renderActionBar(raw);
+  renderProfilePanel(raw, c.id);
+  renderCompanyPanel(raw, c.id);
+  renderOrgPanel(raw, c.id);
+  renderPlaybookPanel(raw, c.id);
+  renderSourceLog(c.id);
+}
+
+function renderActionBar(raw){
+  const IDX=window.__INDEX||{};
+  const emailBtn=document.getElementById('contact-email');
+  if(emailBtn){
+    if(raw.email){ emailBtn.href='mailto:'+raw.email; emailBtn.style.display=''; }
+    else { emailBtn.style.display='none'; }
+  }
+  const linkedinBtn=document.getElementById('contact-linkedin');
+  if(linkedinBtn){
+    const links=(IDX.byContact&&IDX.byContact.contact_links&&IDX.byContact.contact_links[raw.contact_id])||[];
+    const li=links.find(l=>String(l.link_type||'').toLowerCase().includes('linkedin'));
+    if(li && li.url){ linkedinBtn.href=li.url; linkedinBtn.style.display=''; }
+    else { linkedinBtn.style.display='none'; }
+  }
+}
+
+function renderProfilePanel(raw, id){
+  const panel=document.querySelector('.panel[data-panel="profile"]');
+  if(!panel) return;
+  const IDX=window.__INDEX||{};
+  const activities=(IDX.byContact&&IDX.byContact.activities&&IDX.byContact.activities[id])||[];
+  const events=(IDX.byContact&&IDX.byContact.events&&IDX.byContact.events[id])||[];
+  const affiliations=(IDX.byContact&&IDX.byContact.affiliations&&IDX.byContact.affiliations[id])||[];
+  const themes=Array.isArray(raw.themes)?raw.themes:[];
+  const certs=Array.isArray(raw.certifications)?raw.certifications:[];
+
+  const activityHtml=activities.map(a=>{
+    const srcParts=[];
+    if(a.date) srcParts.push(escapeHtml(a.date));
+    if(a.url||a.source_name){
+      const label=a.source_name||a.url||'';
+      srcParts.push(a.url?`<a href="${escapeHtml(a.url)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>`:escapeHtml(label));
+    }
+    return `<div class="activity">
+      <div class="activity__icon">${activityIcon(a.activity_type)}</div>
+      <div class="activity__body">
+        <div class="activity__text">${escapeHtml(a.title||'')}${a.description?' — '+escapeHtml(a.description):''}</div>
+        ${srcParts.length?`<div class="activity__src">${srcParts.join(' · ')}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  const themeHtml=themes.length?`${activities.length?'<hr class="divider">':''}<div class="pill-row">${themes.map(t=>`<span class="pill pill--amber">${escapeHtml(t)}</span>`).join('')}</div>`:'';
+
+  const eventsHtml=events.map(e=>`
+    <div class="event">
+      <div class="event__head">
+        <span class="event__name">${escapeHtml(e.name||'')}</span>
+        ${e.date?`<span class="pill pill--blue">${escapeHtml(e.date)}</span>`:''}
+        ${e.role?`<span class="pill pill--gray">${escapeHtml(e.role)}</span>`:''}
+      </div>
+      ${(e.location||e.source_url)?`<div class="event__loc">${escapeHtml(e.location||'')}${e.source_url?` · <a href="${escapeHtml(e.source_url)}" target="_blank" rel="noopener">Source</a>`:''}</div>`:''}
+      ${e.insight_callout?`<div class="callout">${escapeHtml(e.insight_callout)}</div>`:''}
+    </div>`).join('');
+
+  const affHtml=affiliations.length?`<div class="pill-row" style="margin-bottom:12px">${affiliations.map(a=>`<span class="pill pill--blue">${escapeHtml(a.label||a.name||'')}</span>`).join('')}</div>`:'';
+  const kvRows=[];
+  if(raw.education) kvRows.push(`<dt>Education</dt><dd>${escapeHtml(raw.education)}</dd>`);
+  if(certs.length) kvRows.push(`<dt>Certifications</dt><dd>${certs.map(escapeHtml).join(' · ')}</dd>`);
+  if(raw.email) kvRows.push(`<dt>Email</dt><dd class="mono">${escapeHtml(raw.email)}</dd>`);
+
+  panel.innerHTML=`
+    ${raw.outreach_angle?`<div class="section"><div class="section__head"><span class="section__title">Pre-Call Briefing</span></div><div class="section__body"><div class="highlight">${escapeHtml(raw.outreach_angle).replace(/\n/g,'<br>')}</div></div></div>`:''}
+    ${raw.decision_role?`<div class="section"><div class="section__head"><span class="section__title">Decision-Making Authority</span></div><div class="section__body"><p class="prose">${escapeHtml(raw.decision_role)}</p></div></div>`:''}
+    ${raw.background?`<div class="section"><div class="section__head"><span class="section__title">Background</span></div><div class="section__body"><p class="prose">${escapeHtml(raw.background)}</p></div></div>`:''}
+    ${(activities.length||themes.length)?`<div class="section"><div class="section__head"><span class="section__title">What They're Talking About</span></div><div class="section__body">${activityHtml}${themeHtml}</div></div>`:''}
+    ${events.length?`<div class="section"><div class="section__head"><span class="section__title">Coming Up</span></div><div class="section__body">${eventsHtml}</div></div>`:''}
+    ${(affiliations.length||kvRows.length)?`<div class="section"><div class="section__head"><span class="section__title">Affiliations &amp; Background</span></div><div class="section__body">${affHtml}${kvRows.length?`<dl class="kv">${kvRows.join('')}</dl>`:''}</div></div>`:''}
+  `;
+}
+
+function renderCompanyPanel(raw, id){
+  const panel=document.querySelector('.panel[data-panel="company"]');
+  if(!panel) return;
+  const D=window.__DATA||{};
+  const IDX=window.__INDEX||{};
+  const co=(IDX.companyById&&IDX.companyById[raw.company_id])||null;
+  if(!co){ panel.innerHTML='<div class="section"><div class="section__body"><p class="prose">Company record not found.</p></div></div>'; return; }
+  const companyName=co.name||'';
+  const companyId=co.company_id;
+  const links=(IDX.byCompany&&IDX.byCompany.company_links&&IDX.byCompany.company_links[companyId])||[];
+  const achievements=(IDX.byCompany&&IDX.byCompany.company_achievements&&IDX.byCompany.company_achievements[companyId])||[];
+  const others=(D.contacts||[]).filter(c=>c.company_id===companyId && c.contact_id!==id);
+
+  const kv=[];
+  if(co.industry) kv.push(['Industry', co.industry]);
+  if(co.hq) kv.push(['HQ', co.hq]);
+  if(co.size) kv.push(['Size', co.size]);
+  if(co.revenue) kv.push(['Revenue', co.revenue]);
+  if(co.founded) kv.push(['Founded', co.founded]);
+  if(co.ceo) kv.push(['CEO', co.ceo]);
+  if(co.prior_ceo) kv.push(['Prior CEO', co.prior_ceo]);
+  const partners=Array.isArray(co.partners)?co.partners:[];
+  if(partners.length) kv.push(['Partners', partners.join(' · ')]);
+
+  const descHtml=co.description?`<p class="prose" style="margin-bottom:16px">${escapeHtml(co.description)}</p>`:'';
+  const kvHtml=kv.map(([k,v])=>`<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('');
+  const linksHtml=links.length?`<hr class="divider"><div class="pill-row">${links.map(l=>`<a class="pill pill--gray" href="${escapeHtml(l.url||'#')}"${l.url?' target="_blank" rel="noopener"':''}>${escapeHtml(l.label||l.link_type||'Link')}</a>`).join('')}</div>`:'';
+
+  const othersHtml=others.length?`
+    <div class="section">
+      <div class="section__head"><span class="section__title">Other Contacts at ${escapeHtml(companyName)}</span></div>
+      <div class="section__body" style="padding:8px">
+        ${others.map(o=>{
+          const conf=Number(o.overall_confidence)||0;
+          const tier=tierFromEmailConf(o.email_confidence);
+          const init=(o.initials&&String(o.initials).trim())||deriveInitials(o.full_name);
+          const verif=String(o.verified||'').toUpperCase()==='TRUE';
+          const ac=(verif && tier==='high')?'avatar--blue':'avatar--amber';
+          return `<button class="contact-item" data-route="contact" data-id="${escapeHtml(o.contact_id)}">
+            <div class="avatar avatar--md ${ac}">${escapeHtml(init)}</div>
+            <div class="contact-item__body">
+              <div class="contact-item__name">${escapeHtml(o.full_name||'')}</div>
+              <div class="contact-item__sub">${escapeHtml(o.title||'')}</div>
+            </div>
+            <div class="contact-item__meta">
+              <div class="conf conf--${tier}"><span class="conf__dots"><span class="conf__dot"></span><span class="conf__dot"></span><span class="conf__dot"></span></span><span class="conf__num">${conf}</span></div>
+            </div>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`:'';
+
+  const achvHtml=achievements.length?`
+    <div class="section">
+      <div class="section__head"><span class="section__title">What's Happening</span></div>
+      <div class="section__body">
+        ${achievements.map((a,i)=>`${i>0?'<hr class="divider">':''}<p class="prose">${a.title?`<b>${escapeHtml(a.title)}:</b> `:''}${escapeHtml(a.summary||a.description||'')}</p>`).join('')}
+      </div>
+    </div>`:'';
+
+  const emailHtml=co.email_format?`
+    <div class="section">
+      <div class="section__head"><span class="section__title">Email Pattern</span></div>
+      <div class="section__body">
+        <p class="prose mono" style="margin-bottom:6px">${escapeHtml(co.email_format)}</p>
+        ${co.email_format_confidence?`<p style="font-size:12px;color:var(--ink-3)">${escapeHtml(co.email_format_confidence)}</p>`:''}
+      </div>
+    </div>`:'';
+
+  panel.innerHTML=`
+    <div class="section">
+      <div class="section__head"><span class="section__title">${escapeHtml(companyName)}</span></div>
+      <div class="section__body">
+        ${descHtml}
+        ${kvHtml?`<dl class="kv">${kvHtml}</dl>`:''}
+        ${linksHtml}
+      </div>
+    </div>
+    ${othersHtml}
+    ${achvHtml}
+    ${emailHtml}
+  `;
+}
+
+function orgNodeHtml(node){
+  const kind=String(node.confidence||'').toLowerCase();
+  let cls='';
+  if(node.role_type==='target') cls='org-node--target';
+  else if(kind==='confirmed') cls='org-node--confirmed';
+  else if(kind==='inferred') cls='org-node--inferred';
+  const chipText=node.role_type==='target'?'Target':(kind?(kind.charAt(0).toUpperCase()+kind.slice(1)):'');
+  return `<div class="org-node ${cls}">
+    <div class="org-node__name">${escapeHtml(node.name||'')}</div>
+    <div class="org-node__title">${escapeHtml(node.title||'')}</div>
+    ${chipText?`<span class="org-node__chip">${escapeHtml(chipText)}</span>`:''}
+  </div>`;
+}
+
+function renderOrgPanel(raw, id){
+  const panel=document.querySelector('.panel[data-panel="org"]');
+  if(!panel) return;
+  const IDX=window.__INDEX||{};
+  const nodes=(IDX.byContact&&IDX.byContact.org_chart&&IDX.byContact.org_chart[id])||[];
+  const reporting=nodes.filter(n=>['topExec','functionHead','manager','target'].indexOf(n.role_type)>=0)
+    .slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
+  const peers=nodes.filter(n=>n.role_type==='peer');
+  const reports=nodes.filter(n=>n.role_type==='directReport');
+
+  const reportingHtml=reporting.length?`<div class="org-tree">${reporting.map((n,i)=>`${i>0?'<div class="org-connector"></div>':''}${orgNodeHtml(n)}`).join('')}</div>`:'';
+
+  const peerAvatar=(n)=>{
+    const init=(n.initials&&String(n.initials).trim())||deriveInitials(n.name);
+    const color=String(n.confidence||'').toLowerCase()==='confirmed'?'avatar--green':'avatar--amber';
+    return `<div class="avatar avatar--sm ${color}">${escapeHtml(init)}</div>`;
+  };
+  const peerHtml=peers.length?`
+    <div class="peer-section">
+      <div class="peer-section__head">Peers · ${peers.length}</div>
+      ${peers.map((p)=>{
+        const confLower=String(p.confidence||'').toLowerCase();
+        const chipCls=confLower==='confirmed'?'pill--green':'pill--amber';
+        const chipTxt=confLower==='confirmed'?'Confirmed':(confLower?'Inferred':'');
+        const hasDetail=!!(p.note||p.source_url);
+        return `<div class="peer-row"${hasDetail?' data-peer="1"':''}>
+          ${peerAvatar(p)}
+          <div class="peer-row__body"><div class="peer-row__name">${escapeHtml(p.name||'')}</div><div class="peer-row__title">${escapeHtml(p.title||'')}</div></div>
+          ${chipTxt?`<span class="pill ${chipCls}">${chipTxt}</span>`:''}
+        </div>${hasDetail?`<div class="peer-detail">${escapeHtml(p.note||'')}${p.source_url?` <a href="${escapeHtml(p.source_url)}" target="_blank" rel="noopener">Source →</a>`:''}</div>`:''}`;
+      }).join('')}
+    </div>`:'';
+
+  const reportsHtml=reports.length?`
+    <div class="peer-section">
+      <div class="peer-section__head">Direct Reports · ${reports.length}</div>
+      ${reports.map(r=>{
+        const init=(r.initials&&String(r.initials).trim())||deriveInitials(r.name);
+        return `<div class="peer-row">
+          <div class="avatar avatar--sm avatar--blue">${escapeHtml(init)}</div>
+          <div class="peer-row__body"><div class="peer-row__name">${escapeHtml(r.name||'')}</div><div class="peer-row__title">${escapeHtml(r.title||'')}</div></div>
+        </div>`;
+      }).join('')}
+    </div>`:'';
+
+  const mgr=nodes.find(n=>n.role_type==='manager');
+  const howHtml=`
+    <div class="section">
+      <div class="section__head"><span class="section__title">How to Read the Org</span></div>
+      <div class="section__body">
+        <p class="prose"><b>Reporting line:</b> chain above goes from top down to the target. Solid borders indicate confirmed relationships; amber borders indicate inferred.</p>
+        ${mgr?`<p class="prose"><b>Budget holder:</b> ${escapeHtml(mgr.name||'')}${mgr.title?` (${escapeHtml(mgr.title)})`:''} — one level above the target.</p>`:''}
+        <p class="prose"><b>If target goes cold:</b> warmer peers are your re-entry candidates; avoid re-pitching the same angle.</p>
+      </div>
+    </div>`;
+
+  panel.innerHTML=`
+    <div class="section">
+      <div class="section__head"><span class="section__title">Reporting Line</span></div>
+      <div class="section__body">
+        ${reportingHtml}
+        ${peerHtml}
+        ${reportsHtml}
+      </div>
+    </div>
+    ${howHtml}
+  `;
+}
+
+function templateColorClass(color){
+  const c=String(color||'').toLowerCase();
+  if(c==='amber') return 'template__label--amber';
+  if(c==='green') return 'template__label--green';
+  if(c==='gray'||c==='grey') return 'template__label--gray';
+  return 'template__label--blue';
+}
+function priorityClass(p){
+  const v=String(p||'').toLowerCase();
+  if(v==='primary') return 'priority--primary';
+  if(v==='secondary') return 'priority--secondary';
+  return 'priority--tertiary';
+}
+
+function renderPlaybookPanel(raw, id){
+  const panel=document.querySelector('.panel[data-panel="playbook"]');
+  if(!panel) return;
+  const IDX=window.__INDEX||{};
+  const steps=((IDX.byContact&&IDX.byContact.playbook_steps&&IDX.byContact.playbook_steps[id])||[]).slice().sort((a,b)=>(Number(a.step_order)||0)-(Number(b.step_order)||0));
+  const templates=(IDX.byContact&&IDX.byContact.templates&&IDX.byContact.templates[id])||[];
+  const priorities=(IDX.byContact&&IDX.byContact.priority_matrix&&IDX.byContact.priority_matrix[id])||[];
+
+  const stepsHtml=steps.map((s,i)=>{
+    const n=s.step_order||String(i+1);
+    return `<div class="step">
+      <div class="step__box" data-step="${escapeHtml(n)}">${escapeHtml(n)}</div>
+      <div><div class="step__title">${escapeHtml(s.title||'')}</div><div class="step__detail">${escapeHtml(s.detail||'')}</div></div>
+    </div>`;
+  }).join('');
+
+  const tplHtml=templates.map(t=>`
+    <div class="template">
+      <div class="template__label ${templateColorClass(t.color)}">${escapeHtml(t.label||'')}</div>
+      <div class="template__body">${escapeHtml(t.body||'')}</div>
+    </div>`).join('');
+
+  const matrixHtml=priorities.length?`
+    <table class="matrix">
+      <thead><tr><th>Contact</th><th>Channel</th><th>Priority</th><th>Notes</th></tr></thead>
+      <tbody>
+        ${priorities.map(p=>`
+          <tr>
+            <td class="name" data-label="Contact">${escapeHtml(p.contact_name||p.name||'')}</td>
+            <td data-label="Channel">${escapeHtml(p.channel||'')}</td>
+            <td class="priority ${priorityClass(p.priority)}" data-label="Priority">${escapeHtml(p.priority||'')}</td>
+            <td data-label="Notes">${escapeHtml(p.notes||'')}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`:'';
+
+  panel.innerHTML=`
+    ${steps.length?`<div class="section"><div class="section__head"><span class="section__title">Outreach Sequence</span></div><div class="section__body">${stepsHtml}</div></div>`:''}
+    ${templates.length?`<div class="section"><div class="section__head"><span class="section__title">Message Templates</span></div><div class="section__body">${tplHtml}</div></div>`:''}
+    ${priorities.length?`<div class="section"><div class="section__head"><span class="section__title">Priority Order</span></div><div class="section__body" style="padding:0">${matrixHtml}</div></div>`:''}
+  `;
+}
+
+function renderSourceLog(id){
+  const IDX=window.__INDEX||{};
+  const checks=((IDX.byContact&&IDX.byContact.confidence_checks&&IDX.byContact.confidence_checks[id])||[]).slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
+  const sources=((IDX.byContact&&IDX.byContact.sources&&IDX.byContact.sources[id])||[]).slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
+  const passed=checks.filter(c=>String(c.passed||'').toUpperCase()==='TRUE').length;
+
+  const triggerLabel=document.querySelector('.source-trigger__label');
+  if(triggerLabel) triggerLabel.textContent=`Sources · ${sources.length} cited · ${passed} of ${checks.length} checks passed`;
+
+  const content=document.querySelector('.source-content');
+  if(!content) return;
+  const checksHtml=checks.length?`<div class="checks">${checks.map(c=>{
+    const isPass=String(c.passed||'').toUpperCase()==='TRUE';
+    return `<div class="check"><span class="check__mark ${isPass?'check__mark--pass':'check__mark--fail'}">${isPass?'✓':'✗'}</span><span>${escapeHtml(c.check_name||c.label||'')}</span></div>`;
+  }).join('')}</div>`:'';
+  const sourcesHtml=sources.length?`<ol class="source-list">${sources.map(s=>{
+    const label=s.label||s.title||s.url||'Source';
+    return `<li>${s.url?`<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(label)}</a>`:escapeHtml(label)}</li>`;
+  }).join('')}</ol>`:'';
+  content.innerHTML=`
+    ${checksHtml}
+    ${checks.length&&sources.length?'<hr class="coral-divider">':''}
+    ${sourcesHtml}
+  `;
 }
 
 document.querySelectorAll('.chip').forEach(chip=>{
@@ -987,48 +1546,68 @@ document.querySelectorAll('.tab').forEach(tab=>{
   });
 });
 
-const stepStates=['','in-progress','done'];
-document.querySelectorAll('.step__box').forEach(box=>{
-  let state=0;
-  box.addEventListener('click',()=>{
-    state=(state+1)%3;
+// Delegated handlers — panel HTML is re-rendered on each contact view.
+document.addEventListener('click',e=>{
+  const box=e.target.closest('.step__box');
+  if(box){
+    const state=((Number(box.dataset.state)||0)+1)%3;
+    box.dataset.state=String(state);
     box.classList.remove('in-progress','done');
-    if(stepStates[state])box.classList.add(stepStates[state]);
-    box.textContent=state===0?box.dataset.step:state===1?'◔':'✓';
-  });
+    if(state===1) box.classList.add('in-progress');
+    if(state===2) box.classList.add('done');
+    const orig=box.dataset.step||box.textContent;
+    box.textContent=state===0?orig:state===1?'◔':'✓';
+    return;
+  }
+  const row=e.target.closest('.peer-row[data-peer]');
+  if(row){
+    const d=row.nextElementSibling;
+    if(d && d.classList.contains('peer-detail')) d.classList.toggle('open');
+  }
 });
 
 const log=document.getElementById('source-log');
 document.getElementById('source-trigger').addEventListener('click',()=>log.classList.toggle('open'));
 
-document.querySelectorAll('.peer-row[data-peer]').forEach(row=>{
-  row.addEventListener('click',()=>{
-    const d=document.getElementById('peer-'+row.dataset.peer);
-    if(d)d.classList.toggle('open');
-  });
-});
-
 const backdrop=document.getElementById('modal-backdrop');
 const modalTitle=document.getElementById('modal-title');
+
+function populateCompanySelect(){
+  const sel=document.getElementById('f-company');
+  if(!sel) return;
+  const D=window.__DATA||{};
+  const companies=(D.companies||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const current=sel.value;
+  sel.innerHTML='<option value="">Select a company…</option>'
+    +companies.map(c=>`<option value="${escapeHtml(c.company_id)}">${escapeHtml(c.name||'')}</option>`).join('')
+    +'<option value="__new">+ Create new company</option>';
+  if(current) sel.value=current;
+}
 
 function openModal(mode,contact){
   modalTitle.textContent=mode==='edit'?'Edit Contact':'New Contact';
   editingId=mode==='edit'&&contact?contact.id:null;
+  populateCompanySelect();
   if(mode==='edit'&&contact){
-    document.getElementById('f-name').value=contact.name;
-    document.getElementById('f-title').value=contact.title;
-    document.getElementById('f-company').value=contact.companyId||'';
-    document.getElementById('f-email').value='jane.smith@acme.example.com';
-    document.getElementById('f-location').value='Seattle, WA';
-    document.getElementById('f-linkedin').value='https://linkedin.com/in/janesmith';
-    document.querySelector('.editor__content').innerHTML='15-year EUC veteran. Joined Acme from Microsoft FastTrack in 2022. Built Acme\'s internal device lifecycle program.';
-    document.getElementById('f-decision').value='Budget holder for EUC tooling under $250K. Reports to Marcus Delaney for spend above that threshold.';
-    document.getElementById('f-angle').value='Lead with device lifecycle automation. Reference benchmark data on year-three program failures. Avoid generic MDM positioning.';
-    setChips('chip-themes',['Device Lifecycle','Modern Workplace','End User Productivity']);
-    setChips('chip-certs',['MCSE','Citrix CCP-V']);
+    const IDX=window.__INDEX||{};
+    const raw=(IDX.contactById&&IDX.contactById[contact.id])||{};
+    const links=(IDX.byContact&&IDX.byContact.contact_links&&IDX.byContact.contact_links[contact.id])||[];
+    const linkedin=links.find(l=>String(l.link_type||'').toLowerCase().includes('linkedin'));
+    document.getElementById('f-name').value=raw.full_name||contact.name||'';
+    document.getElementById('f-title').value=raw.title||contact.title||'';
+    document.getElementById('f-company').value=raw.company_id||contact.companyId||'';
+    document.getElementById('f-email').value=raw.email||'';
+    document.getElementById('f-location').value=raw.location||'';
+    document.getElementById('f-linkedin').value=(linkedin&&linkedin.url)||'';
+    document.querySelector('.editor__content').textContent=raw.background||'';
+    document.getElementById('f-decision').value=raw.decision_role||'';
+    document.getElementById('f-angle').value=raw.outreach_angle||'';
+    setChips('chip-themes',Array.isArray(raw.themes)?raw.themes:[]);
+    setChips('chip-certs',Array.isArray(raw.certifications)?raw.certifications:[]);
   }else{
-    document.querySelectorAll('.input,.textarea,.select').forEach(f=>f.value='');
-    document.querySelector('.editor__content').innerHTML='';
+    document.querySelectorAll('.input,.textarea').forEach(f=>f.value='');
+    document.getElementById('f-company').value='';
+    document.querySelector('.editor__content').textContent='';
     setChips('chip-themes',[]);
     setChips('chip-certs',[]);
   }
@@ -1039,20 +1618,103 @@ function closeModal(){backdrop.classList.remove('open');}
 
 document.getElementById('add-btn').addEventListener('click',()=>openModal('new'));
 document.getElementById('edit-btn').addEventListener('click',()=>{
-  const id=(location.hash.split('/')[2])||'C001';
-  openModal('edit',CONTACTS.find(c=>c.id===id)||CONTACTS[0]);
+  const id=(location.hash.split('/')[2])||'';
+  const all=getContactsForList();
+  const c=all.find(x=>x.id===id)||all[0];
+  if(c) openModal('edit',c);
 });
 document.getElementById('modal-close').addEventListener('click',closeModal);
 document.getElementById('modal-cancel').addEventListener('click',closeModal);
 backdrop.addEventListener('click',e=>{if(e.target===backdrop)closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
-document.getElementById('modal-save').addEventListener('click',()=>{
+function collectChipValues(containerId){
+  return Array.from(document.querySelectorAll('#'+containerId+' .chip-input__chip'))
+    .map(c=>(c.firstChild&&c.firstChild.textContent?c.firstChild.textContent.trim():''))
+    .filter(Boolean);
+}
+
+document.getElementById('modal-save').addEventListener('click',async()=>{
   const name=document.getElementById('f-name').value.trim();
-  const company=document.getElementById('f-company').value;
-  if(!name||!company){showToast('Name and company are required');return;}
-  closeModal();
-  showToast(editingId?'Contact updated · would write to Google Sheet':'Contact saved · would write to Google Sheet');
+  const companyId=document.getElementById('f-company').value;
+  if(!name||!companyId){ showToast('Name and company are required'); return; }
+  if(companyId==='__new'){ showToast('Creating new companies is not yet supported'); return; }
+
+  const themes=collectChipValues('chip-themes');
+  const certs=collectChipValues('chip-certs');
+  const bgEl=document.querySelector('.editor__content');
+  const background=((bgEl&&(bgEl.innerText||bgEl.textContent))||'').trim();
+  const today=new Date().toISOString().slice(0,10);
+
+  const fields={
+    full_name:name,
+    title:document.getElementById('f-title').value.trim(),
+    company_id:companyId,
+    email:document.getElementById('f-email').value.trim(),
+    location:document.getElementById('f-location').value.trim(),
+    background:background,
+    decision_role:document.getElementById('f-decision').value.trim(),
+    outreach_angle:document.getElementById('f-angle').value.trim(),
+    themes:themes.join('|'),
+    certifications:certs.join('|'),
+    last_updated:today
+  };
+
+  let payload;
+  if(editingId){
+    payload={ action:'update', tab:'Contacts', idColumn:'contact_id', idValue:editingId, data:fields };
+  } else {
+    const newId='C'+String(Date.now()).slice(-6);
+    fields.contact_id=newId;
+    fields.date_added=today;
+    payload={ action:'append', tab:'Contacts', data:fields };
+  }
+
+  const saveBtn=document.getElementById('modal-save');
+  const origLabel=saveBtn.textContent;
+  saveBtn.disabled=true; saveBtn.textContent='Saving…';
+
+  try {
+    // Apps Script CORS: omit Content-Type to avoid preflight; body is read via e.postData.contents.
+    const resp=await fetch(CONFIG.WEB_APP_URL, { method:'POST', body:JSON.stringify(payload) });
+    const text=await resp.text();
+    let result;
+    try { result=JSON.parse(text); } catch(_) { throw new Error('Invalid response: '+text.slice(0,120)); }
+    if(!result || result.ok===false){ throw new Error((result&&result.error)||'Unknown error'); }
+
+    closeModal();
+    showToast(editingId?'Contact updated':'Contact saved');
+
+    // Optimistic local update so UI reflects the change before refetch.
+    const D=window.__DATA;
+    const optimistic=Object.assign({}, fields, {
+      themes: splitPipe(fields.themes),
+      certifications: splitPipe(fields.certifications)
+    });
+    if(editingId){
+      const i=(D.contacts||[]).findIndex(c=>c.contact_id===editingId);
+      if(i>=0) Object.assign(D.contacts[i], optimistic);
+    } else {
+      D.contacts.push(optimistic);
+    }
+    buildIndexes();
+    renderList();
+    const viewed=(location.hash.split('/')[2])||'';
+    if(viewed) renderContactDetail(viewed);
+
+    // Background re-sync to catch any server-side derivations.
+    setTimeout(()=>{
+      loadAllData()
+        .then(()=>{ buildIndexes(); populateCompanySelect(); renderList();
+          const v=(location.hash.split('/')[2])||''; if(v) renderContactDetail(v); })
+        .catch(err=>console.error('[LeadCheck] Refresh failed', err));
+    }, 2000);
+  } catch(err) {
+    console.error('[LeadCheck] Save failed', err);
+    showToast('Save failed: '+(err.message||err));
+  } finally {
+    saveBtn.disabled=false; saveBtn.textContent=origLabel;
+  }
 });
 
 function setChips(containerId,values){
@@ -1096,8 +1758,21 @@ function showToast(msg){
   toastTimer=setTimeout(()=>toast.classList.remove('show'),2400);
 }
 
-renderList();
-handleHash();
+// Bootstrap: fetch live data, then render.
+showDataLoading();
+loadAllData()
+  .then(()=>{
+    buildIndexes();
+    console.log('[LeadCheck] Data loaded:', window.__DATA, window.__INDEX);
+    populateCompanySelect();
+    renderList();
+    handleHash();
+  })
+  .catch(err=>{
+    console.error('[LeadCheck] loadAllData failed', err);
+    renderList();
+    handleHash();
+  });
 </script>
 </body>
 </html>
