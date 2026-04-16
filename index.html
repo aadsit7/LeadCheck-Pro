@@ -3,2419 +3,1100 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="LeadCheck Pro — Recast Software's contact intelligence database and Connection Architect dashboard.">
 <meta name="theme-color" content="#0000CC">
-<title>LeadCheck Pro · Recast Software</title>
+<title>LeadCheck Pro</title>
 <link rel="preconnect" href="https://rsms.me/">
 <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 <style>
-/* =========================================================================
-   1. RESET + DESIGN TOKENS
-   ========================================================================= */
-*, *::before, *::after { box-sizing: border-box; }
-html, body, h1, h2, h3, h4, p, ul, ol, dl, dt, dd, figure, blockquote { margin: 0; padding: 0; }
-ul, ol { list-style: none; }
-button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-a { color: inherit; text-decoration: none; }
-img { max-width: 100%; display: block; }
-input, textarea { font: inherit; color: inherit; }
-
-:root {
-  /* Brand palette */
-  --primary:      #0000CC;
-  --primary-700:  #0000A8;
-  --primary-100:  rgba(0, 0, 204, 0.08);
-  --cyan:         #00BFFF;
-  --cyan-100:     rgba(0, 191, 255, 0.14);
-  --decor:        #2222DD;
-
-  /* Neutral palette */
-  --white:        #FFFFFF;
-  --dark:         #1A1A2E;
-  --medium:       #4A4A5A;
-  --soft:         #6B6B7A;
-  --muted-blue:   #AABBEE;
-  --row-tint:     #FAFAFE;
-  --light-gray:   #F0F0F6;
-  --quote-bg:     #F6F8FF;
-  --divider:      #E6E6F0;
-  --divider-soft: #F0F0F6;
-
-  /* Semantic palette */
-  --green:        #0F7A3F;
-  --green-100:    rgba(15, 122, 63, 0.10);
-  --green-200:    rgba(15, 122, 63, 0.16);
-  --amber:        #B57500;
-  --amber-100:    rgba(181, 117, 0, 0.10);
-  --amber-200:    rgba(181, 117, 0, 0.16);
-  --red:          #C42020;
-  --red-100:      rgba(196, 32, 32, 0.10);
-  --red-200:      rgba(196, 32, 32, 0.16);
-  --coral:        #E07050;
-
-  /* Type */
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-
-  /* Spacing scale */
-  --s-1: 4px;   --s-2: 8px;   --s-3: 12px;  --s-4: 16px;
-  --s-5: 20px;  --s-6: 24px;  --s-7: 32px;  --s-8: 40px;
-  --s-9: 48px;  --s-10: 64px;
-
-  /* Radius */
-  --r-sm: 4px;  --r-md: 6px;  --r-lg: 8px;  --r-xl: 12px;
-
-  /* Elevation (subtle, single-layer) */
-  --elev-1: 0 1px 2px rgba(15, 15, 35, 0.04);
-  --elev-2: 0 2px 6px rgba(15, 15, 35, 0.06), 0 1px 2px rgba(15, 15, 35, 0.04);
-  --elev-3: 0 6px 18px rgba(15, 15, 35, 0.10), 0 2px 4px rgba(15, 15, 35, 0.05);
-
-  /* Motion */
-  --ease: cubic-bezier(0.2, 0.6, 0.2, 1);
-  --t-fast: 120ms;
-  --t-med: 200ms;
-  --t-slow: 320ms;
-
-  /* Layout */
-  --container: 760px;
-}
-
-@supports (font-variation-settings: normal) {
-  :root { --font-sans: 'Inter var', system-ui, -apple-system, sans-serif; }
-}
-
-html, body {
-  height: 100%;
-  background: var(--white);
-}
-body {
-  font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--dark);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-}
-
-/* =========================================================================
-   2. UTILITY
-   ========================================================================= */
-.mono { font-family: var(--font-mono); font-size: 0.92em; letter-spacing: -0.01em; }
-.muted { color: var(--medium); }
-.sr-only {
-  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;
-}
-.skip-link {
-  position: absolute; left: 8px; top: -40px;
-  background: var(--primary); color: var(--white); padding: 8px 12px;
-  border-radius: var(--r-sm); font-weight: 600; font-size: 13px;
-  transition: top var(--t-fast) var(--ease);
-}
-.skip-link:focus { top: 8px; }
-
-:focus-visible {
-  outline: 2px solid var(--cyan);
-  outline-offset: 2px;
-  border-radius: 3px;
-}
-
-/* =========================================================================
-   3. APP LAYOUT
-   ========================================================================= */
-.app {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-.container {
-  width: 100%;
-  max-width: var(--container);
-  margin: 0 auto;
-  padding-left: var(--s-5);
-  padding-right: var(--s-5);
-}
-@media (max-width: 540px) {
-  .container { padding-left: var(--s-4); padding-right: var(--s-4); }
-}
-
-main { flex: 1; padding-bottom: var(--s-9); }
-
-/* =========================================================================
-   4. BRAND HEADER
-   ========================================================================= */
-.brand-header {
-  background: var(--primary);
-  color: var(--white);
-  position: relative;
-  overflow: hidden;
-}
-.brand-header__bg {
-  position: absolute; inset: 0;
-  pointer-events: none; user-select: none;
-  color: var(--decor);
-  font-weight: 800;
-}
-.brand-header__bg span {
-  position: absolute;
-  font-size: 16px;
-  opacity: 0.13;
-}
-.brand-header__bg .p1 { top: 14px; left: 22%; font-size: 18px; opacity: 0.15; }
-.brand-header__bg .p2 { top: 38px; right: 28%; font-size: 14px; }
-.brand-header__bg .p3 { top: 22px; right: 12%; font-size: 16px; opacity: 0.12; }
-.brand-header__bg .p4 { bottom: 18px; left: 38%; font-size: 14px; opacity: 0.10; }
-
-.brand-header__inner {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-4);
-  padding-top: var(--s-4);
-  padding-bottom: var(--s-4);
-}
-
-.wordmark {
-  display: flex;
-  align-items: baseline;
-  gap: var(--s-2);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  font-size: 18px;
-  color: var(--white);
-  cursor: pointer;
-  transition: opacity var(--t-fast) var(--ease);
-}
-.wordmark:hover { opacity: 0.85; }
-.wordmark__sub {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--cyan);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-}
-
-.btn-ghost-on-blue {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 12px;
-  border-radius: var(--r-sm);
-  font-size: 11px; font-weight: 600;
-  letter-spacing: 0.04em; text-transform: uppercase;
-  color: var(--white);
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  transition: background var(--t-fast) var(--ease);
-}
-.btn-ghost-on-blue:hover { background: rgba(255, 255, 255, 0.18); }
-.btn-ghost-on-blue svg { width: 12px; height: 12px; }
-
-/* Search bar in header */
-.search-wrap {
-  position: relative;
-  padding-bottom: var(--s-5);
-}
-.search-input {
-  width: 100%;
-  padding: 12px 16px 12px 42px;
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.20);
-  border-radius: var(--r-md);
-  color: var(--white);
-  font-size: 14px;
-  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
-}
-.search-input::placeholder { color: var(--muted-blue); }
-.search-input:focus {
-  outline: none;
-  background: rgba(255, 255, 255, 0.16);
-  border-color: var(--cyan);
-}
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 13px;
-  width: 16px; height: 16px;
-  color: var(--muted-blue);
-  pointer-events: none;
-}
-
-/* =========================================================================
-   5. BRAND FOOTER
-   ========================================================================= */
-.brand-footer {
-  background: var(--primary);
-  color: var(--muted-blue);
-  padding: var(--s-4) 0;
-  font-size: 11px;
-}
-.brand-footer__inner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--s-4);
-  flex-wrap: wrap;
-}
-.brand-footer .preview-tag {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 3px 8px;
-  border-radius: var(--r-sm);
-  background: rgba(255, 255, 255, 0.10);
-  color: var(--white);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.brand-footer .preview-tag::before {
-  content: '';
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--cyan);
-  box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.30);
-}
-
-/* =========================================================================
-   6. VIEWS (route containers)
-   ========================================================================= */
-.view {
-  display: none;
-  animation: fadeIn var(--t-med) var(--ease);
-}
-.view.active { display: block; }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* =========================================================================
-   7. LANDING VIEW
-   ========================================================================= */
-.hero {
-  padding: var(--s-9) 0 var(--s-7);
-  text-align: left;
-}
-.hero__eyebrow {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 10px; font-weight: 700;
-  letter-spacing: 0.10em; text-transform: uppercase;
-  color: var(--primary);
-  background: var(--primary-100);
-  padding: 4px 10px;
-  border-radius: var(--r-sm);
-  margin-bottom: var(--s-4);
-}
-.hero h1 {
-  font-size: 32px;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.1;
-  color: var(--dark);
-  margin-bottom: var(--s-3);
-}
-.hero p {
-  font-size: 16px;
-  color: var(--medium);
-  max-width: 560px;
-  line-height: 1.55;
-}
-
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--s-3);
-  padding: var(--s-5) 0 var(--s-7);
-  border-bottom: 1px solid var(--divider);
-  margin-bottom: var(--s-7);
-}
-.stat {
-  padding: var(--s-3) 0;
-}
-.stat__value {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--dark);
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
-.stat__label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--medium);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-top: 6px;
-}
-
-.section-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s-3);
-  margin-bottom: var(--s-4);
-}
-.section-head h2 {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--primary);
-  text-transform: uppercase;
-  letter-spacing: 0.10em;
-}
-.section-head .count {
-  font-size: 11px;
-  color: var(--medium);
-  font-variant-numeric: tabular-nums;
-}
-
-.contact-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--s-2);
-  margin-bottom: var(--s-7);
-}
-@media (min-width: 640px) {
-  .contact-grid { grid-template-columns: 1fr 1fr; }
-}
-
-.list-item {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-3);
-  border: 1px solid var(--divider);
-  border-radius: var(--r-md);
-  background: var(--white);
-  cursor: pointer;
-  transition: border-color var(--t-fast) var(--ease),
-              box-shadow var(--t-fast) var(--ease),
-              transform var(--t-fast) var(--ease);
-}
-.list-item:hover {
-  border-color: var(--primary);
-  box-shadow: var(--elev-2);
-  transform: translateY(-1px);
-}
-.list-item__body {
-  flex: 1;
-  min-width: 0;
-}
-.list-item__title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--dark);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.list-item__sub {
-  font-size: 11px;
-  color: var(--medium);
-  margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.list-item__sub b { font-weight: 600; color: var(--soft); }
-
-.company-list {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--s-2);
-}
-@media (min-width: 640px) {
-  .company-list { grid-template-columns: 1fr 1fr; }
-}
-
-/* =========================================================================
-   8. AVATARS
-   ========================================================================= */
-.avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--r-sm);
-  font-weight: 700;
-  flex-shrink: 0;
-  font-feature-settings: 'tnum';
-  letter-spacing: -0.02em;
-}
-.avatar--sm { width: 28px; height: 28px; font-size: 11px; }
-.avatar--md { width: 36px; height: 36px; font-size: 12px; border-radius: var(--r-sm); }
-.avatar--lg { width: 56px; height: 56px; font-size: 18px; border-radius: var(--r-md); }
-.avatar--verified { background: var(--primary); color: var(--white); }
-.avatar--inferred  { background: var(--amber); color: var(--white); }
-.avatar--unverified { background: var(--divider); color: var(--medium); }
-.avatar--company { background: var(--dark); color: var(--white); border-radius: var(--r-sm); }
-
-/* =========================================================================
-   9. PILLS / BADGES
-   ========================================================================= */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: var(--r-sm);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.pill--cyan  { background: var(--cyan-100); color: #006688; }
-.pill--blue  { background: var(--primary-100); color: var(--primary); }
-.pill--green { background: var(--green-100); color: var(--green); }
-.pill--amber { background: var(--amber-100); color: var(--amber); }
-.pill--red   { background: var(--red-100); color: var(--red); }
-.pill--gray  { background: var(--divider); color: var(--medium); }
-.pill--link  { transition: filter var(--t-fast) var(--ease); cursor: pointer; }
-.pill--link:hover { filter: brightness(0.93); }
-
-.pill-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* =========================================================================
-   10. CARDS
-   ========================================================================= */
-.card {
-  background: var(--white);
-  border: 1px solid var(--divider);
-  border-radius: var(--r-md);
-  margin-bottom: var(--s-3);
-  overflow: hidden;
-  box-shadow: var(--elev-1);
-}
-.card__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--s-3) var(--s-4);
-  background: var(--light-gray);
-  border-bottom: 1px solid var(--divider);
-}
-.card__title {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--primary);
-  text-transform: uppercase;
-  letter-spacing: 0.10em;
-}
-.card__head-meta {
-  font-size: 10px;
-  color: var(--medium);
-  font-weight: 500;
-}
-.card__body { padding: var(--s-4); }
-.card__body--tight { padding: var(--s-3); }
-
-/* =========================================================================
-   11. CONFIDENCE BARS / DOTS
-   ========================================================================= */
-.conf {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.conf__bar {
-  width: 64px;
-  height: 4px;
-  background: var(--divider);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.conf__fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width var(--t-slow) var(--ease);
-}
-.conf__num {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.conf--high .conf__fill { background: var(--green); }
-.conf--med  .conf__fill { background: var(--amber); }
-.conf--low  .conf__fill { background: var(--red); }
-.conf--high .conf__num  { color: var(--green); }
-.conf--med  .conf__num  { color: var(--amber); }
-.conf--low  .conf__num  { color: var(--red); }
-
-/* =========================================================================
-   12. CONTACT DETAIL — HEADER
-   ========================================================================= */
-.contact-hero {
-  padding: var(--s-7) 0 var(--s-5);
-}
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--medium);
-  margin-bottom: var(--s-4);
-  transition: color var(--t-fast) var(--ease);
-}
-.back-link:hover { color: var(--primary); }
-.back-link svg { width: 12px; height: 12px; }
-
-.contact-hero__top {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--s-4);
-  margin-bottom: var(--s-4);
-}
-.contact-hero__body { flex: 1; min-width: 0; }
-.contact-hero__name {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
-.contact-hero__name h1 {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--dark);
-}
-.contact-hero__title {
-  font-size: 14px;
-  color: var(--medium);
-  margin-bottom: 6px;
-}
-.contact-hero__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-3);
-  font-size: 12px;
-  color: var(--soft);
-}
-.contact-hero__meta span { display: inline-flex; align-items: center; gap: 4px; }
-.contact-hero__meta svg { width: 12px; height: 12px; opacity: 0.6; }
-
-/* Confidence summary band */
-.conf-band {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-3) var(--s-4);
-  background: var(--row-tint);
-  border: 1px solid var(--divider);
-  border-radius: var(--r-md);
-  margin-bottom: var(--s-5);
-  flex-wrap: wrap;
-}
-.conf-band__label {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--medium);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-.conf-band__label::before {
-  content: '';
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 0 3px var(--green-100);
-}
-.conf-band__bar {
-  flex: 1;
-  min-width: 120px;
-  height: 6px;
-  background: var(--divider);
-  border-radius: 3px;
-  overflow: hidden;
-}
-.conf-band__fill {
-  height: 100%;
-  background: var(--primary);
-  border-radius: 3px;
-}
-.conf-band__num {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--dark);
-}
-
-/* AI mount placeholder */
-.ai-mount {
-  margin-bottom: var(--s-5);
-  padding: 10px var(--s-3);
-  border: 1px dashed var(--divider);
-  border-radius: var(--r-md);
-  background: var(--quote-bg);
-  font-size: 11px;
-  color: var(--medium);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.ai-mount::before {
-  content: '';
-  width: 6px; height: 6px;
-  background: var(--cyan);
-  border-radius: 50%;
-}
-
-/* =========================================================================
-   13. TABS
-   ========================================================================= */
-.tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--divider);
-  margin-bottom: var(--s-5);
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.tabs::-webkit-scrollbar { display: none; }
-.tab {
-  position: relative;
-  padding: 12px 14px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--medium);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  transition: color var(--t-fast) var(--ease);
-}
-.tab::after {
-  content: '';
-  position: absolute;
-  left: 12px; right: 12px; bottom: -1px;
-  height: 2px;
-  background: transparent;
-  border-radius: 2px 2px 0 0;
-  transition: background var(--t-fast) var(--ease);
-}
-.tab:hover { color: var(--dark); }
-.tab.active { color: var(--primary); }
-.tab.active::after { background: var(--primary); }
-
-/* =========================================================================
-   14. PANEL CONTENT
-   ========================================================================= */
-.panel { display: none; }
-.panel.active { display: block; animation: fadeIn var(--t-med) var(--ease); }
-
-/* Company profile inside Tab 1 */
-.co-name {
-  display: flex;
-  align-items: baseline;
-  gap: var(--s-2);
-  margin-bottom: 4px;
-  flex-wrap: wrap;
-}
-.co-name h2 {
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--dark);
-}
-.co-ticker {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--medium);
-  background: var(--light-gray);
-  padding: 2px 6px;
-  border-radius: 3px;
-}
-.co-tagline {
-  font-size: 13px;
-  color: var(--medium);
-  margin-bottom: var(--s-4);
-  font-style: italic;
-}
-.kv {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  row-gap: 8px;
-  column-gap: var(--s-3);
-  font-size: 12px;
-}
-.kv dt {
-  color: var(--soft);
-  font-weight: 500;
-}
-.kv dd {
-  color: var(--dark);
-  font-weight: 500;
-}
-.kv dd .pill { vertical-align: 1px; margin-left: 6px; }
-
-@media (max-width: 480px) {
-  .kv { grid-template-columns: 1fr; row-gap: 2px; }
-  .kv dt {
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
-    color: var(--primary); padding-top: var(--s-2);
-  }
-}
-
-.section-divider {
-  margin: var(--s-4) 0;
-  border: 0;
-  border-top: 1px solid var(--divider);
-}
-
-/* Researched contacts inside company tab */
-.contact-row {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-3);
-  border: 1px solid var(--divider);
-  border-radius: var(--r-md);
-  margin-bottom: 6px;
-  cursor: pointer;
-  transition: background var(--t-fast) var(--ease),
-              border-color var(--t-fast) var(--ease);
-}
-.contact-row:hover { background: var(--row-tint); border-color: var(--primary); }
-.contact-row__body { flex: 1; min-width: 0; }
-.contact-row__name { font-size: 13px; font-weight: 700; color: var(--dark); }
-.contact-row__title { font-size: 11px; color: var(--medium); margin-top: 1px; }
-
-/* Email analysis */
-.domain-line {
-  display: flex; flex-wrap: wrap; align-items: center;
-  gap: var(--s-3);
-  margin-bottom: var(--s-3);
-}
-.domain-line .lbl {
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--medium);
-}
-.domain-line .val {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--primary);
-  font-weight: 700;
-}
-.email-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 12px;
-  background: var(--row-tint);
-  border-radius: var(--r-sm);
-  margin-top: 6px;
-  font-size: 12px;
-}
-.email-row .addr { font-family: var(--font-mono); }
-
-/* Achievements */
-.achievement {
-  margin-bottom: var(--s-3);
-  font-size: 13px;
-  color: var(--medium);
-  line-height: 1.55;
-}
-.achievement:last-child { margin-bottom: 0; }
-.achievement b { color: var(--dark); font-weight: 700; }
-
-/* =========================================================================
-   15. CONTACT PROFILE TAB
-   ========================================================================= */
-.profile-head {
-  display: flex;
-  gap: var(--s-4);
-  align-items: flex-start;
-  margin-bottom: var(--s-4);
-}
-.profile-info { flex: 1; min-width: 0; }
-.profile-name-row {
-  display: flex; align-items: center; gap: var(--s-2);
-  flex-wrap: wrap;
-  margin-bottom: 2px;
-}
-.profile-name-row h2 {
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--dark);
-}
-.profile-title { font-size: 13px; color: var(--dark); font-weight: 500; }
-.profile-dual { font-size: 12px; color: var(--medium); font-style: italic; margin-top: 2px; }
-.profile-meta { font-size: 12px; color: var(--medium); margin-top: 6px; }
-.profile-certs { font-size: 12px; color: var(--medium); margin-top: 4px; }
-.profile-certs b { color: var(--dark); font-weight: 700; }
-
-.profile-email-row {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  flex-wrap: wrap;
-  margin-top: var(--s-3);
-  padding-top: var(--s-3);
-  border-top: 1px solid var(--divider);
-}
-.profile-email-row .email {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--dark);
-}
-
-/* Background / decision / outreach prose blocks */
-.prose {
-  font-size: 13px;
-  color: var(--medium);
-  line-height: 1.6;
-}
-.prose b { color: var(--dark); font-weight: 700; }
-
-/* Activities */
-.activity {
-  display: flex;
-  gap: var(--s-3);
-  padding: var(--s-3) 0;
-  border-bottom: 1px dashed var(--divider);
-}
-.activity:last-of-type { border-bottom: 0; }
-.activity__icon {
-  width: 28px; height: 28px;
-  border-radius: var(--r-sm);
-  background: var(--quote-bg);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  color: var(--primary);
-}
-.activity__icon svg { width: 14px; height: 14px; }
-.activity__body { flex: 1; min-width: 0; }
-.activity__text { font-size: 12px; color: var(--dark); line-height: 1.5; }
-.activity__src {
-  font-size: 11px;
-  color: var(--soft);
-  margin-top: 4px;
-  display: flex; gap: 8px; align-items: center;
-}
-.activity__src a {
-  color: var(--primary);
-  font-weight: 500;
-  transition: color var(--t-fast) var(--ease);
-}
-.activity__src a:hover { color: var(--primary-700); text-decoration: underline; }
-.themes-row {
-  margin-top: var(--s-3);
-  padding-top: var(--s-3);
-  border-top: 1px solid var(--divider);
-  display: flex; flex-wrap: wrap; gap: 6px;
-}
-
-/* Events */
-.event {
-  padding: var(--s-3);
-  background: var(--row-tint);
-  border-radius: var(--r-md);
-  margin-bottom: var(--s-2);
-}
-.event:last-child { margin-bottom: 0; }
-.event__head {
-  display: flex; align-items: center; gap: var(--s-2);
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
-.event__name { font-size: 13px; font-weight: 700; color: var(--dark); flex: 1; min-width: 0; }
-.event__loc {
-  font-size: 12px; color: var(--medium);
-  display: flex; align-items: center; gap: var(--s-2);
-  flex-wrap: wrap;
-}
-.event__loc a {
-  color: var(--primary); font-weight: 500; font-size: 11px;
-}
-.event__loc a:hover { text-decoration: underline; }
-
-/* Callout block */
-.callout {
-  background: var(--quote-bg);
-  border-left: 3px solid var(--cyan);
-  padding: 10px 14px;
-  border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  font-size: 12px;
-  color: var(--medium);
-  line-height: 1.55;
-  font-style: italic;
-  margin-top: var(--s-3);
-}
-.callout--warn { border-left-color: var(--amber); background: rgba(181, 117, 0, 0.04); }
-.callout b { color: var(--dark); font-style: normal; font-weight: 700; }
-
-/* =========================================================================
-   16. ORG CHART
-   ========================================================================= */
-.org-tree {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--s-3) 0;
-}
-.org-node {
-  position: relative;
-  background: var(--white);
-  border: 2px solid var(--divider);
-  border-radius: var(--r-md);
-  padding: var(--s-3) var(--s-4);
-  text-align: center;
-  width: 100%;
-  max-width: 280px;
-  transition: transform var(--t-fast) var(--ease);
-}
-.org-node--confirmed { border-color: var(--green); }
-.org-node--inferred  { border-color: var(--amber); }
-.org-node--unknown   { border-color: var(--soft); }
-.org-node--target {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--white);
-  box-shadow: var(--elev-3);
-  transform: scale(1.02);
-}
-.org-node__name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--dark);
-  letter-spacing: -0.01em;
-}
-.org-node__title {
-  font-size: 11px;
-  color: var(--medium);
-  margin-top: 2px;
-}
-.org-node--target .org-node__name { color: var(--white); }
-.org-node--target .org-node__title { color: var(--muted-blue); }
-.org-node__verify {
-  display: inline-flex;
-  margin-top: 8px;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 3px;
-}
-.org-node--confirmed .org-node__verify { background: var(--green-200); color: var(--green); }
-.org-node--inferred  .org-node__verify { background: var(--amber-200); color: var(--amber); }
-.org-node--unknown   .org-node__verify { background: var(--divider); color: var(--medium); }
-.org-node--target    .org-node__verify { background: rgba(255,255,255,0.20); color: var(--white); }
-
-.org-connector {
-  width: 2px; height: 28px;
-  background-image: linear-gradient(to bottom, var(--divider) 50%, transparent 50%);
-  background-size: 2px 6px;
-}
-
-.peer-section {
-  margin-top: var(--s-5);
-  padding-top: var(--s-4);
-  border-top: 1px solid var(--divider);
-}
-.peer-section__label {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--primary);
-  text-transform: uppercase;
-  letter-spacing: 0.10em;
-  margin-bottom: var(--s-3);
-}
-.peer-row {
-  display: flex; align-items: center; gap: var(--s-3);
-  padding: var(--s-3);
-  background: var(--row-tint);
-  border-radius: var(--r-sm);
-  margin-bottom: 6px;
-  cursor: pointer;
-  transition: background var(--t-fast) var(--ease);
-}
-.peer-row:hover { background: var(--quote-bg); }
-.peer-row__body { flex: 1; min-width: 0; }
-.peer-row__name { font-size: 12px; font-weight: 700; color: var(--dark); }
-.peer-row__title { font-size: 11px; color: var(--medium); }
-.peer-detail {
-  display: none;
-  margin: -2px 0 8px 44px;
-  padding: 10px 14px;
-  background: var(--quote-bg);
-  border-left: 3px solid var(--cyan);
-  border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  font-size: 12px;
-  color: var(--medium);
-  line-height: 1.55;
-  font-style: italic;
-}
-.peer-detail.open { display: block; }
-.peer-detail a {
-  color: var(--primary); font-style: normal; font-weight: 500;
-  display: inline-block; margin-top: 4px;
-}
-.peer-detail a:hover { text-decoration: underline; }
-
-/* Strategic read */
-.strat-para {
-  margin-bottom: var(--s-3);
-  font-size: 13px;
-  color: var(--medium);
-  line-height: 1.6;
-}
-.strat-para:last-child { margin-bottom: 0; }
-.strat-para b { color: var(--dark); font-weight: 700; }
-
-/* =========================================================================
-   17. PLAYBOOK
-   ========================================================================= */
-.step {
-  display: flex;
-  gap: var(--s-3);
-  padding: var(--s-3) 0;
-  border-bottom: 1px solid var(--divider);
-}
-.step:last-child { border-bottom: 0; }
-.step__box {
-  width: 28px; height: 28px;
-  border-radius: var(--r-sm);
-  background: var(--light-gray);
-  border: 1.5px solid var(--divider);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--medium);
-  font-weight: 700;
-  font-size: 12px;
-  flex-shrink: 0;
-  cursor: pointer;
-  user-select: none;
-  transition: transform var(--t-fast) var(--ease),
-              background var(--t-fast) var(--ease),
-              border-color var(--t-fast) var(--ease),
-              color var(--t-fast) var(--ease);
-}
-.step__box:hover { transform: scale(1.08); }
-.step__box.in-progress {
-  background: var(--amber-200);
-  border-color: var(--amber);
-  color: var(--amber);
-}
-.step__box.done {
-  background: var(--green-200);
-  border-color: var(--green);
-  color: var(--green);
-}
-.step__body { flex: 1; min-width: 0; }
-.step__title {
-  font-size: 13px; font-weight: 700; color: var(--dark);
-  letter-spacing: -0.005em;
-}
-.step__detail {
-  font-size: 12px; color: var(--medium);
-  line-height: 1.55;
-  margin-top: 3px;
-}
-
-/* Templates */
-.template { margin-bottom: var(--s-4); }
-.template:last-child { margin-bottom: 0; }
-.template__label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.10em;
-  margin-bottom: 6px;
-}
-.template__label--blue  { color: var(--primary); }
-.template__label--amber { color: var(--amber); }
-.template__label--green { color: var(--green); }
-.template__label--gray  { color: var(--soft); }
-.template__body {
-  background: var(--light-gray);
-  border: 1px solid var(--divider);
-  border-radius: var(--r-sm);
-  padding: var(--s-3) var(--s-4);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--medium);
-  line-height: 1.65;
-  white-space: pre-wrap;
-}
-
-/* Priority matrix table */
-.matrix {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-.matrix thead th {
-  background: var(--light-gray);
-  color: var(--primary);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--divider);
-}
-.matrix tbody td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--divider);
-  color: var(--medium);
-  vertical-align: top;
-}
-.matrix tbody tr:nth-child(even) td { background: var(--row-tint); }
-.matrix tbody tr:last-child td { border-bottom: 0; }
-.matrix .name { color: var(--dark); font-weight: 700; }
-.matrix .priority {
-  font-weight: 700; font-size: 10px;
-  text-transform: uppercase; letter-spacing: 0.06em;
-}
-.matrix .priority--primary   { color: var(--red); }
-.matrix .priority--secondary { color: var(--amber); }
-.matrix .priority--tertiary  { color: var(--medium); }
-
-@media (max-width: 540px) {
-  .matrix thead { display: none; }
-  .matrix tbody tr { display: block; padding: var(--s-3); border-bottom: 1px solid var(--divider); }
-  .matrix tbody tr:nth-child(even) { background: var(--row-tint); }
-  .matrix tbody td {
-    display: block; padding: 2px 0; border: 0; background: transparent !important;
-  }
-  .matrix tbody td::before {
-    content: attr(data-label);
-    display: block;
-    font-size: 9px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.06em;
-    color: var(--primary);
-    margin-bottom: 2px;
-  }
-}
-
-/* =========================================================================
-   18. SOURCE LOG
-   ========================================================================= */
-.source-log {
-  margin-top: var(--s-5);
-  border: 1px solid var(--divider);
-  border-radius: var(--r-md);
-  background: var(--white);
-  overflow: hidden;
-}
-.source-trigger {
-  display: flex; justify-content: space-between; align-items: center;
-  width: 100%;
-  padding: var(--s-3) var(--s-4);
-  background: var(--light-gray);
-  border-bottom: 1px solid transparent;
-  transition: background var(--t-fast) var(--ease);
-  text-align: left;
-}
-.source-trigger:hover { background: #E8E8F0; }
-.source-trigger__label {
-  font-size: 11px; font-weight: 700;
-  color: var(--primary);
-  text-transform: uppercase; letter-spacing: 0.10em;
-}
-.source-trigger__arrow {
-  font-size: 12px;
-  color: var(--medium);
-  transition: transform var(--t-med) var(--ease);
-}
-.source-log.open .source-trigger { border-bottom-color: var(--divider); }
-.source-log.open .source-trigger__arrow { transform: rotate(180deg); }
-.source-content {
-  display: none;
-  padding: var(--s-4);
-}
-.source-log.open .source-content { display: block; animation: fadeIn var(--t-med) var(--ease); }
-
-.checks {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px var(--s-4);
-  margin-bottom: var(--s-3);
-}
-@media (min-width: 540px) {
-  .checks { grid-template-columns: 1fr 1fr; }
-}
-.check {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 12px;
-  color: var(--medium);
-}
-.check__mark {
-  width: 16px; height: 16px;
-  border-radius: 3px;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700;
-  flex-shrink: 0;
-}
-.check__mark--pass { background: var(--green-200); color: var(--green); }
-.check__mark--fail { background: var(--red-200); color: var(--red); }
-
-.coral-divider {
-  height: 1px;
-  background: var(--coral);
-  border: 0;
-  margin: var(--s-3) 0;
-}
-
-.source-list {
-  counter-reset: src;
-}
-.source-list li {
-  counter-increment: src;
-  display: flex;
-  gap: var(--s-3);
-  padding: 6px 0;
-  font-size: 12px;
-}
-.source-list li::before {
-  content: counter(src, decimal-leading-zero);
-  color: var(--soft);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  min-width: 24px;
-  flex-shrink: 0;
-}
-.source-list a {
-  color: var(--primary);
-  font-weight: 500;
-  transition: color var(--t-fast) var(--ease);
-}
-.source-list a:hover { color: var(--primary-700); text-decoration: underline; }
-
-.assessment {
-  margin-top: var(--s-4);
-  padding: var(--s-3) var(--s-4);
-  background: var(--quote-bg);
-  border-left: 3px solid var(--cyan);
-  border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  font-size: 12px;
-  color: var(--medium);
-  line-height: 1.6;
-}
-.assessment b { color: var(--dark); font-weight: 700; }
-
-/* =========================================================================
-   19. SEARCH RESULTS VIEW
-   ========================================================================= */
-.results-head {
-  padding: var(--s-7) 0 var(--s-4);
-}
-.results-head__count {
-  font-size: 11px; font-weight: 600;
-  color: var(--medium);
-  text-transform: uppercase; letter-spacing: 0.06em;
-}
-.results-head__term {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  margin-top: 6px;
-  color: var(--dark);
-}
-.results-head__term em {
-  font-style: normal;
-  color: var(--primary);
-}
-
-.empty-state {
-  text-align: center;
-  padding: var(--s-9) var(--s-4);
-  color: var(--medium);
-  font-size: 13px;
-}
-.empty-state b { display: block; color: var(--dark); font-size: 16px; margin-bottom: 6px; }
-
-/* =========================================================================
-   20. RESPONSIVE OVERRIDES
-   ========================================================================= */
-@media (max-width: 540px) {
-  .hero { padding: var(--s-7) 0 var(--s-5); }
-  .hero h1 { font-size: 26px; }
-  .hero p { font-size: 14px; }
-  .stats-row { grid-template-columns: 1fr 1fr; }
-  .stat__value { font-size: 20px; }
-  .contact-hero__name h1 { font-size: 20px; }
-  .results-head__term { font-size: 20px; }
-  .conf-band { gap: var(--s-2); }
-  .conf-band__bar { display: none; }
-  .header-actions .btn-ghost-on-blue span { display: none; }
-  .brand-header__inner { padding-top: var(--s-3); padding-bottom: var(--s-3); }
-}
-
-@media print {
-  .brand-header, .brand-footer, .source-trigger, .ai-mount, .header-actions { display: none; }
-  .source-content, .panel { display: block !important; }
-  .view { display: block !important; }
+*,*::before,*::after{box-sizing:border-box}
+html,body,h1,h2,h3,h4,p,ul,ol,dl,dt,dd,figure{margin:0;padding:0}
+ul,ol{list-style:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+input,textarea,select{font:inherit;color:inherit}
+
+:root{
+  --primary:#0000CC;--primary-700:#0000A8;--primary-50:#F0F0FE;--primary-100:rgba(0,0,204,.08);
+  --cyan:#00BFFF;
+  --bg:#FFFFFF;--bg-tint:#F5F5F9;
+  --border:#E8E8EE;--border-strong:#D8D8E0;
+  --ink:#15151F;--ink-2:#3A3A48;--ink-3:#6B6B7A;--ink-4:#9999A8;
+  --green:#0F7A3F;--green-bg:rgba(15,122,63,.10);
+  --amber:#B57500;--amber-bg:rgba(181,117,0,.10);
+  --red:#C42020;--red-bg:rgba(196,32,32,.10);
+  --coral:#E07050;
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:20px;--s-6:24px;--s-7:32px;--s-8:40px;--s-9:56px;
+  --r-sm:4px;--r-md:6px;--r-lg:8px;
+  --elev-1:0 1px 2px rgba(15,15,30,.04);
+  --elev-2:0 2px 8px rgba(15,15,30,.06),0 1px 2px rgba(15,15,30,.04);
+  --elev-3:0 12px 32px rgba(15,15,30,.16),0 4px 8px rgba(15,15,30,.08);
+  --ease:cubic-bezier(.2,.6,.2,1);--t-fast:120ms;--t-med:200ms;
+  --container:760px
+}
+@supports(font-variation-settings:normal){:root{--font:'Inter var',system-ui,sans-serif}}
+html,body{height:100%;background:var(--bg)}
+body{font-family:var(--font);font-size:14px;line-height:1.5;color:var(--ink);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-feature-settings:'cv02','cv03','cv04','cv11'}
+.mono{font-family:var(--mono);font-size:.93em}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:3px}
+.app{min-height:100vh;display:flex;flex-direction:column}
+.container{width:100%;max-width:var(--container);margin:0 auto;padding:0 var(--s-5)}
+@media(max-width:540px){.container{padding:0 var(--s-4)}}
+main{flex:1;padding-bottom:var(--s-9)}
+
+.app-header{background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30}
+.app-header__top{display:flex;align-items:center;justify-content:space-between;padding:var(--s-3) 0;gap:var(--s-3)}
+.brand{display:flex;align-items:baseline;gap:6px;cursor:pointer}
+.brand__name{font-size:14px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+.brand__product{font-size:11px;font-weight:600;color:var(--ink-3);letter-spacing:.02em}
+.brand__product::before{content:'·';margin-right:6px;color:var(--border-strong)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:var(--r-md);font-size:13px;font-weight:600;transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease),color var(--t-fast) var(--ease);white-space:nowrap}
+.btn svg{width:14px;height:14px}
+.btn--primary{background:var(--primary);color:#fff}
+.btn--primary:hover{background:var(--primary-700)}
+.btn--ghost{color:var(--ink-2);border:1px solid var(--border);background:var(--bg)}
+.btn--ghost:hover{background:var(--bg-tint);border-color:var(--border-strong)}
+
+.search-wrap{position:relative;padding:0 0 var(--s-3)}
+.search-input{width:100%;padding:10px 14px 10px 38px;background:var(--bg-tint);border:1px solid transparent;border-radius:var(--r-md);font-size:14px;color:var(--ink);transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
+.search-input::placeholder{color:var(--ink-4)}
+.search-input:hover{background:var(--border)}
+.search-input:focus{outline:none;background:var(--bg);border-color:var(--primary)}
+.search-icon{position:absolute;left:12px;top:11px;width:16px;height:16px;color:var(--ink-4);pointer-events:none}
+
+.filter-row{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:0 0 var(--s-3);flex-wrap:wrap}
+.filter-chips{display:flex;gap:4px;flex-wrap:wrap}
+.chip{padding:5px 10px;font-size:12px;font-weight:600;color:var(--ink-2);background:transparent;border-radius:100px;transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
+.chip:hover{background:var(--bg-tint)}
+.chip.active{background:var(--ink);color:#fff}
+.chip__count{font-size:11px;margin-left:4px;opacity:.7;font-variant-numeric:tabular-nums}
+.sort{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3)}
+.sort select{background:transparent;border:0;font-weight:600;color:var(--ink);padding:4px 18px 4px 4px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2315151F' stroke-width='2.5'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 2px center}
+
+.list-section{padding:var(--s-4) 0}
+.list-section__head{font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;padding:var(--s-2) 0;margin-bottom:var(--s-2)}
+.contact-list{display:flex;flex-direction:column;gap:2px}
+.contact-item{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3);border-radius:var(--r-md);cursor:pointer;transition:background var(--t-fast) var(--ease);text-align:left;width:100%}
+.contact-item:hover{background:var(--bg-tint)}
+
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:var(--r-sm);font-weight:700;flex-shrink:0;letter-spacing:-.02em;font-feature-settings:'tnum'}
+.avatar--sm{width:28px;height:28px;font-size:11px}
+.avatar--md{width:40px;height:40px;font-size:14px}
+.avatar--lg{width:52px;height:52px;font-size:17px;border-radius:var(--r-md)}
+.avatar--blue{background:var(--primary);color:#fff}
+.avatar--amber{background:var(--amber);color:#fff}
+.avatar--gray{background:var(--border);color:var(--ink-3)}
+.avatar--green{background:var(--green);color:#fff}
+
+.contact-item__body{flex:1;min-width:0}
+.contact-item__name{font-size:14px;font-weight:600;color:var(--ink);letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.contact-item__sub{font-size:12px;color:var(--ink-3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.contact-item__sub b{color:var(--ink-2);font-weight:500}
+.contact-item__meta{display:flex;align-items:center;gap:var(--s-3);flex-shrink:0}
+.stale{font-size:11px;color:var(--ink-4);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(max-width:540px){.stale{display:none}}
+
+.conf{display:inline-flex;align-items:center;gap:5px}
+.conf__dots{display:flex;gap:2px}
+.conf__dot{width:6px;height:6px;border-radius:50%;background:var(--border-strong)}
+.conf--high .conf__dot:nth-child(-n+3){background:var(--green)}
+.conf--med .conf__dot:nth-child(-n+2){background:var(--amber)}
+.conf--low .conf__dot:nth-child(-n+1){background:var(--red)}
+.conf__num{font-family:var(--mono);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.conf--high .conf__num{color:var(--green)}
+.conf--med .conf__num{color:var(--amber)}
+.conf--low .conf__num{color:var(--red)}
+
+.empty{text-align:center;padding:var(--s-9) var(--s-4);color:var(--ink-3)}
+.empty b{display:block;color:var(--ink);font-size:15px;margin-bottom:6px;font-weight:600}
+
+.view{display:none}
+.view.active{display:block;animation:fadeIn var(--t-med) var(--ease)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--ink-3);padding:var(--s-3) 0;transition:color var(--t-fast) var(--ease)}
+.back-link:hover{color:var(--ink)}
+.back-link svg{width:14px;height:14px}
+
+.contact-head{display:flex;gap:var(--s-4);align-items:flex-start;padding:var(--s-2) 0 var(--s-4);flex-wrap:wrap}
+.contact-head__body{flex:1;min-width:200px}
+.contact-head__name-row{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap}
+.contact-head__name{font-size:22px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.contact-head__title{font-size:14px;color:var(--ink-2);margin-top:2px}
+.contact-head__meta{display:flex;flex-wrap:wrap;gap:var(--s-3);margin-top:var(--s-2);font-size:12px;color:var(--ink-3)}
+.contact-head__meta span{display:inline-flex;align-items:center;gap:4px}
+.contact-head__meta svg{width:12px;height:12px;opacity:.6}
+
+.action-bar{display:flex;gap:var(--s-2);padding:var(--s-2) 0 var(--s-5);flex-wrap:wrap}
+
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:var(--r-sm);font-size:11px;font-weight:600;letter-spacing:.01em;white-space:nowrap}
+.pill--green{background:var(--green-bg);color:var(--green)}
+.pill--amber{background:var(--amber-bg);color:var(--amber)}
+.pill--red{background:var(--red-bg);color:var(--red)}
+.pill--blue{background:var(--primary-100);color:var(--primary)}
+.pill--gray{background:var(--bg-tint);color:var(--ink-3)}
+
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:var(--s-5);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{position:relative;padding:10px 14px 12px;font-size:13px;font-weight:500;color:var(--ink-3);white-space:nowrap;transition:color var(--t-fast) var(--ease)}
+.tab::after{content:'';position:absolute;left:12px;right:12px;bottom:-1px;height:2px;background:transparent;border-radius:2px 2px 0 0;transition:background var(--t-fast) var(--ease)}
+.tab:hover{color:var(--ink)}
+.tab.active{color:var(--ink);font-weight:600}
+.tab.active::after{background:var(--primary)}
+.panel{display:none}
+.panel.active{display:block;animation:fadeIn var(--t-med) var(--ease)}
+
+.section{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:var(--s-3);overflow:hidden}
+.section__head{padding:var(--s-3) var(--s-4);background:var(--bg-tint);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:var(--s-3)}
+.section__title{font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.08em}
+.section__meta{font-size:11px;color:var(--ink-3)}
+.section__body{padding:var(--s-4)}
+
+.kv{display:grid;grid-template-columns:130px 1fr;row-gap:8px;column-gap:var(--s-3);font-size:13px}
+.kv dt{color:var(--ink-3);font-weight:500}
+.kv dd{color:var(--ink);font-weight:500}
+@media(max-width:480px){.kv{grid-template-columns:1fr;row-gap:2px}.kv dt{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3);padding-top:var(--s-2)}}
+.divider{margin:var(--s-3) 0;border:0;border-top:1px solid var(--border)}
+.pill-row{display:flex;flex-wrap:wrap;gap:6px}
+.prose{font-size:13px;color:var(--ink-2);line-height:1.6}
+.prose b{color:var(--ink);font-weight:600}
+.prose p+p{margin-top:10px}
+
+.highlight{background:var(--primary-50);border-left:3px solid var(--primary);padding:10px 14px;border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:13px;color:var(--ink-2);line-height:1.55}
+.highlight b{color:var(--ink);font-weight:700}
+.callout{background:var(--bg-tint);border-left:3px solid var(--cyan);padding:10px 14px;border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:12px;color:var(--ink-2);font-style:italic;line-height:1.55;margin-top:var(--s-3)}
+.callout--warn{border-left-color:var(--amber);background:rgba(181,117,0,.04)}
+.callout b{font-style:normal;color:var(--ink)}
+
+.activity{display:flex;gap:var(--s-3);padding:var(--s-3) 0;border-bottom:1px solid var(--border)}
+.activity:last-child{border-bottom:0;padding-bottom:0}
+.activity:first-child{padding-top:0}
+.activity__icon{width:28px;height:28px;border-radius:var(--r-sm);background:var(--bg-tint);color:var(--ink-2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.activity__icon svg{width:14px;height:14px}
+.activity__body{flex:1;min-width:0}
+.activity__text{font-size:13px;color:var(--ink);line-height:1.5}
+.activity__src{font-size:11px;color:var(--ink-4);margin-top:4px}
+.activity__src a{color:var(--primary);font-weight:500}
+.activity__src a:hover{text-decoration:underline}
+
+.event{padding:var(--s-3);background:var(--bg-tint);border-radius:var(--r-md)}
+.event__head{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;margin-bottom:4px}
+.event__name{font-size:13px;font-weight:600;color:var(--ink);flex:1}
+.event__loc{font-size:12px;color:var(--ink-3);display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap}
+.event__loc a{color:var(--primary);font-size:11px}
+.event__loc a:hover{text-decoration:underline}
+
+.org-tree{display:flex;flex-direction:column;align-items:center;padding:var(--s-3) 0}
+.org-node{position:relative;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r-md);padding:10px 14px;text-align:center;width:100%;max-width:280px}
+.org-node--confirmed{border-color:var(--green)}
+.org-node--inferred{border-color:var(--amber)}
+.org-node--target{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:var(--elev-2)}
+.org-node__name{font-size:13px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+.org-node__title{font-size:11px;color:var(--ink-3);margin-top:1px}
+.org-node--target .org-node__name{color:#fff}
+.org-node--target .org-node__title{color:rgba(255,255,255,.75)}
+.org-node__chip{display:inline-flex;margin-top:6px;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:3px}
+.org-node--confirmed .org-node__chip{background:var(--green-bg);color:var(--green)}
+.org-node--inferred .org-node__chip{background:var(--amber-bg);color:var(--amber)}
+.org-node--target .org-node__chip{background:rgba(255,255,255,.20);color:#fff}
+.org-connector{width:1px;height:24px;background-image:linear-gradient(to bottom,var(--border-strong) 50%,transparent 50%);background-size:1px 5px}
+
+.peer-section{margin-top:var(--s-5);padding-top:var(--s-4);border-top:1px solid var(--border)}
+.peer-section__head{font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:var(--s-3)}
+.peer-row{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-2) var(--s-3);border-radius:var(--r-sm);cursor:pointer;transition:background var(--t-fast) var(--ease)}
+.peer-row:hover{background:var(--bg-tint)}
+.peer-row__body{flex:1;min-width:0}
+.peer-row__name{font-size:13px;font-weight:500;color:var(--ink)}
+.peer-row__title{font-size:11px;color:var(--ink-3)}
+.peer-detail{display:none;margin:4px 0 var(--s-2) 40px;padding:10px 14px;background:var(--bg-tint);border-left:3px solid var(--cyan);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:12px;color:var(--ink-2);line-height:1.55;font-style:italic}
+.peer-detail.open{display:block}
+.peer-detail a{color:var(--primary);font-style:normal;font-weight:500;display:inline-block;margin-top:4px}
+.peer-detail a:hover{text-decoration:underline}
+
+.step{display:flex;gap:var(--s-3);padding:var(--s-3) 0;border-bottom:1px solid var(--border)}
+.step:last-child{border-bottom:0;padding-bottom:0}
+.step:first-child{padding-top:0}
+.step__box{width:26px;height:26px;border-radius:var(--r-sm);background:var(--bg-tint);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-weight:700;font-size:11px;flex-shrink:0;cursor:pointer;user-select:none;transition:transform var(--t-fast) var(--ease),background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
+.step__box:hover{transform:scale(1.08)}
+.step__box.in-progress{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
+.step__box.done{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.step__title{font-size:13px;font-weight:600;color:var(--ink)}
+.step__detail{font-size:12px;color:var(--ink-3);margin-top:3px;line-height:1.55}
+
+.template{margin-bottom:var(--s-3)}
+.template:last-child{margin-bottom:0}
+.template__label{font-size:11px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.template__label::before{content:'';width:8px;height:8px;border-radius:2px;background:currentColor}
+.template__label--blue{color:var(--primary)}
+.template__label--amber{color:var(--amber)}
+.template__label--green{color:var(--green)}
+.template__label--gray{color:var(--ink-3)}
+.template__body{background:var(--bg-tint);border:1px solid var(--border);border-radius:var(--r-sm);padding:var(--s-3) var(--s-4);font-family:var(--mono);font-size:12px;color:var(--ink-2);line-height:1.65;white-space:pre-wrap}
+
+.matrix{width:100%;border-collapse:collapse;font-size:12px}
+.matrix thead th{background:var(--bg-tint);color:var(--ink-3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
+.matrix tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--ink-2);vertical-align:top}
+.matrix tbody tr:last-child td{border-bottom:0}
+.matrix .name{color:var(--ink);font-weight:600}
+.matrix .priority{font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+.matrix .priority--primary{color:var(--red)}
+.matrix .priority--secondary{color:var(--amber)}
+.matrix .priority--tertiary{color:var(--ink-3)}
+@media(max-width:540px){.matrix thead{display:none}.matrix tbody tr{display:block;padding:var(--s-3);border-bottom:1px solid var(--border)}.matrix tbody td{display:block;padding:2px 0;border:0}.matrix tbody td::before{content:attr(data-label);display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin-bottom:2px}}
+
+.source-log{margin-top:var(--s-5);border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg);overflow:hidden}
+.source-trigger{display:flex;justify-content:space-between;align-items:center;width:100%;padding:var(--s-3) var(--s-4);background:var(--bg-tint);text-align:left;transition:background var(--t-fast) var(--ease)}
+.source-trigger:hover{background:var(--border)}
+.source-trigger__label{font-size:11px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.08em}
+.source-trigger__arrow{font-size:12px;color:var(--ink-3);transition:transform var(--t-med) var(--ease)}
+.source-log.open .source-trigger__arrow{transform:rotate(180deg)}
+.source-content{display:none;padding:var(--s-4);border-top:1px solid var(--border)}
+.source-log.open .source-content{display:block;animation:fadeIn var(--t-med) var(--ease)}
+.checks{display:grid;grid-template-columns:1fr;gap:6px var(--s-4);margin-bottom:var(--s-3)}
+@media(min-width:540px){.checks{grid-template-columns:1fr 1fr}}
+.check{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2)}
+.check__mark{width:16px;height:16px;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.check__mark--pass{background:var(--green-bg);color:var(--green)}
+.check__mark--fail{background:var(--red-bg);color:var(--red)}
+.coral-divider{height:1px;background:var(--coral);border:0;margin:var(--s-3) 0}
+.source-list{counter-reset:src}
+.source-list li{counter-increment:src;display:flex;gap:var(--s-3);padding:6px 0;font-size:12px}
+.source-list li::before{content:counter(src,decimal-leading-zero);color:var(--ink-4);font-family:var(--mono);font-size:11px;min-width:24px;flex-shrink:0}
+.source-list a{color:var(--primary);font-weight:500}
+.source-list a:hover{text-decoration:underline}
+
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(15,15,30,.45);z-index:100;align-items:center;justify-content:center;padding:var(--s-4);backdrop-filter:blur(4px)}
+.modal-backdrop.open{display:flex;animation:fadeIn var(--t-med) var(--ease)}
+.modal{background:var(--bg);border-radius:var(--r-lg);box-shadow:var(--elev-3);width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column}
+.modal__head{display:flex;align-items:center;justify-content:space-between;padding:var(--s-4) var(--s-5);border-bottom:1px solid var(--border)}
+.modal__title{font-size:16px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+.modal__close{width:28px;height:28px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;color:var(--ink-3);transition:background var(--t-fast) var(--ease)}
+.modal__close:hover{background:var(--bg-tint);color:var(--ink)}
+.modal__close svg{width:16px;height:16px}
+.modal__body{padding:var(--s-5);overflow-y:auto;flex:1}
+.modal__foot{display:flex;justify-content:flex-end;gap:var(--s-2);padding:var(--s-3) var(--s-5);border-top:1px solid var(--border);background:var(--bg-tint);border-radius:0 0 var(--r-lg) var(--r-lg)}
+
+.form-section{margin-bottom:var(--s-5)}
+.form-section:last-child{margin-bottom:0}
+.form-section__head{font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:var(--s-3)}
+.form-grid{display:grid;gap:var(--s-3)}
+.form-grid--2{grid-template-columns:1fr 1fr}
+@media(max-width:480px){.form-grid--2{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:4px}
+.field__label{font-size:12px;font-weight:500;color:var(--ink-2);display:flex;align-items:center;gap:4px}
+.field__label .req{color:var(--red)}
+.field__hint{font-size:11px;color:var(--ink-4);margin-top:2px}
+.input,.textarea,.select{width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px;color:var(--ink);transition:border-color var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease)}
+.input::placeholder,.textarea::placeholder{color:var(--ink-4)}
+.input:focus,.textarea:focus,.select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-100)}
+.textarea{resize:vertical;min-height:80px;line-height:1.55;font-family:var(--font)}
+.select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236B6B7A' stroke-width='2.2'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 10px center;padding-right:32px}
+
+.editor{border:1px solid var(--border);border-radius:var(--r-sm);background:var(--bg);overflow:hidden}
+.editor:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-100)}
+.editor__toolbar{display:flex;gap:2px;padding:4px;background:var(--bg-tint);border-bottom:1px solid var(--border)}
+.editor__btn{width:26px;height:26px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);border-radius:3px;font-size:12px;font-weight:700;transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
+.editor__btn:hover{background:var(--bg);color:var(--ink)}
+.editor__btn--italic{font-style:italic;font-weight:500}
+.editor__content{padding:10px 12px;min-height:80px;font-size:13px;color:var(--ink);line-height:1.55;outline:none}
+.editor__content:empty::before{content:attr(data-placeholder);color:var(--ink-4)}
+
+.chip-input{border:1px solid var(--border);border-radius:var(--r-sm);padding:6px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;background:var(--bg)}
+.chip-input:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-100)}
+.chip-input__chip{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 8px;background:var(--bg-tint);border-radius:var(--r-sm);font-size:12px;font-weight:500;color:var(--ink-2)}
+.chip-input__remove{width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:3px;font-size:14px;color:var(--ink-4);transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
+.chip-input__remove:hover{background:var(--border);color:var(--ink)}
+.chip-input__field{border:0;outline:0;background:transparent;padding:4px 6px;font-size:13px;flex:1;min-width:80px;color:var(--ink)}
+.chip-input__field::placeholder{color:var(--ink-4)}
+
+.toast{position:fixed;bottom:var(--s-5);left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:var(--r-md);font-size:13px;font-weight:500;box-shadow:var(--elev-3);z-index:200;display:flex;align-items:center;gap:8px;opacity:0;transition:opacity var(--t-med) var(--ease),transform var(--t-med) var(--ease);pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast svg{width:14px;height:14px;color:var(--cyan)}
+
+.app-footer{padding:var(--s-4) 0;border-top:1px solid var(--border);font-size:11px;color:var(--ink-4)}
+.app-footer__inner{display:flex;justify-content:space-between;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.preview-tag{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.preview-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--cyan)}
+
+@media(max-width:540px){
+  .contact-head__name{font-size:19px}
+  .action-bar .btn span{display:none}
+  .action-bar .btn{padding:8px 10px}
+  .modal{max-height:95vh}
 }
 </style>
 </head>
 <body>
 
-<a class="skip-link" href="#main">Skip to content</a>
-
 <div class="app">
 
-  <!-- ========================================================================
-       BRAND HEADER (always visible)
-       ======================================================================== -->
-  <header class="brand-header" role="banner">
-    <div class="brand-header__bg" aria-hidden="true">
-      <span class="p1">+</span>
-      <span class="p2">+</span>
-      <span class="p3">+</span>
-      <span class="p4">+</span>
+<header class="app-header">
+  <div class="container">
+    <div class="app-header__top">
+      <button class="brand" type="button" data-route="home" aria-label="Home">
+        <span class="brand__name">Recast</span>
+        <span class="brand__product">LeadCheck Pro</span>
+      </button>
+      <button class="btn btn--primary" id="add-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Contact
+      </button>
     </div>
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" class="search-input" id="search-input" placeholder="Search contacts, companies, or emails…" autocomplete="off" spellcheck="false" aria-label="Search">
+    </div>
+    <div class="filter-row" id="filter-row">
+      <div class="filter-chips">
+        <button class="chip active" data-filter="all">All<span class="chip__count">5</span></button>
+        <button class="chip" data-filter="high">High Confidence<span class="chip__count">3</span></button>
+        <button class="chip" data-filter="company">By Company</button>
+      </div>
+      <div class="sort">
+        <span>Sort:</span>
+        <select id="sort-select" aria-label="Sort">
+          <option value="recent">Recent</option>
+          <option value="name">Name (A–Z)</option>
+          <option value="confidence">Confidence</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="view active" id="view-home">
     <div class="container">
-      <div class="brand-header__inner">
-        <button class="wordmark" type="button" data-route="home" aria-label="LeadCheck Pro home">
-          Recast <span class="wordmark__sub">Software</span>
-        </button>
-        <div class="header-actions">
-          <button class="btn-ghost-on-blue" type="button" id="refresh-btn" title="Refresh data">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="23 4 23 10 17 10"/>
-              <polyline points="1 20 1 14 7 14"/>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-            </svg>
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
-      <div class="search-wrap">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"/>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input
-          type="search"
-          class="search-input"
-          id="search-input"
-          placeholder="Search contacts, companies, or emails…"
-          autocomplete="off"
-          spellcheck="false"
-          aria-label="Search">
-      </div>
+      <div id="list-mount"></div>
+      <div class="empty" id="empty-state" style="display:none"><b>No matches</b>Try a different name, company, or email.</div>
     </div>
-  </header>
+  </section>
 
-  <main id="main">
+  <section class="view" id="view-contact">
+    <div class="container">
+      <button class="back-link" type="button" data-route="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        All contacts
+      </button>
 
-    <!-- ====================================================================
-         VIEW: HOME / LANDING
-         ==================================================================== -->
-    <section class="view active" id="view-home" data-view="home">
-      <div class="container">
-
-        <div class="hero">
-          <span class="hero__eyebrow">LeadCheck Pro · Connection Architect</span>
-          <h1>Your contact intelligence database.</h1>
-          <p>Researched, sourced, and ready to act on. Each contact opens a verified Connection Architect dashboard with org chart, outreach playbook, and strategic read.</p>
-        </div>
-
-        <div class="stats-row">
-          <div class="stat">
-            <div class="stat__value">5</div>
-            <div class="stat__label">Contacts</div>
+      <div class="contact-head">
+        <div class="avatar avatar--lg avatar--blue" id="contact-avatar">JS</div>
+        <div class="contact-head__body">
+          <div class="contact-head__name-row">
+            <span class="contact-head__name" id="contact-name">Jane Smith</span>
+            <span class="pill pill--green">Verified</span>
           </div>
-          <div class="stat">
-            <div class="stat__value">3</div>
-            <div class="stat__label">Companies</div>
+          <div class="contact-head__title" id="contact-title">Director of End User Computing · Acme Technologies</div>
+          <div class="contact-head__meta">
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Seattle, WA</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Updated 2 days ago</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>12 sources</span>
           </div>
-          <div class="stat">
-            <div class="stat__value">42</div>
-            <div class="stat__label">Sources Tracked</div>
-          </div>
-        </div>
-
-        <div class="section-head">
-          <h2>Recently Added</h2>
-          <span class="count">5 contacts</span>
-        </div>
-        <div class="contact-grid" id="recent-grid"></div>
-
-        <div class="section-head">
-          <h2>By Company</h2>
-          <span class="count">3 companies</span>
-        </div>
-        <div class="company-list" id="company-list"></div>
-
-      </div>
-    </section>
-
-    <!-- ====================================================================
-         VIEW: SEARCH RESULTS
-         ==================================================================== -->
-    <section class="view" id="view-search" data-view="search">
-      <div class="container">
-        <div class="results-head">
-          <div class="results-head__count" id="results-count">0 results</div>
-          <div class="results-head__term">Searching <em id="results-term">…</em></div>
-        </div>
-        <div id="results-companies"></div>
-        <div id="results-contacts"></div>
-        <div id="results-empty" class="empty-state" style="display:none;">
-          <b>No matches</b>
-          Try a different name, company, or email.
         </div>
       </div>
-    </section>
 
-    <!-- ====================================================================
-         VIEW: COMPANY DETAIL
-         ==================================================================== -->
-    <section class="view" id="view-company" data-view="company">
-      <div class="container">
-        <button class="back-link" type="button" data-route="home">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="19" y1="12" x2="5" y2="12"/>
-            <polyline points="12 19 5 12 12 5"/>
-          </svg>
-          Back to all contacts
-        </button>
-        <div id="company-detail-mount"></div>
+      <div class="action-bar">
+        <a href="mailto:jane.smith@acme.example.com" class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span>Email</span></a>
+        <a href="https://linkedin.com" target="_blank" rel="noopener" class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg><span>LinkedIn</span></a>
+        <button class="btn btn--ghost" id="edit-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Edit</span></button>
       </div>
-    </section>
 
-    <!-- ====================================================================
-         VIEW: CONTACT DETAIL
-         ==================================================================== -->
-    <section class="view" id="view-contact" data-view="contact">
-      <div class="container">
-        <button class="back-link" type="button" data-route="home">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="19" y1="12" x2="5" y2="12"/>
-            <polyline points="12 19 5 12 12 5"/>
-          </svg>
-          Back to all contacts
-        </button>
+      <nav class="tabs">
+        <button class="tab active" data-tab="profile">Profile</button>
+        <button class="tab" data-tab="company">Company</button>
+        <button class="tab" data-tab="org">Org</button>
+        <button class="tab" data-tab="playbook">Playbook</button>
+      </nav>
 
-        <div class="contact-hero">
-          <div class="contact-hero__top">
-            <div class="avatar avatar--lg avatar--verified" id="contact-avatar">JS</div>
-            <div class="contact-hero__body">
-              <div class="contact-hero__name">
-                <h1 id="contact-name">Jane Smith</h1>
-                <span class="pill pill--green" id="contact-verified">Verified</span>
-              </div>
-              <div class="contact-hero__title" id="contact-title">Director of End User Computing · Acme Technologies</div>
-              <div class="contact-hero__meta">
-                <span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-                  </svg>
-                  Seattle, WA
-                </span>
-                <span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                  </svg>
-                  Last researched: April 16, 2026
-                </span>
-                <span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                  </svg>
-                  12 sources cited
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div class="conf-band">
-            <span class="conf-band__label">Research Complete</span>
-            <div class="conf-band__bar"><div class="conf-band__fill" style="width: 85%"></div></div>
-            <span class="conf-band__num">85% confidence</span>
-          </div>
-
-          <div class="ai-mount" id="ai-copilot-mount">
-            AI Copilot Mount · Reserved for future research agent
-          </div>
-        </div>
-
-        <nav class="tabs" role="tablist" aria-label="Contact dashboard sections">
-          <button class="tab active" data-tab="overview" role="tab" aria-selected="true">Company Overview</button>
-          <button class="tab" data-tab="profile" role="tab" aria-selected="false">Contact Profile</button>
-          <button class="tab" data-tab="org" role="tab" aria-selected="false">Org Chart</button>
-          <button class="tab" data-tab="playbook" role="tab" aria-selected="false">Action Playbook</button>
-        </nav>
-
-        <!-- TAB: OVERVIEW -->
-        <div class="panel active" data-panel="overview" role="tabpanel">
-          <div class="card">
-            <div class="card__head"><span class="card__title">Company Profile</span></div>
-            <div class="card__body">
-              <div class="co-name">
-                <h2>Acme Technologies</h2>
-                <span class="co-ticker">ACME</span>
-              </div>
-              <div class="co-tagline">Modern device management for hybrid enterprises</div>
-              <dl class="kv">
-                <dt>Website</dt>           <dd>acme.example.com</dd>
-                <dt>Industry</dt>          <dd>Enterprise Software</dd>
-                <dt>HQ</dt>                <dd>Redmond, WA</dd>
-                <dt>Size</dt>              <dd>1,200 employees</dd>
-                <dt>Founded</dt>           <dd>2014</dd>
-                <dt>Revenue</dt>           <dd>$240M FY25</dd>
-                <dt>Core Focus</dt>        <dd>Unified endpoint management, EUC automation</dd>
-                <dt>Partners</dt>          <dd>Microsoft · Nerdio · Intel</dd>
-                <dt>CEO</dt>               <dd>Alex Rivera <span class="pill pill--amber">Active transition</span></dd>
-                <dt>Prior CEO</dt>         <dd>Priya Chen (2020–2025)</dd>
-              </dl>
-              <hr class="section-divider">
-              <div class="pill-row">
-                <a class="pill pill--cyan pill--link" href="#">Website</a>
-                <a class="pill pill--cyan pill--link" href="#">LinkedIn</a>
-                <a class="pill pill--cyan pill--link" href="#">Press Room</a>
-                <a class="pill pill--cyan pill--link" href="#">Careers</a>
-                <span class="pill pill--blue">Gartner Cool Vendor 2024</span>
-                <span class="pill pill--blue">Inc 5000</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card__head">
-              <span class="card__title">Researched Contacts</span>
-              <span class="card__head-meta">3 at this company</span>
-            </div>
-            <div class="card__body">
-              <div class="contact-row" data-route="contact" data-id="C001">
-                <div class="avatar avatar--md avatar--verified">JS</div>
-                <div class="contact-row__body">
-                  <div class="contact-row__name">Jane Smith</div>
-                  <div class="contact-row__title">Director of End User Computing</div>
-                </div>
-                <div class="conf conf--high">
-                  <span class="pill pill--green">High</span>
-                  <div class="conf__bar"><div class="conf__fill" style="width: 85%"></div></div>
-                  <span class="conf__num">85</span>
-                </div>
-              </div>
-              <div class="contact-row" data-route="contact" data-id="C002">
-                <div class="avatar avatar--md avatar--verified">MD</div>
-                <div class="contact-row__body">
-                  <div class="contact-row__name">Marcus Delaney</div>
-                  <div class="contact-row__title">VP IT Infrastructure</div>
-                </div>
-                <div class="conf conf--high">
-                  <span class="pill pill--green">High</span>
-                  <div class="conf__bar"><div class="conf__fill" style="width: 78%"></div></div>
-                  <span class="conf__num">78</span>
-                </div>
-              </div>
-              <div class="contact-row" data-route="contact" data-id="C005">
-                <div class="avatar avatar--md avatar--inferred">PR</div>
-                <div class="contact-row__body">
-                  <div class="contact-row__name">Priya Raman</div>
-                  <div class="contact-row__title">Director, Cloud Operations</div>
-                </div>
-                <div class="conf conf--med">
-                  <span class="pill pill--amber">Inferred</span>
-                  <div class="conf__bar"><div class="conf__fill" style="width: 55%"></div></div>
-                  <span class="conf__num">55</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card__head"><span class="card__title">Email Domain Analysis</span></div>
-            <div class="card__body">
-              <div class="domain-line">
-                <span class="lbl">Domain</span>
-                <span class="val">acme.example.com</span>
-                <span class="lbl">Format</span>
-                <span class="val">first.last@acme.example.com</span>
-                <span class="pill pill--green">88% confidence</span>
-              </div>
-              <div class="email-row">
-                <span class="addr">jane.smith@acme.example.com</span>
-                <span class="pill pill--green">Verified</span>
-              </div>
-              <div class="email-row">
-                <span class="addr">marcus.delaney@acme.example.com</span>
-                <span class="pill pill--amber">Plausible</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card__head"><span class="card__title">Signature Achievements</span></div>
-            <div class="card__body">
-              <p class="achievement"><b>CEO Transition (Active):</b> Alex Rivera named CEO in January 2026 following Priya Chen's departure. Internal memo signals strategic pivot toward platform services.</p>
-              <p class="achievement"><b>Q4 FY25 Revenue Beat:</b> Reported $240M annual revenue, 14% YoY growth, beating consensus by $7M. Subscription revenue now 78% of total.</p>
-              <p class="achievement"><b>Strategic Partnership:</b> Expanded Microsoft co-sell agreement in March 2026 to include Intune-adjacent services in healthcare and education verticals.</p>
+      <div class="panel active" data-panel="profile">
+        <div class="section">
+          <div class="section__head"><span class="section__title">Pre-Call Briefing</span></div>
+          <div class="section__body">
+            <div class="highlight">
+              <b>Lead with:</b> device lifecycle automation. Ties directly to her March blog series and Ignite talk theme. Reference Recast's benchmark data on year-three program failures.<br>
+              <b>Avoid:</b> generic MDM positioning — she has explicitly framed that category as outdated.
             </div>
           </div>
         </div>
 
-        <!-- TAB: PROFILE -->
-        <div class="panel" data-panel="profile" role="tabpanel">
-          <div class="card">
-            <div class="card__head"><span class="card__title">Profile</span></div>
-            <div class="card__body">
-              <div class="profile-head">
-                <div class="avatar avatar--lg avatar--verified">JS</div>
-                <div class="profile-info">
-                  <div class="profile-name-row">
-                    <h2>Jane Smith</h2>
-                    <span class="pill pill--green">Verified</span>
-                  </div>
-                  <div class="profile-title">Director of End User Computing</div>
-                  <div class="profile-dual">Also leads the Modern Workplace Council</div>
-                  <div class="profile-meta">Seattle, WA · BS Computer Science, University of Washington</div>
-                  <div class="profile-certs"><b>Certifications:</b> MCSE · Citrix CCP-V</div>
-                </div>
-              </div>
-              <div class="profile-email-row">
-                <span class="email">jane.smith@acme.example.com</span>
-                <span class="pill pill--green">Verified</span>
-                <div class="conf conf--high">
-                  <div class="conf__bar"><div class="conf__fill" style="width: 85%"></div></div>
-                  <span class="conf__num">85</span>
-                </div>
-              </div>
-              <div class="pill-row" style="margin-top: 12px;">
-                <a class="pill pill--cyan pill--link" href="#">LinkedIn</a>
-                <a class="pill pill--cyan pill--link" href="#">Acme Author Page</a>
-                <a class="pill pill--cyan pill--link" href="#">Personal Blog</a>
+        <div class="section">
+          <div class="section__head"><span class="section__title">Decision-Making Authority</span></div>
+          <div class="section__body">
+            <p class="prose">Budget holder for EUC tooling under $250K. Reports to <b>Marcus Delaney (VP IT Infrastructure)</b> for spend above that threshold. Sits on the Modern Workplace Council, which gives her cross-functional veto power on workspace strategy.</p>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section__head"><span class="section__title">Background</span></div>
+          <div class="section__body">
+            <p class="prose">15-year EUC veteran. Joined Acme from Microsoft FastTrack in 2022. Built Acme's internal device lifecycle program, cited in two industry reports as a benchmark for mid-market enterprise modernization. Active speaker on the EUC conference circuit since 2019.</p>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section__head"><span class="section__title">What She's Talking About</span></div>
+          <div class="section__body">
+            <div class="activity">
+              <div class="activity__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+              <div class="activity__body">
+                <div class="activity__text"><b>"The Lifecycle Lie: Why Most Device Programs Fail at Year Three"</b> — company blog</div>
+                <div class="activity__src">Mar 22, 2026 · <a href="#">acme.example.com/blog/lifecycle-lie</a></div>
               </div>
             </div>
-          </div>
-
-          <div class="card">
-            <div class="card__head"><span class="card__title">Background</span></div>
-            <div class="card__body">
-              <p class="prose">15-year EUC veteran, joined Acme from Microsoft's FastTrack team in 2022. Built the internal device lifecycle program cited in two industry reports as a benchmark for mid-market enterprise modernization. Active speaker on the EUC conference circuit since 2019.</p>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card__head"><span class="card__title">Decision-Making Role</span></div>
-            <div class="card__body">
-              <p class="prose">Budget holder for EUC tooling under $250K. Reports to Marcus Delaney (VP IT Infrastructure) for spend above that threshold. Sits on the Modern Workplace Council, which gives her cross-functional veto power on workspace strategy.</p>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card__head"><span class="card__title">Affiliations</span></div>
-            <div class="card__body">
-              <div class="pill-row">
-                <a class="pill pill--blue pill--link" href="#">Microsoft MVP Alumni</a>
-                <a class="pill pill--blue pill--link" href="#">Modern Workplace Council Chair</a>
-                <a class="pill pill--blue pill--link" href="#">EUC Insider Advisory Board</a>
+            <div class="activity">
+              <div class="activity__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
+              <div class="activity__body">
+                <div class="activity__text">Keynote at <b>Spiceworks World 2026</b> on device modernization frameworks</div>
+                <div class="activity__src">Feb 10, 2026 · <a href="#">spiceworks.com/events</a></div>
               </div>
             </div>
-          </div>
-
-          <div class="card">
-            <div class="card__head"><span class="card__title">Recent Activity</span></div>
-            <div class="card__body">
-              <div class="activity">
-                <div class="activity__icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-                  </svg>
-                </div>
-                <div class="activity__body">
-                  <div class="activity__text">Published <b>"The Lifecycle Lie: Why Most Device Programs Fail at Year Three"</b> on company blog.</div>
-                  <div class="activity__src">2026-03-22 · <a href="#">acme.example.com/blog/lifecycle-lie</a></div>
-                </div>
-              </div>
-              <div class="activity">
-                <div class="activity__icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
-                  </svg>
-                </div>
-                <div class="activity__body">
-                  <div class="activity__text">Keynote at <b>Spiceworks World 2026</b> on device modernization frameworks.</div>
-                  <div class="activity__src">2026-02-10 · <a href="#">spiceworks.com/events</a></div>
-                </div>
-              </div>
-              <div class="activity">
-                <div class="activity__icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                  </svg>
-                </div>
-                <div class="activity__body">
-                  <div class="activity__text">Guest on the <b>EUC Insider</b> podcast — Episode 142, "Beyond MDM: The Lifecycle Era".</div>
-                  <div class="activity__src">2026-01-18 · <a href="#">eucinsider.com/142</a></div>
-                </div>
-              </div>
-              <div class="themes-row">
-                <span class="pill pill--amber">Device Lifecycle</span>
-                <span class="pill pill--amber">Modern Workplace</span>
-                <span class="pill pill--amber">End User Productivity</span>
+            <div class="activity">
+              <div class="activity__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+              <div class="activity__body">
+                <div class="activity__text">Guest on <b>EUC Insider</b> podcast — Episode 142, "Beyond MDM: The Lifecycle Era"</div>
+                <div class="activity__src">Jan 18, 2026 · <a href="#">eucinsider.com/142</a></div>
               </div>
             </div>
-          </div>
-
-          <div class="card">
-            <div class="card__head"><span class="card__title">Upcoming Events</span></div>
-            <div class="card__body">
-              <div class="event">
-                <div class="event__head">
-                  <span class="event__name">Microsoft Ignite 2026</span>
-                  <span class="pill pill--blue">Nov 17, 2026</span>
-                  <span class="pill pill--cyan">Speaker</span>
-                </div>
-                <div class="event__loc">San Francisco, CA · <a href="#">Speaker source</a></div>
-                <div class="callout">She is speaking on Day 2 at 10:30am on modern device strategy. Attend her session and approach afterward with a specific question about her lifecycle framework.</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card__head"><span class="card__title">Recommended Outreach Angle</span></div>
-            <div class="card__body">
-              <p class="prose">Lead with <b>device lifecycle automation</b> — ties directly to her Q1 blog series and her Ignite talk theme. Reference Recast's benchmark data on year-three program failures. Avoid generic MDM positioning; she has explicitly framed that category as outdated in her recent content.</p>
+            <hr class="divider">
+            <div class="pill-row">
+              <span class="pill pill--amber">Device Lifecycle</span>
+              <span class="pill pill--amber">Modern Workplace</span>
+              <span class="pill pill--amber">End User Productivity</span>
             </div>
           </div>
         </div>
 
-        <!-- TAB: ORG CHART -->
-        <div class="panel" data-panel="org" role="tabpanel">
-          <div class="card">
-            <div class="card__head"><span class="card__title">Hypothetical Org Chart</span></div>
-            <div class="card__body">
-              <div class="org-tree">
-                <div class="org-node org-node--confirmed">
-                  <div class="org-node__name">Alex Rivera</div>
-                  <div class="org-node__title">CEO</div>
-                  <span class="org-node__verify">Confirmed</span>
-                </div>
-                <div class="org-connector"></div>
-                <div class="org-node org-node--confirmed">
-                  <div class="org-node__name">Sarah Mitchell</div>
-                  <div class="org-node__title">EVP IT &amp; Operations</div>
-                  <span class="org-node__verify">Confirmed</span>
-                </div>
-                <div class="org-connector"></div>
-                <div class="org-node org-node--confirmed">
-                  <div class="org-node__name">Marcus Delaney</div>
-                  <div class="org-node__title">VP IT Infrastructure</div>
-                  <span class="org-node__verify">Confirmed</span>
-                </div>
-                <div class="org-connector"></div>
-                <div class="org-node org-node--target">
-                  <div class="org-node__name">Jane Smith</div>
-                  <div class="org-node__title">Director of End User Computing</div>
-                  <span class="org-node__verify">Target</span>
-                </div>
+        <div class="section">
+          <div class="section__head"><span class="section__title">Coming Up</span></div>
+          <div class="section__body">
+            <div class="event">
+              <div class="event__head">
+                <span class="event__name">Microsoft Ignite 2026</span>
+                <span class="pill pill--blue">Nov 17, 2026</span>
+                <span class="pill pill--gray">Speaker</span>
               </div>
-
-              <div class="peer-section">
-                <div class="peer-section__label">Confirmed Peers &amp; Adjacent Leaders</div>
-                <div class="peer-row" data-peer="1">
-                  <div class="avatar avatar--sm" style="background: var(--green); color: var(--white);">TR</div>
-                  <div class="peer-row__body">
-                    <div class="peer-row__name">Tom Reyes</div>
-                    <div class="peer-row__title">Director, Network Engineering</div>
-                  </div>
-                  <span class="pill pill--green">Confirmed</span>
-                </div>
-                <div class="peer-detail" id="peer-1">
-                  Quoted alongside Jane in the Q3 platform memo. Shares her interest in zero-trust endpoint posture — strong warm-up candidate for a peer-led intro.
-                  <a href="#">Source: Acme Q3 Platform Memo →</a>
-                </div>
-                <div class="peer-row" data-peer="2">
-                  <div class="avatar avatar--sm" style="background: var(--amber); color: var(--white);">PP</div>
-                  <div class="peer-row__body">
-                    <div class="peer-row__name">Priya Patel</div>
-                    <div class="peer-row__title">Director, Cloud Operations</div>
-                  </div>
-                  <span class="pill pill--amber">Inferred</span>
-                </div>
-                <div class="peer-detail" id="peer-2">
-                  Title appears in LinkedIn search but no direct co-citation with Jane found. Likely peer based on org structure.
-                  <a href="#">Source: LinkedIn role match →</a>
-                </div>
-              </div>
-
-              <div class="peer-section">
-                <div class="peer-section__label">Direct Reports</div>
-                <div class="peer-row">
-                  <div class="avatar avatar--sm avatar--verified">RK</div>
-                  <div class="peer-row__body">
-                    <div class="peer-row__name">Rachel Kim</div>
-                    <div class="peer-row__title">Sr. Manager, Endpoint Engineering</div>
-                  </div>
-                </div>
-                <div class="peer-row">
-                  <div class="avatar avatar--sm avatar--verified">DH</div>
-                  <div class="peer-row__body">
-                    <div class="peer-row__name">David Huang</div>
-                    <div class="peer-row__title">Manager, Application Packaging</div>
-                  </div>
-                </div>
-                <div class="peer-row">
-                  <div class="avatar avatar--sm avatar--verified">EM</div>
-                  <div class="peer-row__body">
-                    <div class="peer-row__name">Elena Morales</div>
-                    <div class="peer-row__title">Sr. Engineer, Device Lifecycle</div>
-                  </div>
-                </div>
-              </div>
+              <div class="event__loc">San Francisco, CA · <a href="#">Source</a></div>
             </div>
+            <div class="callout">Speaking Day 2 at 10:30am on modern device strategy. Attend her session and approach afterward with a specific question about her lifecycle framework.</div>
           </div>
+        </div>
 
-          <div class="card">
-            <div class="card__head"><span class="card__title">Strategic Read</span></div>
-            <div class="card__body">
-              <p class="strat-para"><b>Budget holder for Jane's domain:</b> Marcus Delaney (VP IT Infrastructure) holds direct budget authority. Sarah Mitchell (EVP) provides strategic approval for initiatives over $500K.</p>
-              <p class="strat-para"><b>Decision distance:</b> 1 level to budget holder, 2 levels to strategic approver, 3 levels to CEO.</p>
-              <p class="strat-para"><b>If Jane goes cold — alternative entry points:</b> Tom Reyes (peer Director of Network Engineering) is the strongest re-entry path. Approach via shared interest in zero-trust endpoint posture rather than re-pitching the same lifecycle angle.</p>
-              <p class="strat-para"><b>Gatekeeper vs. authority:</b> Jane is both budget influencer and technical decision maker for EUC tooling under $250K. Above that threshold, Marcus must approve. Treat Jane as the champion; brief Marcus as the authority once Jane is engaged.</p>
-              <div class="callout callout--warn"><b>Active CEO transition:</b> Alex Rivera (Jan 2026) creates strategic uncertainty. Avoid aligning your pitch to Priya Chen's stated priorities until Rivera's first earnings call clarifies direction.</div>
+        <div class="section">
+          <div class="section__head"><span class="section__title">Affiliations &amp; Background</span></div>
+          <div class="section__body">
+            <div class="pill-row" style="margin-bottom:12px">
+              <span class="pill pill--blue">Microsoft MVP Alumni</span>
+              <span class="pill pill--blue">Modern Workplace Council Chair</span>
+              <span class="pill pill--blue">EUC Insider Advisory Board</span>
+            </div>
+            <dl class="kv">
+              <dt>Education</dt><dd>BS Computer Science, University of Washington</dd>
+              <dt>Certifications</dt><dd>MCSE · Citrix CCP-V</dd>
+              <dt>Email</dt><dd class="mono">jane.smith@acme.example.com</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" data-panel="company">
+        <div class="section">
+          <div class="section__head"><span class="section__title">Acme Technologies</span></div>
+          <div class="section__body">
+            <p class="prose" style="margin-bottom:16px">Modern device management for hybrid enterprises.</p>
+            <dl class="kv">
+              <dt>Industry</dt><dd>Enterprise Software</dd>
+              <dt>HQ</dt><dd>Redmond, WA</dd>
+              <dt>Size</dt><dd>1,200 employees</dd>
+              <dt>Revenue</dt><dd>$240M FY25</dd>
+              <dt>Founded</dt><dd>2014</dd>
+              <dt>CEO</dt><dd>Alex Rivera <span class="pill pill--amber">Active transition</span></dd>
+              <dt>Prior CEO</dt><dd>Priya Chen (2020–2025)</dd>
+              <dt>Partners</dt><dd>Microsoft · Nerdio · Intel</dd>
+            </dl>
+            <hr class="divider">
+            <div class="pill-row">
+              <a class="pill pill--gray" href="#">Website</a>
+              <a class="pill pill--gray" href="#">LinkedIn</a>
+              <a class="pill pill--gray" href="#">Press Room</a>
             </div>
           </div>
         </div>
 
-        <!-- TAB: PLAYBOOK -->
-        <div class="panel" data-panel="playbook" role="tabpanel">
-          <div class="card">
-            <div class="card__head"><span class="card__title">Multi-Contact Outreach Plan</span></div>
-            <div class="card__body">
-              <div class="step">
-                <div class="step__box" data-step="1" tabindex="0" role="button" aria-label="Step 1 status">1</div>
-                <div class="step__body">
-                  <div class="step__title">Email Validation</div>
-                  <div class="step__detail">Pattern <span class="mono">first.last@acme.example.com</span> matches at 88% confidence. Validate via bounceback or Hunter.io before first send.</div>
-                </div>
+        <div class="section">
+          <div class="section__head"><span class="section__title">Other Contacts at Acme</span><span class="section__meta">2 more researched</span></div>
+          <div class="section__body" style="padding:8px">
+            <button class="contact-item" data-route="contact" data-id="C002">
+              <div class="avatar avatar--md avatar--blue">MD</div>
+              <div class="contact-item__body">
+                <div class="contact-item__name">Marcus Delaney</div>
+                <div class="contact-item__sub">VP IT Infrastructure</div>
               </div>
-              <div class="step">
-                <div class="step__box" data-step="2" tabindex="0" role="button" aria-label="Step 2 status">2</div>
-                <div class="step__body">
-                  <div class="step__title">Profile Optimization</div>
-                  <div class="step__detail">Update LinkedIn headline and recent post to include "Device Lifecycle Automation" before connecting.</div>
-                </div>
+              <div class="contact-item__meta">
+                <div class="conf conf--high"><span class="conf__dots"><span class="conf__dot"></span><span class="conf__dot"></span><span class="conf__dot"></span></span><span class="conf__num">78</span></div>
               </div>
-              <div class="step">
-                <div class="step__box" data-step="3" tabindex="0" role="button" aria-label="Step 3 status">3</div>
-                <div class="step__body">
-                  <div class="step__title">Passive Engagement</div>
-                  <div class="step__detail">Like and thoughtfully comment on Jane's last 2 LinkedIn posts. Wait 48 hours between actions.</div>
-                </div>
+            </button>
+            <button class="contact-item" data-route="contact" data-id="C005">
+              <div class="avatar avatar--md avatar--amber">PR</div>
+              <div class="contact-item__body">
+                <div class="contact-item__name">Priya Raman</div>
+                <div class="contact-item__sub">Director, Cloud Operations</div>
               </div>
-              <div class="step">
-                <div class="step__box" data-step="4" tabindex="0" role="button" aria-label="Step 4 status">4</div>
-                <div class="step__body">
-                  <div class="step__title">Warm Up via Peer Directors</div>
-                  <div class="step__detail">Connect with Tom Reyes first. His acceptance signals to Jane you're already in her professional orbit.</div>
-                </div>
+              <div class="contact-item__meta">
+                <div class="conf conf--med"><span class="conf__dots"><span class="conf__dot"></span><span class="conf__dot"></span><span class="conf__dot"></span></span><span class="conf__num">55</span></div>
               </div>
-              <div class="step">
-                <div class="step__box" data-step="5" tabindex="0" role="button" aria-label="Step 5 status">5</div>
-                <div class="step__body">
-                  <div class="step__title">Leadership Transition Angle</div>
-                  <div class="step__detail">Reference platform-services pivot (CEO transition context) when relevant. Don't lead with it.</div>
-                </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section__head"><span class="section__title">What's Happening</span></div>
+          <div class="section__body">
+            <p class="prose"><b>CEO Transition (Active):</b> Alex Rivera named CEO in January 2026 following Priya Chen's departure. Memo signals strategic pivot toward platform services.</p>
+            <hr class="divider">
+            <p class="prose"><b>Q4 FY25 Revenue Beat:</b> $240M annual revenue, 14% YoY, beat consensus by $7M. Subscription revenue now 78% of total.</p>
+            <hr class="divider">
+            <p class="prose"><b>Microsoft Co-Sell Expansion:</b> Expanded co-sell agreement in March 2026 to include Intune-adjacent services in healthcare and education verticals.</p>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section__head"><span class="section__title">Email Pattern</span></div>
+          <div class="section__body">
+            <p class="prose mono" style="margin-bottom:6px">first.last@acme.example.com</p>
+            <p style="font-size:12px;color:var(--ink-3)">88% confidence based on 200+ verified Acme addresses</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" data-panel="org">
+        <div class="section">
+          <div class="section__head"><span class="section__title">Reporting Line</span></div>
+          <div class="section__body">
+            <div class="org-tree">
+              <div class="org-node org-node--confirmed"><div class="org-node__name">Alex Rivera</div><div class="org-node__title">CEO</div><span class="org-node__chip">Confirmed</span></div>
+              <div class="org-connector"></div>
+              <div class="org-node org-node--confirmed"><div class="org-node__name">Sarah Mitchell</div><div class="org-node__title">EVP IT &amp; Operations</div><span class="org-node__chip">Confirmed</span></div>
+              <div class="org-connector"></div>
+              <div class="org-node org-node--confirmed"><div class="org-node__name">Marcus Delaney</div><div class="org-node__title">VP IT Infrastructure</div><span class="org-node__chip">Confirmed</span></div>
+              <div class="org-connector"></div>
+              <div class="org-node org-node--target"><div class="org-node__name">Jane Smith</div><div class="org-node__title">Director, End User Computing</div><span class="org-node__chip">Target</span></div>
+            </div>
+
+            <div class="peer-section">
+              <div class="peer-section__head">Peers · 2</div>
+              <div class="peer-row" data-peer="1">
+                <div class="avatar avatar--sm avatar--green">TR</div>
+                <div class="peer-row__body"><div class="peer-row__name">Tom Reyes</div><div class="peer-row__title">Director, Network Engineering</div></div>
+                <span class="pill pill--green">Confirmed</span>
               </div>
-              <div class="step">
-                <div class="step__box" data-step="6" tabindex="0" role="button" aria-label="Step 6 status">6</div>
-                <div class="step__body">
-                  <div class="step__title">LinkedIn Connection</div>
-                  <div class="step__detail">Send personalized connection request referencing her Q1 lifecycle blog series.</div>
-                </div>
+              <div class="peer-detail" id="peer-1">Quoted alongside Jane in the Q3 platform memo. Shares interest in zero-trust endpoint posture — strong warm-up candidate. <a href="#">Source: Q3 Platform Memo →</a></div>
+              <div class="peer-row" data-peer="2">
+                <div class="avatar avatar--sm avatar--amber">PP</div>
+                <div class="peer-row__body"><div class="peer-row__name">Priya Patel</div><div class="peer-row__title">Director, Cloud Operations</div></div>
+                <span class="pill pill--amber">Inferred</span>
               </div>
-              <div class="step">
-                <div class="step__box" data-step="7" tabindex="0" role="button" aria-label="Step 7 status">7</div>
-                <div class="step__body">
-                  <div class="step__title">Email Follow-Up</div>
-                  <div class="step__detail">5 business days after LinkedIn acceptance, send the warm email. Lead with lifecycle angle and Tom Reyes reference.</div>
-                </div>
-              </div>
-              <div class="step">
-                <div class="step__box" data-step="8" tabindex="0" role="button" aria-label="Step 8 status">8</div>
-                <div class="step__body">
-                  <div class="step__title">Event Proximity</div>
-                  <div class="step__detail">Attend her Ignite session (Nov 17, 10:30am). Approach with a specific question about her lifecycle framework after Q&amp;A.</div>
-                </div>
-              </div>
+              <div class="peer-detail" id="peer-2">Title appears in LinkedIn search but no direct co-citation with Jane found. Likely peer based on org structure. <a href="#">Source: LinkedIn role match →</a></div>
+            </div>
+
+            <div class="peer-section">
+              <div class="peer-section__head">Direct Reports · 3</div>
+              <div class="peer-row"><div class="avatar avatar--sm avatar--blue">RK</div><div class="peer-row__body"><div class="peer-row__name">Rachel Kim</div><div class="peer-row__title">Sr. Manager, Endpoint Engineering</div></div></div>
+              <div class="peer-row"><div class="avatar avatar--sm avatar--blue">DH</div><div class="peer-row__body"><div class="peer-row__name">David Huang</div><div class="peer-row__title">Manager, Application Packaging</div></div></div>
+              <div class="peer-row"><div class="avatar avatar--sm avatar--blue">EM</div><div class="peer-row__body"><div class="peer-row__name">Elena Morales</div><div class="peer-row__title">Sr. Engineer, Device Lifecycle</div></div></div>
             </div>
           </div>
+        </div>
 
-          <div class="card">
-            <div class="card__head"><span class="card__title">Message Templates</span></div>
-            <div class="card__body">
-              <div class="template">
-                <div class="template__label template__label--blue">LinkedIn Connection</div>
-                <div class="template__body">Hi Jane — saw your lifecycle piece on the three-year failure mode. The pattern matches what we see at Recast across our install base. Would love to connect and trade notes.</div>
-              </div>
-              <div class="template">
-                <div class="template__label template__label--amber">Warm Email</div>
-                <div class="template__body">Subject: Following up — your lifecycle framework
+        <div class="section">
+          <div class="section__head"><span class="section__title">How to Read the Org</span></div>
+          <div class="section__body">
+            <p class="prose"><b>Budget holder:</b> Marcus Delaney (VP IT Infrastructure) holds direct authority. Sarah Mitchell (EVP) approves anything &gt; $500K.</p>
+            <p class="prose"><b>Decision distance:</b> 1 level to budget holder, 2 to strategic approver, 3 to CEO.</p>
+            <p class="prose"><b>If Jane goes cold:</b> Tom Reyes is the strongest re-entry path. Approach via shared zero-trust interest — don't re-pitch the same lifecycle angle.</p>
+            <p class="prose"><b>Champion vs. authority:</b> Treat Jane as the champion (technical decision-maker under $250K), brief Marcus as the authority once Jane is engaged.</p>
+            <div class="callout callout--warn"><b>Active CEO transition:</b> Alex Rivera (Jan 2026) creates strategic uncertainty. Avoid aligning your pitch to Priya Chen's stated priorities until Rivera's first earnings call clarifies direction.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" data-panel="playbook">
+        <div class="section">
+          <div class="section__head"><span class="section__title">Outreach Sequence</span></div>
+          <div class="section__body">
+            <div class="step"><div class="step__box" data-step="1">1</div><div><div class="step__title">Validate email</div><div class="step__detail">Pattern matches at 88%. Verify before send.</div></div></div>
+            <div class="step"><div class="step__box" data-step="2">2</div><div><div class="step__title">Polish profile</div><div class="step__detail">Update LinkedIn headline to surface "Device Lifecycle Automation" before connecting.</div></div></div>
+            <div class="step"><div class="step__box" data-step="3">3</div><div><div class="step__title">Passive engagement</div><div class="step__detail">Like and thoughtfully comment on her last 2 LinkedIn posts. 48hrs between actions.</div></div></div>
+            <div class="step"><div class="step__box" data-step="4">4</div><div><div class="step__title">Warm up via Tom Reyes</div><div class="step__detail">Connect with Tom first. His acceptance signals you're already in her orbit.</div></div></div>
+            <div class="step"><div class="step__box" data-step="5">5</div><div><div class="step__title">LinkedIn connect</div><div class="step__detail">Personalized note referencing her Q1 lifecycle blog series.</div></div></div>
+            <div class="step"><div class="step__box" data-step="6">6</div><div><div class="step__title">Warm email</div><div class="step__detail">5 business days after acceptance. Lead with lifecycle angle + Tom Reyes reference.</div></div></div>
+            <div class="step"><div class="step__box" data-step="7">7</div><div><div class="step__title">Event proximity</div><div class="step__detail">Attend her Ignite session Nov 17, 10:30am. Approach after Q&amp;A with a specific framework question.</div></div></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section__head"><span class="section__title">Message Templates</span></div>
+          <div class="section__body">
+            <div class="template">
+              <div class="template__label template__label--blue">LinkedIn Connection</div>
+              <div class="template__body">Hi Jane — saw your lifecycle piece on the three-year failure mode. The pattern matches what we see at Recast across our install base. Would love to connect and trade notes.</div>
+            </div>
+            <div class="template">
+              <div class="template__label template__label--amber">Warm Email</div>
+              <div class="template__body">Subject: Following up — your lifecycle framework
 
 Jane,
 
 Tom Reyes mentioned we should connect. Your March piece on the three-year device program failure mode resonated — we see the same pattern across the Recast install base, especially in healthcare verticals.
 
-Would you be open to a 20-minute conversation in the next two weeks? I'd like to compare notes on what's working at Acme.
+Would you be open to a 20-minute conversation in the next two weeks?
 
 Aaron Adsit
 VP Partnerships, Recast Software</div>
-              </div>
-              <div class="template">
-                <div class="template__label template__label--green">Direct Cold Email</div>
-                <div class="template__body">Subject: Device lifecycle — Acme + Recast
+            </div>
+            <div class="template">
+              <div class="template__label template__label--green">Direct Cold Email</div>
+              <div class="template__body">Subject: Device lifecycle — Acme + Recast
 
 Jane,
 
-Your blog post on year-three device program failures flagged a pattern we instrument directly at Recast. We just released benchmark data from 200+ enterprise deployments showing exactly when the failure mode kicks in.
+Your post on year-three program failures flagged a pattern we instrument at Recast. We just released benchmark data from 200+ enterprise deployments showing exactly when the failure mode kicks in.
 
-Worth a 15-minute look? Happy to share the dataset on a call or send it over.
+Worth a 15-minute look?
 
 Aaron Adsit
 Recast Software</div>
-              </div>
-              <div class="template">
-                <div class="template__label template__label--gray">Follow-Up</div>
-                <div class="template__body">Jane,
+            </div>
+            <div class="template">
+              <div class="template__label template__label--gray">Follow-Up</div>
+              <div class="template__body">Jane,
 
-Bumping this in case it got lost. The benchmark data is yours either way — link below if you'd rather just review on your own time.
+Bumping in case it got lost. The benchmark data is yours either way — link below if you'd rather review on your own time.
 
 [Recast Lifecycle Benchmark — 200 Enterprise Deployments]
 
 Aaron</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card__head"><span class="card__title">Outreach Priority Matrix</span></div>
-            <div class="card__body" style="padding: 0;">
-              <table class="matrix">
-                <thead>
-                  <tr>
-                    <th>Contact</th><th>Channel</th><th>Priority</th><th>Email Conf</th><th>Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td class="name" data-label="Contact">Jane Smith</td>
-                    <td data-label="Channel">Email</td>
-                    <td class="priority priority--primary" data-label="Priority">Primary</td>
-                    <td data-label="Email Conf"><span class="pill pill--green">High</span></td>
-                    <td data-label="Notes">Primary target. Lead with lifecycle angle. Ignite speaker — event-based outreach also viable.</td>
-                  </tr>
-                  <tr>
-                    <td class="name" data-label="Contact">Tom Reyes</td>
-                    <td data-label="Channel">LinkedIn</td>
-                    <td class="priority priority--secondary" data-label="Priority">Secondary</td>
-                    <td data-label="Email Conf"><span class="pill pill--amber">Medium</span></td>
-                    <td data-label="Notes">Warm-up path to Jane. Connect via shared zero-trust interest.</td>
-                  </tr>
-                  <tr>
-                    <td class="name" data-label="Contact">Marcus Delaney</td>
-                    <td data-label="Channel">Brief Only</td>
-                    <td class="priority priority--tertiary" data-label="Priority">Tertiary</td>
-                    <td data-label="Email Conf"><span class="pill pill--gray">N/A</span></td>
-                    <td data-label="Notes">Treat as authority. Brief after Jane is engaged and deal exceeds $250K.</td>
-                  </tr>
-                </tbody>
-              </table>
             </div>
           </div>
         </div>
 
-        <!-- SOURCE LOG -->
-        <div class="source-log" id="source-log">
-          <button class="source-trigger" id="source-trigger" type="button" aria-expanded="false">
-            <span class="source-trigger__label">Source Log · 12 sources · 10 of 12 checks passed</span>
-            <span class="source-trigger__arrow">▾</span>
-          </button>
-          <div class="source-content">
-            <div class="checks">
-              <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Name + title confirmed on LinkedIn</span></div>
-              <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Title confirmed on company site</span></div>
-              <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Email format matches dominant pattern</span></div>
-              <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Published content verified</span></div>
-              <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Certifications confirmed</span></div>
-              <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Education confirmed</span></div>
-              <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Function head identified</span></div>
-              <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Peer directors identified</span></div>
-              <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Direct manager name sourced</span></div>
-              <div class="check"><span class="check__mark check__mark--fail">✗</span><span>X / Twitter presence found</span></div>
-              <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Personal website / blog found</span></div>
-              <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Conference speaking engagement confirmed</span></div>
-            </div>
-            <hr class="coral-divider">
-            <ol class="source-list">
-              <li><a href="#">LinkedIn Profile — linkedin.com/in/janesmith</a></li>
-              <li><a href="#">Acme Author Page — acme.example.com/authors/jane-smith</a></li>
-              <li><a href="#">Acme Leadership Page — acme.example.com/leadership</a></li>
-              <li><a href="#">Acme Q4 Press Release — acme.example.com/press/q4-results</a></li>
-              <li><a href="#">Microsoft Ignite Speaker List — ignite.microsoft.com/speakers</a></li>
-              <li><a href="#">EUC Insider Podcast Episode 142 — eucinsider.com/142</a></li>
-              <li><a href="#">Spiceworks World 2026 Speakers — spiceworks.com/events</a></li>
-              <li><a href="#">"The Lifecycle Lie" blog post — acme.example.com/blog/lifecycle-lie</a></li>
-              <li><a href="#">RocketReach email format pattern — rocketreach.co/acme</a></li>
-              <li><a href="#">Acme Q3 Platform Memo — acme.example.com/press/q3-memo</a></li>
-              <li><a href="#">CEO Transition Announcement — example.com/press/ceo-announcement</a></li>
-              <li><a href="#">Modern Workplace Council Charter — acme.example.com/about/mwc</a></li>
-            </ol>
-            <div class="assessment">
-              <b>Overall confidence: 85%.</b> Jane is a high-confidence target with verified title, email, content footprint, and direct manager link. Two checks remain unresolved — X/Twitter presence (none found, likely not active) and a deeper biographical source on Marcus Delaney's tenure. Active CEO transition is a strategic timing factor; recommend execution within the next 60 days while platform-services positioning is still being defined.
-            </div>
+        <div class="section">
+          <div class="section__head"><span class="section__title">Priority Order</span></div>
+          <div class="section__body" style="padding:0">
+            <table class="matrix">
+              <thead><tr><th>Contact</th><th>Channel</th><th>Priority</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td class="name" data-label="Contact">Jane Smith</td><td data-label="Channel">Email</td><td class="priority priority--primary" data-label="Priority">Primary</td><td data-label="Notes">Lead with lifecycle. Ignite speaker.</td></tr>
+                <tr><td class="name" data-label="Contact">Tom Reyes</td><td data-label="Channel">LinkedIn</td><td class="priority priority--secondary" data-label="Priority">Secondary</td><td data-label="Notes">Warm-up path via zero-trust angle.</td></tr>
+                <tr><td class="name" data-label="Contact">Marcus Delaney</td><td data-label="Channel">Brief only</td><td class="priority priority--tertiary" data-label="Priority">Tertiary</td><td data-label="Notes">Authority. Brief after Jane engaged.</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
-
       </div>
-    </section>
 
-  </main>
-
-  <!-- ========================================================================
-       FOOTER
-       ======================================================================== -->
-  <footer class="brand-footer">
-    <div class="container">
-      <div class="brand-footer__inner">
-        <span>Recast Software · LeadCheck Pro · Sales Intelligence</span>
-        <span class="preview-tag">Design Preview · April 2026</span>
+      <div class="source-log" id="source-log">
+        <button class="source-trigger" id="source-trigger" type="button" aria-expanded="false">
+          <span class="source-trigger__label">Sources · 12 cited · 11 of 12 checks passed</span>
+          <span class="source-trigger__arrow">▾</span>
+        </button>
+        <div class="source-content">
+          <div class="checks">
+            <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Name + title on LinkedIn</span></div>
+            <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Title on company site</span></div>
+            <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Email format match</span></div>
+            <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Published content</span></div>
+            <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Certifications</span></div>
+            <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Education</span></div>
+            <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Function head</span></div>
+            <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Peer directors</span></div>
+            <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Direct manager sourced</span></div>
+            <div class="check"><span class="check__mark check__mark--fail">✗</span><span>X / Twitter presence</span></div>
+            <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Personal blog</span></div>
+            <div class="check"><span class="check__mark check__mark--pass">✓</span><span>Conference speaking</span></div>
+          </div>
+          <hr class="coral-divider">
+          <ol class="source-list">
+            <li><a href="#">LinkedIn Profile</a></li>
+            <li><a href="#">Acme Author Page</a></li>
+            <li><a href="#">Acme Leadership Page</a></li>
+            <li><a href="#">Acme Q4 Press Release</a></li>
+            <li><a href="#">Microsoft Ignite Speaker List</a></li>
+            <li><a href="#">EUC Insider Podcast Episode 142</a></li>
+            <li><a href="#">Spiceworks World 2026 Speakers</a></li>
+            <li><a href="#">"The Lifecycle Lie" blog post</a></li>
+            <li><a href="#">RocketReach email format</a></li>
+            <li><a href="#">Acme Q3 Platform Memo</a></li>
+            <li><a href="#">CEO Transition Announcement</a></li>
+            <li><a href="#">Modern Workplace Council Charter</a></li>
+          </ol>
+        </div>
       </div>
+
     </div>
-  </footer>
+  </section>
+</main>
+
+<footer class="app-footer">
+  <div class="container">
+    <div class="app-footer__inner">
+      <span>Recast Software · LeadCheck Pro</span>
+      <span class="preview-tag">Design preview · April 2026</span>
+    </div>
+  </div>
+</footer>
 
 </div>
 
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal" role="dialog" aria-labelledby="modal-title" aria-modal="true">
+    <div class="modal__head">
+      <h2 class="modal__title" id="modal-title">New Contact</h2>
+      <button class="modal__close" id="modal-close" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal__body">
+
+      <div class="form-section">
+        <div class="form-section__head">Identity</div>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field__label" for="f-name">Full name <span class="req">*</span></label>
+            <input class="input" type="text" id="f-name" placeholder="e.g. Jane Smith" required>
+          </div>
+          <div class="form-grid form-grid--2">
+            <div class="field">
+              <label class="field__label" for="f-title">Title</label>
+              <input class="input" type="text" id="f-title" placeholder="e.g. Director of EUC">
+            </div>
+            <div class="field">
+              <label class="field__label" for="f-company">Company <span class="req">*</span></label>
+              <select class="select" id="f-company" required>
+                <option value="">Select a company…</option>
+                <option value="CO001">Acme Technologies</option>
+                <option value="CO002">Northwind Health</option>
+                <option value="CO003">Sentinel Logistics</option>
+                <option value="__new">+ Create new company</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section__head">Contact Info</div>
+        <div class="form-grid">
+          <div class="form-grid form-grid--2">
+            <div class="field">
+              <label class="field__label" for="f-email">Email</label>
+              <input class="input" type="email" id="f-email" placeholder="first.last@company.com">
+            </div>
+            <div class="field">
+              <label class="field__label" for="f-location">Location</label>
+              <input class="input" type="text" id="f-location" placeholder="e.g. Seattle, WA">
+            </div>
+          </div>
+          <div class="field">
+            <label class="field__label" for="f-linkedin">LinkedIn URL</label>
+            <input class="input" type="url" id="f-linkedin" placeholder="https://linkedin.com/in/…">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section__head">Research Notes</div>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field__label">Background</label>
+            <div class="editor">
+              <div class="editor__toolbar">
+                <button class="editor__btn" type="button" data-cmd="bold" title="Bold">B</button>
+                <button class="editor__btn editor__btn--italic" type="button" data-cmd="italic" title="Italic">I</button>
+                <button class="editor__btn" type="button" data-cmd="insertUnorderedList" title="Bullet list">•</button>
+              </div>
+              <div class="editor__content" contenteditable="true" data-placeholder="Career history, expertise, anything notable…"></div>
+            </div>
+            <div class="field__hint">Saves as plain text. Formatting is for note-taking clarity.</div>
+          </div>
+          <div class="field">
+            <label class="field__label" for="f-decision">Decision-Making Role</label>
+            <textarea class="textarea" id="f-decision" placeholder="What can they approve? Who do they report to for bigger spend?"></textarea>
+          </div>
+          <div class="field">
+            <label class="field__label" for="f-angle">Outreach Angle</label>
+            <textarea class="textarea" id="f-angle" placeholder="What should you lead with? What should you avoid?"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section__head">Tags</div>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field__label">Themes</label>
+            <div class="chip-input" id="chip-themes">
+              <input class="chip-input__field" type="text" placeholder="Type and press Enter…">
+            </div>
+            <div class="field__hint">Topics they publish about, frameworks they advocate.</div>
+          </div>
+          <div class="field">
+            <label class="field__label">Certifications</label>
+            <div class="chip-input" id="chip-certs">
+              <input class="chip-input__field" type="text" placeholder="Type and press Enter…">
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal__foot">
+      <button class="btn btn--ghost" id="modal-cancel" type="button">Cancel</button>
+      <button class="btn btn--primary" id="modal-save" type="button">Save Contact</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toast-msg">Contact saved</span>
+</div>
+
 <script>
-/* =========================================================================
-   MOCK DATA
-   ========================================================================= */
 const CONTACTS = [
-  { id: 'C001', name: 'Jane Smith',     initials: 'JS', title: 'Director of End User Computing', company: 'Acme Technologies',  companyId: 'CO001', conf: 85, confTier: 'high', verified: true,  email: 'jane.smith@acme.example.com' },
-  { id: 'C002', name: 'Marcus Delaney', initials: 'MD', title: 'VP IT Infrastructure',           company: 'Acme Technologies',  companyId: 'CO001', conf: 78, confTier: 'high', verified: true,  email: 'marcus.delaney@acme.example.com' },
-  { id: 'C003', name: 'Lin Park',       initials: 'LP', title: 'CIO',                            company: 'Northwind Health',   companyId: 'CO002', conf: 62, confTier: 'med',  verified: true,  email: 'lin.park@northwind.example.com' },
-  { id: 'C004', name: 'Derek Okonkwo',  initials: 'DO', title: 'VP Endpoint Strategy',           company: 'Sentinel Logistics', companyId: 'CO003', conf: 81, confTier: 'high', verified: true,  email: 'derek.okonkwo@sentinel.example.com' },
-  { id: 'C005', name: 'Priya Raman',    initials: 'PR', title: 'Director, Cloud Operations',     company: 'Acme Technologies',  companyId: 'CO001', conf: 55, confTier: 'med',  verified: false, email: 'priya.raman@acme.example.com' }
-];
-const COMPANIES = [
-  { id: 'CO001', name: 'Acme Technologies',  initials: 'A', industry: 'Enterprise Software',     count: 3 },
-  { id: 'CO002', name: 'Northwind Health',   initials: 'N', industry: 'Healthcare IT',           count: 1 },
-  { id: 'CO003', name: 'Sentinel Logistics', initials: 'S', industry: 'Logistics & Transport',  count: 1 }
+  {id:'C001',name:'Jane Smith',initials:'JS',title:'Director of End User Computing',company:'Acme Technologies',companyId:'CO001',conf:85,tier:'high',verified:true,stale:'2 days ago',added:5},
+  {id:'C002',name:'Marcus Delaney',initials:'MD',title:'VP IT Infrastructure',company:'Acme Technologies',companyId:'CO001',conf:78,tier:'high',verified:true,stale:'5 days ago',added:4},
+  {id:'C003',name:'Lin Park',initials:'LP',title:'CIO',company:'Northwind Health',companyId:'CO002',conf:62,tier:'med',verified:true,stale:'1 week ago',added:3},
+  {id:'C004',name:'Derek Okonkwo',initials:'DO',title:'VP Endpoint Strategy',company:'Sentinel Logistics',companyId:'CO003',conf:81,tier:'high',verified:true,stale:'3 days ago',added:2},
+  {id:'C005',name:'Priya Raman',initials:'PR',title:'Director, Cloud Operations',company:'Acme Technologies',companyId:'CO001',conf:55,tier:'med',verified:false,stale:'2 weeks ago',added:1}
 ];
 
-/* =========================================================================
-   ROUTER + VIEW MANAGEMENT
-   ========================================================================= */
-function showView(name) {
-  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.dataset.view === name));
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+let activeFilter='all',activeSort='recent',activeSearch='',editingId=null;
+
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
+  document.getElementById('filter-row').style.display=name==='home'?'':'none';
+  document.querySelector('.search-wrap').style.display=name==='home'?'':'none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function navigate(route,id){
+  if(route==='home')location.hash='#/';
+  else if(route==='contact')location.hash='#/contact/'+(id||'C001');
+}
+function handleHash(){
+  const hash=location.hash||'#/';
+  const parts=hash.replace(/^#\//,'').split('/');
+  if(parts[0]==='contact'){renderContactDetail(parts[1]||'C001');showView('contact');}
+  else showView('home');
+}
+window.addEventListener('hashchange',handleHash);
+
+function avatarClass(c){
+  if(!c.verified)return'avatar--amber';
+  if(c.tier==='high')return'avatar--blue';
+  return'avatar--amber';
 }
 
-function navigate(route, id) {
-  if (route === 'home') { location.hash = '#/'; }
-  else if (route === 'contact') { location.hash = '#/contact/' + (id || 'C001'); }
-  else if (route === 'company') { location.hash = '#/company/' + (id || 'CO001'); }
-  else if (route === 'search') { location.hash = '#/search/' + encodeURIComponent(id || ''); }
-}
+function renderList(){
+  const mount=document.getElementById('list-mount');
+  const empty=document.getElementById('empty-state');
+  const term=activeSearch.trim().toLowerCase();
 
-function handleHash() {
-  const hash = location.hash || '#/';
-  const parts = hash.replace(/^#\//, '').split('/');
-  const route = parts[0] || 'home';
+  let items=CONTACTS.slice();
+  if(term){items=items.filter(c=>c.name.toLowerCase().includes(term)||c.title.toLowerCase().includes(term)||c.company.toLowerCase().includes(term));}
+  if(activeFilter==='high')items=items.filter(c=>c.tier==='high');
 
-  if (route === '' || route === 'home') {
-    showView('home');
-    document.getElementById('search-input').value = '';
-  } else if (route === 'search') {
-    const term = decodeURIComponent(parts[1] || '');
-    renderSearch(term);
-    showView('search');
-  } else if (route === 'company') {
-    renderCompany(parts[1]);
-    showView('company');
-  } else if (route === 'contact') {
-    // For mock: all contacts route to Jane Smith's full dashboard
-    renderContact(parts[1] || 'C001');
-    showView('contact');
-  } else {
-    showView('home');
+  if(activeSort==='name')items.sort((a,b)=>a.name.localeCompare(b.name));
+  else if(activeSort==='confidence')items.sort((a,b)=>b.conf-a.conf);
+  else items.sort((a,b)=>b.added-a.added);
+
+  if(items.length===0){mount.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+
+  if(activeFilter==='company'){
+    const groups={};
+    items.forEach(c=>{if(!groups[c.company])groups[c.company]=[];groups[c.company].push(c);});
+    mount.innerHTML=Object.keys(groups).sort().map(co=>`
+      <div class="list-section">
+        <div class="list-section__head">${co} · ${groups[co].length}</div>
+        <div class="contact-list">${groups[co].map(itemHTML).join('')}</div>
+      </div>`).join('');
+  }else{
+    mount.innerHTML=`<div class="list-section"><div class="contact-list">${items.map(itemHTML).join('')}</div></div>`;
   }
 }
-
-window.addEventListener('hashchange', handleHash);
-
-/* =========================================================================
-   LANDING — render contact + company grids
-   ========================================================================= */
-function renderRecent() {
-  const grid = document.getElementById('recent-grid');
-  grid.innerHTML = CONTACTS.map(c => `
-    <div class="list-item" data-route="contact" data-id="${c.id}" tabindex="0" role="button">
-      <div class="avatar avatar--md ${c.verified ? 'avatar--verified' : 'avatar--inferred'}">${c.initials}</div>
-      <div class="list-item__body">
-        <div class="list-item__title">${c.name}</div>
-        <div class="list-item__sub">${c.title} · <b>${c.company}</b></div>
-      </div>
-      <div class="conf conf--${c.confTier}">
-        <div class="conf__bar"><div class="conf__fill" style="width: ${c.conf}%"></div></div>
+function itemHTML(c){
+  return`<button class="contact-item" data-route="contact" data-id="${c.id}">
+    <div class="avatar avatar--md ${avatarClass(c)}">${c.initials}</div>
+    <div class="contact-item__body">
+      <div class="contact-item__name">${c.name}</div>
+      <div class="contact-item__sub">${c.title} · <b>${c.company}</b></div>
+    </div>
+    <div class="contact-item__meta">
+      <span class="stale">${c.stale}</span>
+      <div class="conf conf--${c.tier}">
+        <span class="conf__dots"><span class="conf__dot"></span><span class="conf__dot"></span><span class="conf__dot"></span></span>
         <span class="conf__num">${c.conf}</span>
       </div>
     </div>
-  `).join('');
-}
-function renderCompanies() {
-  const list = document.getElementById('company-list');
-  list.innerHTML = COMPANIES.map(co => `
-    <div class="list-item" data-route="company" data-id="${co.id}" tabindex="0" role="button">
-      <div class="avatar avatar--md avatar--company">${co.initials}</div>
-      <div class="list-item__body">
-        <div class="list-item__title">${co.name}</div>
-        <div class="list-item__sub">${co.industry}</div>
-      </div>
-      <span class="pill pill--blue">${co.count} contact${co.count === 1 ? '' : 's'}</span>
-    </div>
-  `).join('');
+  </button>`;
 }
 
-/* =========================================================================
-   SEARCH — live filter
-   ========================================================================= */
-function renderSearch(term) {
-  const t = (term || '').trim().toLowerCase();
-  document.getElementById('results-term').textContent = term || '…';
-  const matchedContacts = t ? CONTACTS.filter(c =>
-    c.name.toLowerCase().includes(t) ||
-    c.title.toLowerCase().includes(t) ||
-    c.email.toLowerCase().includes(t) ||
-    c.company.toLowerCase().includes(t)
-  ) : CONTACTS;
-  const matchedCompanies = t ? COMPANIES.filter(co =>
-    co.name.toLowerCase().includes(t) ||
-    co.industry.toLowerCase().includes(t)
-  ) : COMPANIES;
-
-  document.getElementById('results-count').textContent =
-    `${matchedContacts.length + matchedCompanies.length} result${matchedContacts.length + matchedCompanies.length === 1 ? '' : 's'}`;
-
-  const empty = document.getElementById('results-empty');
-  empty.style.display = (matchedContacts.length + matchedCompanies.length) === 0 ? 'block' : 'none';
-
-  document.getElementById('results-companies').innerHTML = matchedCompanies.length ? `
-    <div class="section-head" style="margin-top: var(--s-5)">
-      <h2>Companies</h2><span class="count">${matchedCompanies.length}</span>
-    </div>
-    <div class="company-list">
-      ${matchedCompanies.map(co => `
-        <div class="list-item" data-route="company" data-id="${co.id}">
-          <div class="avatar avatar--md avatar--company">${co.initials}</div>
-          <div class="list-item__body">
-            <div class="list-item__title">${co.name}</div>
-            <div class="list-item__sub">${co.industry}</div>
-          </div>
-          <span class="pill pill--blue">${co.count} contact${co.count === 1 ? '' : 's'}</span>
-        </div>
-      `).join('')}
-    </div>
-  ` : '';
-
-  document.getElementById('results-contacts').innerHTML = matchedContacts.length ? `
-    <div class="section-head" style="margin-top: var(--s-5)">
-      <h2>Contacts</h2><span class="count">${matchedContacts.length}</span>
-    </div>
-    <div class="contact-grid">
-      ${matchedContacts.map(c => `
-        <div class="list-item" data-route="contact" data-id="${c.id}">
-          <div class="avatar avatar--md ${c.verified ? 'avatar--verified' : 'avatar--inferred'}">${c.initials}</div>
-          <div class="list-item__body">
-            <div class="list-item__title">${c.name}</div>
-            <div class="list-item__sub">${c.title} · <b>${c.company}</b></div>
-          </div>
-          <div class="conf conf--${c.confTier}">
-            <div class="conf__bar"><div class="conf__fill" style="width: ${c.conf}%"></div></div>
-            <span class="conf__num">${c.conf}</span>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  ` : '';
+function renderContactDetail(id){
+  const c=CONTACTS.find(x=>x.id===id)||CONTACTS[0];
+  const av=document.getElementById('contact-avatar');
+  av.textContent=c.initials;
+  av.className='avatar avatar--lg '+avatarClass(c);
+  document.getElementById('contact-name').textContent=c.name;
+  document.getElementById('contact-title').textContent=c.title+' · '+c.company;
 }
 
-/* =========================================================================
-   COMPANY DETAIL — for mock, shows Acme's full overview
-   ========================================================================= */
-function renderCompany(id) {
-  // For this mockup, all company routes show the Acme overview
-  const co = COMPANIES.find(c => c.id === id) || COMPANIES[0];
-  const mount = document.getElementById('company-detail-mount');
-  mount.innerHTML = `
-    <div class="contact-hero">
-      <div class="contact-hero__top">
-        <div class="avatar avatar--lg avatar--company">${co.initials}</div>
-        <div class="contact-hero__body">
-          <div class="contact-hero__name"><h1>${co.name}</h1></div>
-          <div class="contact-hero__title">${co.industry}</div>
-        </div>
-      </div>
-    </div>
+document.querySelectorAll('.chip').forEach(chip=>{
+  chip.addEventListener('click',()=>{
+    document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c===chip));
+    activeFilter=chip.dataset.filter;
+    renderList();
+  });
+});
+document.getElementById('sort-select').addEventListener('change',e=>{activeSort=e.target.value;renderList();});
 
-    <div class="card">
-      <div class="card__head"><span class="card__title">Researched Contacts</span></div>
-      <div class="card__body">
-        ${CONTACTS.filter(c => c.companyId === co.id).map(c => `
-          <div class="contact-row" data-route="contact" data-id="${c.id}">
-            <div class="avatar avatar--md ${c.verified ? 'avatar--verified' : 'avatar--inferred'}">${c.initials}</div>
-            <div class="contact-row__body">
-              <div class="contact-row__name">${c.name}</div>
-              <div class="contact-row__title">${c.title}</div>
-            </div>
-            <div class="conf conf--${c.confTier}">
-              <span class="pill pill--${c.confTier === 'high' ? 'green' : c.confTier === 'med' ? 'amber' : 'red'}">
-                ${c.confTier === 'high' ? 'High' : c.confTier === 'med' ? 'Medium' : 'Low'}
-              </span>
-              <div class="conf__bar"><div class="conf__fill" style="width: ${c.conf}%"></div></div>
-              <span class="conf__num">${c.conf}</span>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-
-    <div class="callout">
-      <b>Mockup note:</b> This is a static design preview. In the live build, this view would render the full Company Overview tab from the Connection Architect spec — profile card, email analysis, achievements, etc.
-    </div>
-  `;
-}
-
-function renderContact(id) {
-  // Mock: contact view is hardcoded to Jane Smith. In the live build this swaps based on id.
-  // For visual realism, swap the avatar/name/title at the top if a different contact was clicked.
-  const c = CONTACTS.find(x => x.id === id) || CONTACTS[0];
-  document.getElementById('contact-avatar').textContent = c.initials;
-  document.getElementById('contact-avatar').className = 'avatar avatar--lg ' + (c.verified ? 'avatar--verified' : 'avatar--inferred');
-  document.getElementById('contact-name').textContent = c.name;
-  document.getElementById('contact-title').textContent = `${c.title} · ${c.company}`;
-}
-
-/* =========================================================================
-   SEARCH INPUT
-   ========================================================================= */
 let searchTimer;
-const searchInput = document.getElementById('search-input');
-searchInput.addEventListener('input', e => {
+const searchInput=document.getElementById('search-input');
+searchInput.addEventListener('input',e=>{
   clearTimeout(searchTimer);
-  const term = e.target.value.trim();
-  searchTimer = setTimeout(() => {
-    if (term.length === 0) {
-      navigate('home');
-    } else {
-      navigate('search', term);
+  searchTimer=setTimeout(()=>{
+    activeSearch=e.target.value;
+    if(location.hash!=='#/')location.hash='#/';
+    renderList();
+  },120);
+});
+searchInput.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.target.value='';activeSearch='';renderList();}
+});
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-route]');
+  if(t){e.preventDefault();navigate(t.dataset.route,t.dataset.id);}
+});
+
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t===tab));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===tab.dataset.tab));
+  });
+});
+
+const stepStates=['','in-progress','done'];
+document.querySelectorAll('.step__box').forEach(box=>{
+  let state=0;
+  box.addEventListener('click',()=>{
+    state=(state+1)%3;
+    box.classList.remove('in-progress','done');
+    if(stepStates[state])box.classList.add(stepStates[state]);
+    box.textContent=state===0?box.dataset.step:state===1?'◔':'✓';
+  });
+});
+
+const log=document.getElementById('source-log');
+document.getElementById('source-trigger').addEventListener('click',()=>log.classList.toggle('open'));
+
+document.querySelectorAll('.peer-row[data-peer]').forEach(row=>{
+  row.addEventListener('click',()=>{
+    const d=document.getElementById('peer-'+row.dataset.peer);
+    if(d)d.classList.toggle('open');
+  });
+});
+
+const backdrop=document.getElementById('modal-backdrop');
+const modalTitle=document.getElementById('modal-title');
+
+function openModal(mode,contact){
+  modalTitle.textContent=mode==='edit'?'Edit Contact':'New Contact';
+  editingId=mode==='edit'&&contact?contact.id:null;
+  if(mode==='edit'&&contact){
+    document.getElementById('f-name').value=contact.name;
+    document.getElementById('f-title').value=contact.title;
+    document.getElementById('f-company').value=contact.companyId||'';
+    document.getElementById('f-email').value='jane.smith@acme.example.com';
+    document.getElementById('f-location').value='Seattle, WA';
+    document.getElementById('f-linkedin').value='https://linkedin.com/in/janesmith';
+    document.querySelector('.editor__content').innerHTML='15-year EUC veteran. Joined Acme from Microsoft FastTrack in 2022. Built Acme\'s internal device lifecycle program.';
+    document.getElementById('f-decision').value='Budget holder for EUC tooling under $250K. Reports to Marcus Delaney for spend above that threshold.';
+    document.getElementById('f-angle').value='Lead with device lifecycle automation. Reference benchmark data on year-three program failures. Avoid generic MDM positioning.';
+    setChips('chip-themes',['Device Lifecycle','Modern Workplace','End User Productivity']);
+    setChips('chip-certs',['MCSE','Citrix CCP-V']);
+  }else{
+    document.querySelectorAll('.input,.textarea,.select').forEach(f=>f.value='');
+    document.querySelector('.editor__content').innerHTML='';
+    setChips('chip-themes',[]);
+    setChips('chip-certs',[]);
+  }
+  backdrop.classList.add('open');
+  setTimeout(()=>document.getElementById('f-name').focus(),50);
+}
+function closeModal(){backdrop.classList.remove('open');}
+
+document.getElementById('add-btn').addEventListener('click',()=>openModal('new'));
+document.getElementById('edit-btn').addEventListener('click',()=>{
+  const id=(location.hash.split('/')[2])||'C001';
+  openModal('edit',CONTACTS.find(c=>c.id===id)||CONTACTS[0]);
+});
+document.getElementById('modal-close').addEventListener('click',closeModal);
+document.getElementById('modal-cancel').addEventListener('click',closeModal);
+backdrop.addEventListener('click',e=>{if(e.target===backdrop)closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+document.getElementById('modal-save').addEventListener('click',()=>{
+  const name=document.getElementById('f-name').value.trim();
+  const company=document.getElementById('f-company').value;
+  if(!name||!company){showToast('Name and company are required');return;}
+  closeModal();
+  showToast(editingId?'Contact updated · would write to Google Sheet':'Contact saved · would write to Google Sheet');
+});
+
+function setChips(containerId,values){
+  const container=document.getElementById(containerId);
+  const field=container.querySelector('.chip-input__field');
+  container.querySelectorAll('.chip-input__chip').forEach(c=>c.remove());
+  values.forEach(v=>addChip(container,v,field));
+}
+function addChip(container,value,field){
+  const chip=document.createElement('span');
+  chip.className='chip-input__chip';
+  chip.innerHTML=value+'<button type="button" class="chip-input__remove" aria-label="Remove">×</button>';
+  chip.querySelector('button').addEventListener('click',()=>chip.remove());
+  container.insertBefore(chip,field);
+}
+document.querySelectorAll('.chip-input').forEach(container=>{
+  const field=container.querySelector('.chip-input__field');
+  field.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&field.value.trim()){
+      e.preventDefault();
+      addChip(container,field.value.trim(),field);
+      field.value='';
+    }else if(e.key==='Backspace'&&!field.value){
+      const last=container.querySelectorAll('.chip-input__chip');
+      if(last.length)last[last.length-1].remove();
     }
-  }, 150);
-});
-searchInput.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { e.target.value = ''; navigate('home'); }
-});
-
-/* =========================================================================
-   GLOBAL CLICK DELEGATION (for routing)
-   ========================================================================= */
-document.addEventListener('click', e => {
-  const target = e.target.closest('[data-route]');
-  if (target) {
-    e.preventDefault();
-    navigate(target.dataset.route, target.dataset.id);
-  }
-});
-document.addEventListener('keydown', e => {
-  if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('[data-route]')) {
-    e.preventDefault();
-    const t = e.target.closest('[data-route]');
-    navigate(t.dataset.route, t.dataset.id);
-  }
-});
-
-/* =========================================================================
-   TABS (contact view)
-   ========================================================================= */
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    const target = tab.dataset.tab;
-    document.querySelectorAll('.tab').forEach(t => {
-      t.classList.toggle('active', t === tab);
-      t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
-    });
-    document.querySelectorAll('.panel').forEach(p => {
-      p.classList.toggle('active', p.dataset.panel === target);
-    });
   });
 });
 
-// Arrow-key tab nav
-document.querySelectorAll('.tabs').forEach(tabsEl => {
-  tabsEl.addEventListener('keydown', e => {
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    const tabs = [...tabsEl.querySelectorAll('.tab')];
-    const i = tabs.indexOf(document.activeElement);
-    if (i === -1) return;
-    const next = e.key === 'ArrowRight' ? (i + 1) % tabs.length : (i - 1 + tabs.length) % tabs.length;
-    tabs[next].focus();
-    tabs[next].click();
-  });
+document.querySelectorAll('.editor__btn').forEach(btn=>{
+  btn.addEventListener('mousedown',e=>e.preventDefault());
+  btn.addEventListener('click',()=>document.execCommand(btn.dataset.cmd,false));
 });
 
-/* =========================================================================
-   PLAYBOOK STEPS
-   ========================================================================= */
-const stepCycle = ['', 'in-progress', 'done'];
-document.querySelectorAll('.step__box').forEach(box => {
-  let state = 0;
-  const cycle = () => {
-    state = (state + 1) % 3;
-    box.classList.remove('in-progress', 'done');
-    if (stepCycle[state]) box.classList.add(stepCycle[state]);
-    box.textContent = state === 0 ? box.dataset.step : state === 1 ? '◔' : '✓';
-  };
-  box.addEventListener('click', cycle);
-  box.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycle(); } });
-});
+let toastTimer;
+function showToast(msg){
+  const toast=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toast.classList.remove('show'),2400);
+}
 
-/* =========================================================================
-   SOURCE LOG
-   ========================================================================= */
-const log = document.getElementById('source-log');
-const trigger = document.getElementById('source-trigger');
-trigger.addEventListener('click', () => {
-  log.classList.toggle('open');
-  trigger.setAttribute('aria-expanded', log.classList.contains('open') ? 'true' : 'false');
-});
-
-/* =========================================================================
-   PEER ROW EXPAND
-   ========================================================================= */
-document.querySelectorAll('.peer-row[data-peer]').forEach(row => {
-  row.addEventListener('click', () => {
-    const detail = document.getElementById('peer-' + row.dataset.peer);
-    if (detail) detail.classList.toggle('open');
-  });
-});
-
-/* =========================================================================
-   BOOTSTRAP
-   ========================================================================= */
-renderRecent();
-renderCompanies();
+renderList();
 handleHash();
 </script>
 </body>
