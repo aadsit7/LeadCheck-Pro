@@ -864,6 +864,203 @@ Aaron</div>
 </div>
 
 <script>
+/* ========== Data Layer (Milestone 1) ==========
+   Fetches all 15 Google Sheet tabs via gviz CSV, parses, indexes.
+   Runs alongside the legacy mock CONTACTS array — rendering still
+   uses mocks until Milestone 2. */
+
+const CONFIG = {
+  SHEET_ID: '11JvRXvlZAPoJTf5SwVRUD4EP32Q74Z7yd1ikZQ6NY2g',
+  WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbyazU2KQWeqr7BtK9OdnYMUs4XGxBhcZUmrq8sR3I72BY3W7rmKR3sdMLwo2kjFI92U/exec',
+  TABS: [
+    'Contacts', 'Companies', 'Contact_Links', 'Company_Links',
+    'Company_Achievements', 'Affiliations', 'Activities', 'Events',
+    'Org_Chart', 'Sources', 'Confidence_Checks', 'Playbook_Steps',
+    'Templates', 'Priority_Matrix', 'Email_Patterns'
+  ]
+};
+const csvUrl = (tab) =>
+  `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+
+const TAB_KEY = {
+  'Contacts':'contacts','Companies':'companies','Contact_Links':'contact_links',
+  'Company_Links':'company_links','Company_Achievements':'company_achievements',
+  'Affiliations':'affiliations','Activities':'activities','Events':'events',
+  'Org_Chart':'org_chart','Sources':'sources','Confidence_Checks':'confidence_checks',
+  'Playbook_Steps':'playbook_steps','Templates':'templates',
+  'Priority_Matrix':'priority_matrix','Email_Patterns':'email_patterns'
+};
+
+function parseCSV(text){
+  if(!text) return [];
+  if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+  const rows=[]; let row=[], field='', inQuotes=false, i=0; const len=text.length;
+  while(i<len){
+    const ch=text[i];
+    if(inQuotes){
+      if(ch==='"'){
+        if(i+1<len && text[i+1]==='"'){ field+='"'; i+=2; continue; }
+        inQuotes=false; i++; continue;
+      }
+      field+=ch; i++;
+    }else{
+      if(ch==='"'){ inQuotes=true; i++; }
+      else if(ch===','){ row.push(field); field=''; i++; }
+      else if(ch==='\r'){
+        row.push(field); field=''; rows.push(row); row=[];
+        if(i+1<len && text[i+1]==='\n') i+=2; else i++;
+      }
+      else if(ch==='\n'){ row.push(field); field=''; rows.push(row); row=[]; i++; }
+      else { field+=ch; i++; }
+    }
+  }
+  if(field.length>0 || row.length>0){ row.push(field); rows.push(row); }
+  while(rows.length && rows[rows.length-1].every(c=>c==='')) rows.pop();
+  return rows;
+}
+
+function rowsToObjects(rows){
+  if(!rows.length) return [];
+  const headers=rows[0].map(h=>(h||'').trim());
+  return rows.slice(1).map(r=>{
+    const o={};
+    for(let i=0;i<headers.length;i++) o[headers[i]] = r[i]!=null ? r[i] : '';
+    return o;
+  });
+}
+
+function splitPipe(v){
+  if(v==null) return [];
+  return String(v).split('|').map(s=>s.trim()).filter(Boolean);
+}
+
+function groupBy(arr,key){
+  const m={};
+  for(const r of (arr||[])){
+    const k=r[key]; if(!k) continue;
+    (m[k] || (m[k]=[])).push(r);
+  }
+  return m;
+}
+
+async function loadAllData(){
+  window.__DATA = {};
+  for(const k of Object.values(TAB_KEY)) window.__DATA[k] = [];
+  const results = await Promise.all(
+    CONFIG.TABS.map(tab =>
+      fetch(csvUrl(tab))
+        .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+        .then(text => ({ tab, rows: rowsToObjects(parseCSV(text)) }))
+        .catch(err => { console.error('[LeadCheck] Failed tab:', tab, err); return { tab, rows: [] }; })
+    )
+  );
+  results.forEach(({tab,rows})=>{
+    const key=TAB_KEY[tab];
+    if(key==='contacts'){
+      rows.forEach(r=>{ r.certifications=splitPipe(r.certifications); r.themes=splitPipe(r.themes); });
+    } else if(key==='companies'){
+      rows.forEach(r=>{ r.partners=splitPipe(r.partners); r.badges=splitPipe(r.badges); });
+    }
+    window.__DATA[key] = rows;
+  });
+  return window.__DATA;
+}
+
+function buildIndexes(){
+  const D = window.__DATA || {};
+  const idx = {
+    contactById: {},
+    companyById: {},
+    byContact: {
+      activities: groupBy(D.activities,'contact_id'),
+      events: groupBy(D.events,'contact_id'),
+      org_chart: groupBy(D.org_chart,'contact_id'),
+      sources: groupBy(D.sources,'contact_id'),
+      confidence_checks: groupBy(D.confidence_checks,'contact_id'),
+      playbook_steps: groupBy(D.playbook_steps,'contact_id'),
+      templates: groupBy(D.templates,'contact_id'),
+      priority_matrix: groupBy(D.priority_matrix,'contact_id'),
+      affiliations: groupBy(D.affiliations,'contact_id'),
+      contact_links: groupBy(D.contact_links,'contact_id')
+    },
+    byCompany: {
+      company_links: groupBy(D.company_links,'company_id'),
+      company_achievements: groupBy(D.company_achievements,'company_id'),
+      email_patterns: groupBy(D.email_patterns,'company_id')
+    }
+  };
+  for(const c of (D.contacts||[])) if(c.contact_id) idx.contactById[c.contact_id]=c;
+  for(const co of (D.companies||[])) if(co.company_id) idx.companyById[co.company_id]=co;
+  window.__INDEX = idx;
+  return idx;
+}
+
+function deriveInitials(fullName){
+  if(!fullName) return '??';
+  const parts=String(fullName).trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return '??';
+  const first=parts[0][0]||'';
+  const last=parts.length>1 ? (parts[parts.length-1][0]||'') : '';
+  return ((first+last).toUpperCase()) || '??';
+}
+
+function formatStale(lastUpdated){
+  if(!lastUpdated) return '';
+  const d=new Date(lastUpdated);
+  if(isNaN(d.getTime())) return '';
+  const days=Math.floor((Date.now()-d.getTime())/86400000);
+  if(days<=0) return 'today';
+  if(days===1) return '1 day ago';
+  if(days<14) return days+' days ago';
+  const weeks=Math.floor(days/7);
+  if(weeks===1) return '1 week ago';
+  if(weeks<8) return weeks+' weeks ago';
+  const months=Math.floor(days/30);
+  return months+' month'+(months===1?'':'s')+' ago';
+}
+
+function tierFromEmailConf(val){
+  const v=String(val||'').toUpperCase();
+  if(v==='HIGH') return 'high';
+  if(v==='LOW') return 'low';
+  return 'med';
+}
+
+function getContactsForList(){
+  const D=window.__DATA||{}; const IDX=window.__INDEX||{companyById:{}};
+  return (D.contacts||[]).filter(r=>r.contact_id).map(r=>{
+    const co=IDX.companyById[r.company_id];
+    const companyName = co ? (co.name||'') : '';
+    const initials = (r.initials && String(r.initials).trim()) ? String(r.initials).trim() : deriveInitials(r.full_name);
+    return {
+      id: r.contact_id,
+      name: r.full_name||'',
+      initials,
+      title: r.title||'',
+      company: companyName,
+      companyId: r.company_id||'',
+      conf: Number(r.overall_confidence)||0,
+      tier: tierFromEmailConf(r.email_confidence),
+      verified: String(r.verified||'').toUpperCase()==='TRUE',
+      stale: formatStale(r.last_updated),
+      added: Date.parse(r.date_added||'')||0
+    };
+  });
+}
+
+function showDataLoading(){
+  const mount=document.getElementById('list-mount');
+  if(mount && !mount.hasChildNodes()) mount.innerHTML='<div class="list-section"><div class="list-section__head">Loading live data…</div></div>';
+}
+
+// Kick off live data fetch in parallel with the existing mock rendering.
+showDataLoading();
+loadAllData()
+  .then(()=>{ buildIndexes(); console.log('[LeadCheck] Data loaded:', window.__DATA, window.__INDEX); })
+  .catch(err=>console.error('[LeadCheck] loadAllData failed', err));
+
+/* ========== End Data Layer ========== */
+
 const CONTACTS = [
   {id:'C001',name:'Jane Smith',initials:'JS',title:'Director of End User Computing',company:'Acme Technologies',companyId:'CO001',conf:85,tier:'high',verified:true,stale:'2 days ago',added:5},
   {id:'C002',name:'Marcus Delaney',initials:'MD',title:'VP IT Infrastructure',company:'Acme Technologies',companyId:'CO001',conf:78,tier:'high',verified:true,stale:'5 days ago',added:4},
