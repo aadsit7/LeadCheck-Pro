@@ -412,10 +412,6 @@ main{flex:1;padding-bottom:var(--s-9)}
         <span class="brand__name">Recast</span>
         <span class="brand__product">LeadCheck Pro</span>
       </button>
-      <button class="btn btn--primary" id="add-btn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        New Contact
-      </button>
     </div>
     <div class="search-wrap">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -424,9 +420,9 @@ main{flex:1;padding-bottom:var(--s-9)}
     </div>
     <div class="filter-row" id="filter-row">
       <div class="filter-chips">
-        <button class="chip active" data-filter="all">All<span class="chip__count">5</span></button>
+        <button class="chip" data-filter="all">All<span class="chip__count">5</span></button>
+        <button class="chip active" data-filter="company">By Company</button>
         <button class="chip" data-filter="high">High Confidence<span class="chip__count">3</span></button>
-        <button class="chip" data-filter="company">By Company</button>
       </div>
       <div class="sort">
         <span>Sort:</span>
@@ -1159,7 +1155,7 @@ function escapeHtml(v){
 
 /* ========== End Data Layer ========== */
 
-let activeFilter='all',activeSort='recent',activeSearch='',editingId=null,expandedCompanyId=null;
+let activeFilter='company',activeSort='recent',activeSearch='',editingId=null,expandedCompanyId=null;
 
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
@@ -2302,7 +2298,6 @@ function openModal(mode,contact){
 }
 function closeModal(){backdrop.classList.remove('open');}
 
-document.getElementById('add-btn').addEventListener('click',()=>openModal('new'));
 document.getElementById('edit-btn').addEventListener('click',()=>{
   const id=(location.hash.split('/')[2])||'';
   const all=getContactsForList();
