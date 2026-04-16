@@ -1723,7 +1723,8 @@ document.getElementById('refresh-btn').addEventListener('click', async ()=>{
     await postToSheet({ action:'update', tab:'Contacts', idColumn:'contact_id', idValue:id, data:fields });
     if(lookupCancelled) return;
 
-    const tasks=buildResearchChildTasks(id, raw.company_id, name, result);
+    const existingChildren=getExistingForRefresh(id, raw.company_id);
+    const tasks=buildResearchChildTasks(id, raw.company_id, name, result, existingChildren);
     let childErrors=0;
     for(let i=0;i<tasks.length;i++){
       if(lookupCancelled) return;
@@ -1781,11 +1782,49 @@ async function postToSheet(payload){
   return result;
 }
 
-function buildResearchChildTasks(contactId, companyId, targetName, r){
+// Snapshot of existing child rows so a refresh can dedup against what's already saved.
+function getExistingForRefresh(contactId, companyId){
+  const IDX=window.__INDEX||{};
+  const bc=IDX.byContact||{};
+  const co=IDX.byCompany||{};
+  return {
+    activities: (bc.activities&&bc.activities[contactId])||[],
+    sources: (bc.sources&&bc.sources[contactId])||[],
+    events: (bc.events&&bc.events[contactId])||[],
+    affiliations: (bc.affiliations&&bc.affiliations[contactId])||[],
+    org_chart: (bc.org_chart&&bc.org_chart[contactId])||[],
+    confidence_checks: (bc.confidence_checks&&bc.confidence_checks[contactId])||[],
+    company_achievements: (co.company_achievements&&co.company_achievements[companyId])||[],
+    email_patterns: (co.email_patterns&&co.email_patterns[companyId])||[]
+  };
+}
+
+// Apps Script currently supports append and update. For replace-all on child tabs,
+// the client should call update on each existing row or we add a 'deleteByContact'
+// action. For this MVP, just append new rows and skip duplicates — we can add
+// cleanup later. When `existing` is provided (refresh / edit-update path) we skip
+// rows whose key already exists, and update unique-role org_chart nodes in place.
+function buildResearchChildTasks(contactId, companyId, targetName, r, existing){
   const tasks=[];
   const base=Date.now();
   let seq=0;
   const uid=(prefix)=> prefix + String(base + (seq++));
+  const norm=(v)=> String(v==null?'':v).trim().toLowerCase();
+
+  const ex = existing || null;
+  const exActivityTitles = new Set((ex&&ex.activities||[]).map(a=>norm(a.title)).filter(Boolean));
+  const exSourceUrls     = new Set((ex&&ex.sources||[]).map(s=>norm(s.url)).filter(Boolean));
+  const exEventKeys      = new Set((ex&&ex.events||[]).map(e=>norm(e.name)+'|'+norm(e.date)).filter(k=>k!=='|'));
+  const exAffNames       = new Set((ex&&ex.affiliations||[]).map(a=>norm(a.name||a.label)).filter(Boolean));
+  const exCheckNames     = new Set((ex&&ex.confidence_checks||[]).map(c=>norm(c.check_name||c.label)).filter(Boolean));
+  const exAchTitles      = new Set((ex&&ex.company_achievements||[]).map(a=>norm(a.title)).filter(Boolean));
+  const exPatternKeys    = new Set((ex&&ex.email_patterns||[]).map(p=>norm(p.pattern)).filter(Boolean));
+  const exOrgByRole={}, exPeerNames=new Set();
+  (ex&&ex.org_chart||[]).forEach(o=>{
+    const rt=String(o.role_type||'');
+    if(rt==='peer'){ if(o.name) exPeerNames.add(norm(o.name)); }
+    else if(['topExec','functionHead','manager','target'].indexOf(rt)>=0) exOrgByRole[rt]=o;
+  });
 
   const ci = r.company_info || {};
   const oc = r.org_chart || {};
@@ -1810,9 +1849,10 @@ function buildResearchChildTasks(contactId, companyId, targetName, r){
       extra:{idColumn:'company_id', idValue:companyId}});
   }
 
-  // Company_Achievements
+  // Company_Achievements — skip if title matches existing
   (ci.achievements||[]).forEach(a=>{
     if(!a || (!a.label && !a.description && !a.source_url)) return;
+    if(ex && a.label && exAchTitles.has(norm(a.label))) return;
     tasks.push({label:'achievement', tab:'Company_Achievements', action:'append', data:{
       achievement_id: uid('CA'), company_id: companyId,
       title: a.label||'', summary: a.description||'', description: a.description||'',
@@ -1820,8 +1860,8 @@ function buildResearchChildTasks(contactId, companyId, targetName, r){
     }});
   });
 
-  // Email_Patterns
-  if(ci.email_format){
+  // Email_Patterns — skip if pattern already recorded
+  if(ci.email_format && !(ex && exPatternKeys.has(norm(ci.email_format)))){
     tasks.push({label:'email pattern', tab:'Email_Patterns', action:'append', data:{
       pattern_id: uid('EP'), company_id: companyId,
       pattern: ci.email_format, confidence: String(ci.email_format_confidence||''),
@@ -1829,9 +1869,10 @@ function buildResearchChildTasks(contactId, companyId, targetName, r){
     }});
   }
 
-  // Activities
+  // Activities — skip if title already exists for this contact
   (r.recent_activities||[]).forEach(a=>{
     if(!a || (!a.text && !a.source_url)) return;
+    if(ex && a.text && exActivityTitles.has(norm(a.text))) return;
     tasks.push({label:'activity', tab:'Activities', action:'append', data:{
       activity_id: uid('AV'), contact_id: contactId,
       activity_type: a.type||'', title: a.text||'', description:'',
@@ -1839,9 +1880,10 @@ function buildResearchChildTasks(contactId, companyId, targetName, r){
     }});
   });
 
-  // Events
+  // Events — skip if event_name + event_date matches existing
   (r.upcoming_events||[]).forEach(e=>{
     if(!e || !e.event_name) return;
+    if(ex && exEventKeys.has(norm(e.event_name)+'|'+norm(e.event_date))) return;
     tasks.push({label:'event', tab:'Events', action:'append', data:{
       event_id: uid('EV'), contact_id: contactId,
       name: e.event_name||'', date: e.event_date||'', role: e.status||'',
@@ -1850,25 +1892,42 @@ function buildResearchChildTasks(contactId, companyId, targetName, r){
     }});
   });
 
-  // Affiliations
+  // Affiliations — skip if name matches existing
   (r.affiliations||[]).forEach(a=>{
     if(!a || !a.name) return;
+    if(ex && exAffNames.has(norm(a.name))) return;
     tasks.push({label:'affiliation', tab:'Affiliations', action:'append', data:{
       affiliation_id: uid('AF'), contact_id: contactId,
       label: a.name||'', name: a.name||'', source_url: a.source_url||''
     }});
   });
 
-  // Org_Chart — topExec, functionHead, manager, target (self), peers
+  // Org_Chart — for topExec/functionHead/manager/target, update the matching
+  // row in place (so the manager swap propagates); for peers, append only when
+  // the name isn't already present.
   const pushOrg=(roleType, node, order)=>{
     if(!node || !node.name) return;
-    tasks.push({label:'org node', tab:'Org_Chart', action:'append', data:{
-      org_id: uid('OC'), contact_id: contactId, role_type: roleType,
+    const data={
+      contact_id: contactId, role_type: roleType,
       name: node.name||'', title: node.title||'',
       confidence: String(node.verified||'').toLowerCase(),
       source_url: node.source_url||'', note: node.note||'',
       display_order: order
-    }});
+    };
+    if(ex){
+      if(roleType==='peer'){
+        if(exPeerNames.has(norm(node.name))) return;
+      } else {
+        const existingNode=exOrgByRole[roleType];
+        if(existingNode && existingNode.org_id){
+          tasks.push({label:'org node', tab:'Org_Chart', action:'update', data,
+            extra:{idColumn:'org_id', idValue:existingNode.org_id}});
+          return;
+        }
+      }
+    }
+    tasks.push({label:'org node', tab:'Org_Chart', action:'append',
+      data:Object.assign({org_id: uid('OC')}, data)});
   };
   pushOrg('topExec', oc.topExec, 1);
   pushOrg('functionHead', oc.functionHead, 2);
@@ -1877,16 +1936,20 @@ function buildResearchChildTasks(contactId, companyId, targetName, r){
   let peerOrder=10;
   (oc.peers||[]).forEach(p=>{ pushOrg('peer', p, peerOrder++); });
 
-  // Sources
+  // Sources — skip if url already exists
   (r.sources||[]).forEach((s,i)=>{
     if(!s || (!s.label && !s.url)) return;
+    if(ex && s.url && exSourceUrls.has(norm(s.url))) return;
     tasks.push({label:'source', tab:'Sources', action:'append', data:{
       source_id: uid('SR'), contact_id: contactId,
       label: s.label||'', url: s.url||'', display_order: i+1
     }});
   });
 
-  // Confidence_Checks — 12-item checklist derived from what research found
+  // Confidence_Checks — 12-item checklist derived from what research found.
+  // On refresh, dedup by check_name so we don't accumulate duplicate rows.
+  // True replace-all needs a deleteByContact action server-side; until then
+  // existing rows stay put and only new check_names get appended.
   const typeMatches=(arr, re)=> Array.isArray(arr) && arr.some(x => x && re.test(String(x.type||x.status||'')));
   const checks=[
     { name:'Name + title on LinkedIn', pass: !!(r.linkedin_url && r.title) },
@@ -1903,6 +1966,7 @@ function buildResearchChildTasks(contactId, companyId, targetName, r){
     { name:'Conference speaking',      pass: typeMatches(r.upcoming_events, /speaker|keynote/i) || typeMatches(r.recent_activities, /talk|keynote|speak|panel/i) }
   ];
   checks.forEach((c,i)=>{
+    if(ex && exCheckNames.has(norm(c.name))) return;
     tasks.push({label:'check', tab:'Confidence_Checks', action:'append', data:{
       check_id: uid('CC'), contact_id: contactId,
       check_name: c.name, label: c.name,
@@ -1985,10 +2049,13 @@ document.getElementById('modal-save').addEventListener('click',async()=>{
     const viewed=(location.hash.split('/')[2])||'';
     if(viewed) renderContactDetail(viewed);
 
-    // Sequentially save research-derived child rows (Apps Script can't handle concurrent writes)
+    // Sequentially save research-derived child rows (Apps Script can't handle concurrent writes).
+    // For edits, pass the existing child rows so duplicates get skipped and unique-role
+    // org_chart nodes update in place instead of appending new ones.
     let childErrors=0, childTotal=0;
     if(researchData && typeof researchData==='object'){
-      const tasks=buildResearchChildTasks(contactId, companyId, name, researchData);
+      const existingChildren = editingId ? getExistingForRefresh(editingId, companyId) : null;
+      const tasks=buildResearchChildTasks(contactId, companyId, name, researchData, existingChildren);
       childTotal=tasks.length;
       for(let i=0;i<tasks.length;i++){
         const t=tasks[i];
