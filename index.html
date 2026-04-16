@@ -89,6 +89,19 @@ main{flex:1;padding-bottom:var(--s-9)}
 
 .list-section{padding:var(--s-4) 0}
 .list-section__head{font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;padding:var(--s-2) 0;margin-bottom:var(--s-2)}
+.list-section__head--co{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);width:100%;cursor:pointer;padding:var(--s-2) var(--s-3);margin:0 calc(var(--s-3) * -1) var(--s-2);border-radius:var(--r-md);text-align:left;transition:background var(--t-fast) var(--ease)}
+.list-section__head--co:hover{background:var(--bg-tint)}
+.list-section__head--co[aria-expanded="true"]{background:var(--bg-tint)}
+.list-section__arrow{width:14px;height:14px;color:var(--ink-4);transition:transform var(--t-med) var(--ease);flex-shrink:0}
+.list-section__head--co[aria-expanded="true"] .list-section__arrow{transform:rotate(180deg);color:var(--ink-3)}
+.list-section__head--co[aria-expanded="true"] ~ .contact-list{display:none}
+.company-detail{margin:var(--s-2) 0 var(--s-4);padding:var(--s-4);background:var(--bg-tint);border:1px solid var(--border);border-radius:var(--r-md);animation:fadeIn var(--t-med) var(--ease)}
+.company-detail .section{background:var(--bg)}
+.company-detail__label{font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:var(--s-2)}
+.org-branch{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:var(--s-4);width:100%;padding-top:var(--s-3);position:relative}
+.org-branch__col{display:flex;flex-direction:column;align-items:center;flex:0 1 auto;min-width:200px;max-width:280px}
+.org-node--db{cursor:pointer}
+.org-node--db:hover{box-shadow:var(--elev-2)}
 .contact-list{display:flex;flex-direction:column;gap:2px}
 .contact-item{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3);border-radius:var(--r-md);cursor:pointer;transition:background var(--t-fast) var(--ease);text-align:left;width:100%}
 .contact-item:hover{background:var(--bg-tint)}
@@ -1106,7 +1119,7 @@ function escapeHtml(v){
 
 /* ========== End Data Layer ========== */
 
-let activeFilter='all',activeSort='recent',activeSearch='',editingId=null;
+let activeFilter='all',activeSort='recent',activeSearch='',editingId=null,expandedCompanyId=null;
 
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
@@ -1160,16 +1173,202 @@ function renderList(){
 
   if(activeFilter==='company'){
     const groups={};
-    items.forEach(c=>{const k=c.company||'—';if(!groups[k])groups[k]=[];groups[k].push(c);});
-    mount.innerHTML=Object.keys(groups).sort().map(co=>`
-      <div class="list-section">
-        <div class="list-section__head">${escapeHtml(co)} · ${groups[co].length}</div>
-        <div class="contact-list">${groups[co].map(itemHTML).join('')}</div>
-      </div>`).join('');
+    items.forEach(c=>{
+      const cid=c.companyId||'__none';
+      if(!groups[cid]) groups[cid]={name:c.company||'—',contacts:[]};
+      groups[cid].contacts.push(c);
+    });
+    const order=Object.keys(groups).sort((a,b)=>groups[a].name.localeCompare(groups[b].name));
+    const openId=(expandedCompanyId && groups[expandedCompanyId])?expandedCompanyId:null;
+    mount.innerHTML=order.map(cid=>{
+      const g=groups[cid];
+      const isOpen=cid===openId;
+      const safeCid=escapeHtml(cid);
+      const detailHtml=isOpen?renderCompanyExpanded(cid):'';
+      return `<div class="list-section" data-company-section="${safeCid}">
+        <button class="list-section__head list-section__head--co" type="button" data-company-toggle="${safeCid}" aria-expanded="${isOpen?'true':'false'}">
+          <span>${escapeHtml(g.name)} · ${g.contacts.length}</span>
+          <svg class="list-section__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="company-detail-slot">${detailHtml}</div>
+        <div class="contact-list">${g.contacts.map(itemHTML).join('')}</div>
+      </div>`;
+    }).join('');
   }else{
     mount.innerHTML=`<div class="list-section"><div class="contact-list">${items.map(itemHTML).join('')}</div></div>`;
   }
 }
+function orgKey(name,title){return String(name||'').toLowerCase().trim()+'|'+String(title||'').toLowerCase().trim();}
+
+function renderCompanyExpanded(companyId){
+  const D=window.__DATA||{};
+  const IDX=window.__INDEX||{};
+  const co=(IDX.companyById&&IDX.companyById[companyId])||null;
+  if(!co) return '<div class="empty" style="padding:var(--s-5)"><b>Company not found</b></div>';
+  const contactsAtCo=(D.contacts||[]).filter(c=>c.company_id===companyId && c.contact_id);
+  const nameToContactId=new Map();
+  contactsAtCo.forEach(c=>{
+    const n=String(c.full_name||'').toLowerCase().trim();
+    if(n) nameToContactId.set(n,c.contact_id);
+  });
+  const kv=[];
+  if(co.industry) kv.push(['Industry',co.industry]);
+  if(co.hq) kv.push(['HQ',co.hq]);
+  if(co.size) kv.push(['Size',co.size]);
+  if(co.revenue) kv.push(['Revenue',co.revenue]);
+  if(co.founded) kv.push(['Founded',co.founded]);
+  if(co.ceo) kv.push(['CEO',co.ceo]);
+  if(co.prior_ceo) kv.push(['Prior CEO',co.prior_ceo]);
+  const partners=Array.isArray(co.partners)?co.partners:[];
+  if(partners.length) kv.push(['Partners',partners.join(' · ')]);
+  const links=(IDX.byCompany&&IDX.byCompany.company_links&&IDX.byCompany.company_links[companyId])||[];
+  const descHtml=co.description?`<p class="prose" style="margin-bottom:12px">${escapeHtml(co.description)}</p>`:'';
+  const kvHtml=kv.map(([k,v])=>`<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('');
+  const linksHtml=links.length?`<hr class="divider"><div class="pill-row">${links.map(l=>`<a class="pill pill--gray" href="${escapeHtml(l.url||'#')}"${l.url?' target="_blank" rel="noopener"':''}>${escapeHtml(l.label||l.link_type||'Link')}</a>`).join('')}</div>`:'';
+  const summaryHtml=`
+    <div class="section">
+      <div class="section__head"><span class="section__title">${escapeHtml(co.name||'')}</span></div>
+      <div class="section__body">
+        ${descHtml}
+        ${kvHtml?`<dl class="kv">${kvHtml}</dl>`:''}
+        ${linksHtml}
+      </div>
+    </div>`;
+
+  const listItems=getContactsForList().filter(c=>c.companyId===companyId);
+  const contactsHtml=listItems.length?`
+    <div class="section">
+      <div class="section__head"><span class="section__title">All Contacts · ${listItems.length}</span></div>
+      <div class="section__body" style="padding:8px">${listItems.map(itemHTML).join('')}</div>
+    </div>`:'';
+
+  const chainRoles=new Set(['topExec','functionHead','manager','target']);
+  const nodeMap=new Map();
+  function getNode(r){
+    const k=orgKey(r.name,r.title);
+    if(!nodeMap.has(k)){
+      const nameLower=String(r.name||'').toLowerCase().trim();
+      nodeMap.set(k,{
+        key:k,name:r.name||'',title:r.title||'',
+        confidence:r.confidence||'',initials:r.initials||'',
+        dbContactId:nameToContactId.get(nameLower)||null,
+        children:new Map(),parents:new Map(),
+        peers:[],reports:[]
+      });
+    }
+    return nodeMap.get(k);
+  }
+  contactsAtCo.forEach(c=>{
+    const rows=((IDX.byContact&&IDX.byContact.org_chart&&IDX.byContact.org_chart[c.contact_id])||[]).slice()
+      .sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
+    const chain=rows.filter(r=>chainRoles.has(r.role_type));
+    let prev=null,targetNode=null;
+    chain.forEach(r=>{
+      const n=getNode(r);
+      if(r.role_type==='target'){ n.dbContactId=n.dbContactId||c.contact_id; targetNode=n; }
+      if(prev && prev!==n){ prev.children.set(n.key,n); n.parents.set(prev.key,prev); }
+      prev=n;
+    });
+    if(targetNode){
+      rows.filter(r=>r.role_type==='peer').forEach(p=>targetNode.peers.push(p));
+      rows.filter(r=>r.role_type==='directReport').forEach(p=>targetNode.reports.push(p));
+    }
+  });
+
+  let orgBodyHtml='';
+  if(nodeMap.size===0){
+    orgBodyHtml='<p class="prose" style="color:var(--ink-3)">No org chart data available yet for this company.</p>';
+  } else {
+    const roots=[...nodeMap.values()].filter(n=>n.parents.size===0);
+    const renderNode=(node,visited)=>{
+      if(visited.has(node.key)) return '';
+      visited.add(node.key);
+      const html=[orgNodeHtmlCombined(node)];
+      const kids=[...node.children.values()];
+      if(kids.length===1){
+        html.push('<div class="org-connector"></div>',renderNode(kids[0],visited));
+      } else if(kids.length>1){
+        html.push('<div class="org-connector"></div>');
+        html.push(`<div class="org-branch">${kids.map(k=>`<div class="org-branch__col"><div class="org-tree">${renderNode(k,visited)}</div></div>`).join('')}</div>`);
+      }
+      if(node.dbContactId && (node.peers.length||node.reports.length)){
+        html.push(renderNodeSideGroups(node));
+      }
+      return html.join('');
+    };
+    if(roots.length===1){
+      orgBodyHtml=`<div class="org-tree">${renderNode(roots[0],new Set())}</div>`;
+    } else if(roots.length>1){
+      orgBodyHtml=`<div class="org-branch">${roots.map(r=>`<div class="org-branch__col"><div class="org-tree">${renderNode(r,new Set())}</div></div>`).join('')}</div>`;
+    }
+  }
+
+  const orgHtml=`
+    <div class="section">
+      <div class="section__head"><span class="section__title">Combined Org Chart</span></div>
+      <div class="section__body">${orgBodyHtml}</div>
+    </div>`;
+
+  return `<div class="company-detail">${summaryHtml}${contactsHtml}${orgHtml}</div>`;
+}
+
+function orgNodeHtmlCombined(node){
+  let cls='',chipText='';
+  if(node.dbContactId){ cls='org-node--target org-node--db'; chipText='In Database'; }
+  else {
+    const conf=String(node.confidence||'').toLowerCase();
+    if(conf==='confirmed'){ cls='org-node--confirmed'; chipText='Confirmed'; }
+    else if(conf==='inferred'){ cls='org-node--inferred'; chipText='Inferred'; }
+  }
+  const attrs=node.dbContactId?` data-route="contact" data-id="${escapeHtml(node.dbContactId)}"`:'';
+  const tag=node.dbContactId?'button':'div';
+  const typeAttr=node.dbContactId?' type="button"':'';
+  return `<${tag} class="org-node ${cls}"${attrs}${typeAttr}>
+    <div class="org-node__name">${escapeHtml(node.name)}</div>
+    <div class="org-node__title">${escapeHtml(node.title)}</div>
+    ${chipText?`<span class="org-node__chip">${escapeHtml(chipText)}</span>`:''}
+  </${tag}>`;
+}
+
+function orgSideRow(r,nameToContactId){
+  const nameLower=String(r.name||'').toLowerCase().trim();
+  const dbId=nameToContactId?nameToContactId.get(nameLower):null;
+  const init=(r.initials&&String(r.initials).trim())||deriveInitials(r.name);
+  const color=dbId?'avatar--blue':'avatar--gray';
+  const tag=dbId?'button':'div';
+  const attrs=dbId?` data-route="contact" data-id="${escapeHtml(dbId)}" type="button"`:'';
+  return `<${tag} class="peer-row"${attrs} style="width:100%">
+    <div class="avatar avatar--sm ${color}">${escapeHtml(init)}</div>
+    <div class="peer-row__body"><div class="peer-row__name">${escapeHtml(r.name||'')}</div><div class="peer-row__title">${escapeHtml(r.title||'')}</div></div>
+  </${tag}>`;
+}
+
+function renderNodeSideGroups(node){
+  const D=window.__DATA||{};
+  const co=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[node.dbContactId])||{};
+  const companyId=co.company_id||'';
+  const contactsAtCo=(D.contacts||[]).filter(c=>c.company_id===companyId);
+  const nameToContactId=new Map();
+  contactsAtCo.forEach(c=>{
+    const n=String(c.full_name||'').toLowerCase().trim();
+    if(n) nameToContactId.set(n,c.contact_id);
+  });
+  const parts=[];
+  if(node.peers.length){
+    parts.push(`<div class="peer-section" style="width:100%;max-width:360px;margin-top:var(--s-3);padding-top:var(--s-3)">
+      <div class="peer-section__head">Peers · ${node.peers.length}</div>
+      ${node.peers.map(p=>orgSideRow(p,nameToContactId)).join('')}
+    </div>`);
+  }
+  if(node.reports.length){
+    parts.push(`<div class="peer-section" style="width:100%;max-width:360px;margin-top:var(--s-3);padding-top:var(--s-3)">
+      <div class="peer-section__head">Direct Reports · ${node.reports.length}</div>
+      ${node.reports.map(r=>orgSideRow(r,nameToContactId)).join('')}
+    </div>`);
+  }
+  return parts.join('');
+}
+
 function itemHTML(c){
   return`<button class="contact-item" data-route="contact" data-id="${escapeHtml(c.id)}">
     <div class="avatar avatar--md ${avatarClass(c)}">${escapeHtml(c.initials)}</div>
@@ -1582,6 +1781,36 @@ searchInput.addEventListener('keydown',e=>{
 });
 
 document.addEventListener('click',e=>{
+  const toggle=e.target.closest('[data-company-toggle]');
+  if(toggle){
+    e.preventDefault();
+    const cid=toggle.getAttribute('data-company-toggle');
+    const mount=document.getElementById('list-mount');
+    if(!mount) return;
+    const prevId=expandedCompanyId;
+    if(prevId && prevId!==cid){
+      const prevSection=mount.querySelector(`[data-company-section="${CSS.escape(prevId)}"]`);
+      if(prevSection){
+        const prevHead=prevSection.querySelector('[data-company-toggle]');
+        const prevSlot=prevSection.querySelector('.company-detail-slot');
+        if(prevHead) prevHead.setAttribute('aria-expanded','false');
+        if(prevSlot) prevSlot.innerHTML='';
+      }
+    }
+    const section=mount.querySelector(`[data-company-section="${CSS.escape(cid)}"]`);
+    if(!section) return;
+    const slot=section.querySelector('.company-detail-slot');
+    if(prevId===cid){
+      expandedCompanyId=null;
+      toggle.setAttribute('aria-expanded','false');
+      if(slot) slot.innerHTML='';
+    } else {
+      expandedCompanyId=cid;
+      toggle.setAttribute('aria-expanded','true');
+      if(slot) slot.innerHTML=renderCompanyExpanded(cid);
+    }
+    return;
+  }
   const t=e.target.closest('[data-route]');
   if(t){e.preventDefault();navigate(t.dataset.route,t.dataset.id);}
 });
