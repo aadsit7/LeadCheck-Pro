@@ -328,6 +328,12 @@ main{flex:1;padding-bottom:var(--s-9)}
 }
 .research-loading{animation:research-pulse 1.5s ease-in-out infinite}
 @keyframes research-pulse{0%,100%{opacity:.9}50%{opacity:.55}}
+.modal__body.research-dimmed .input,
+.modal__body.research-dimmed .textarea,
+.modal__body.research-dimmed .select,
+.modal__body.research-dimmed .editor,
+.modal__body.research-dimmed .chip-input{opacity:.5;transition:opacity var(--t-med) var(--ease)}
+.save-status{font-size:11px;color:var(--ink-3);flex:1;text-align:left}
 </style>
 </head>
 <body>
@@ -1597,6 +1603,7 @@ function populateCompanySelect(){
 function openModal(mode,contact){
   modalTitle.textContent=mode==='edit'?'Edit Contact':'New Contact';
   editingId=mode==='edit'&&contact?contact.id:null;
+  window.__lastResearch=null;
   populateCompanySelect();
   if(mode==='edit'&&contact){
     const IDX=window.__INDEX||{};
@@ -1919,12 +1926,28 @@ function updateResearchBtnState(){
   }
 }
 
+function prefillFromResearch(r){
+  if(!r || typeof r !== 'object') return;
+  const setVal = (id, v) => { const el = document.getElementById(id); if(el && v != null && v !== '') el.value = String(v); };
+  setVal('f-title', r.title);
+  setVal('f-email', r.email);
+  setVal('f-location', r.location);
+  setVal('f-linkedin', r.linkedin_url);
+  setVal('f-decision', r.decision_role);
+  setVal('f-angle', r.outreach_angle);
+  const bg = document.querySelector('.editor__content');
+  if(bg && r.background) bg.textContent = String(r.background);
+  if(Array.isArray(r.themes)) setChips('chip-themes', r.themes.map(t=>String(t||'').trim()).filter(Boolean));
+  if(Array.isArray(r.certifications)) setChips('chip-certs', r.certifications.map(t=>String(t||'').trim()).filter(Boolean));
+}
+
 document.getElementById('f-name').addEventListener('input', updateResearchBtnState);
 document.getElementById('f-company').addEventListener('change', updateResearchBtnState);
 
 document.getElementById('research-btn').addEventListener('click', async () => {
   const btn = document.getElementById('research-btn');
   const label = document.getElementById('research-btn-label');
+  const modalBody = document.querySelector('.modal__body');
   const name = (document.getElementById('f-name').value || '').trim();
   const companyName = getSelectedCompanyName();
   if(!name || !companyName){
@@ -1933,16 +1956,20 @@ document.getElementById('research-btn').addEventListener('click', async () => {
   }
   btn.disabled = true;
   btn.classList.add('research-loading');
+  if(modalBody) modalBody.classList.add('research-dimmed');
   label.textContent = 'Researching '+name+'…';
   try {
     const result = await callResearchAPI(name, companyName);
     console.log('[LeadCheck] Research result:', result);
-    showToast('Research complete — see console');
+    window.__lastResearch = result;
+    prefillFromResearch(result);
+    showToast('Research complete — review and save');
   } catch(err) {
     console.error('[LeadCheck] Research failed', err);
     showToast('Research failed: '+(err.message || err));
   } finally {
     btn.classList.remove('research-loading');
+    if(modalBody) modalBody.classList.remove('research-dimmed');
     label.textContent = 'Research this person';
     updateResearchBtnState();
   }
