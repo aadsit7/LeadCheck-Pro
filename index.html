@@ -163,6 +163,14 @@ main{flex:1;padding-bottom:var(--s-9)}
 .contact-head__meta svg{width:12px;height:12px;opacity:.6}
 
 .action-bar{display:flex;gap:var(--s-2);padding:var(--s-2) 0 var(--s-5);flex-wrap:wrap}
+.btn--danger-text{color:var(--red)}
+.btn--danger-text:hover{background:var(--red-bg);border-color:var(--red)}
+.btn--danger{background:var(--red);color:#fff;border:1px solid var(--red)}
+.btn--danger:hover{background:#a01818;border-color:#a01818}
+.btn--danger:disabled{opacity:.6;cursor:wait}
+.action-bar--confirming{align-items:center;gap:var(--s-3)}
+.action-bar__confirm-msg{flex:1;min-width:200px;font-size:13px;color:var(--ink-2)}
+.action-bar__confirm-msg b{color:var(--ink);font-weight:600}
 
 .pill{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:var(--r-sm);font-size:11px;font-weight:600;letter-spacing:.01em;white-space:nowrap}
 .pill--green{background:var(--green-bg);color:var(--green)}
@@ -360,6 +368,7 @@ main{flex:1;padding-bottom:var(--s-9)}
   .contact-head__name{font-size:19px}
   .action-bar .btn span{display:none}
   .action-bar .btn{padding:8px 10px}
+  .action-bar--confirming .btn span{display:inline}
   .modal{max-height:95vh}
 }
 .research-loading{animation:research-pulse 1.5s ease-in-out infinite}
@@ -488,6 +497,12 @@ main{flex:1;padding-bottom:var(--s-9)}
         <a id="contact-linkedin" href="#" target="_blank" rel="noopener" class="btn btn--ghost"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg><span>LinkedIn</span></a>
         <button class="btn btn--ghost" id="refresh-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg><span>Refresh</span></button>
         <button class="btn btn--ghost" id="edit-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Edit</span></button>
+        <button class="btn btn--ghost btn--danger-text" id="delete-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg><span>Delete</span></button>
+      </div>
+      <div class="action-bar action-bar--confirming" id="action-bar-confirm" style="display:none">
+        <div class="action-bar__confirm-msg" id="delete-confirm-msg"></div>
+        <button class="btn btn--ghost" id="delete-cancel-btn" type="button"><span>Cancel</span></button>
+        <button class="btn btn--danger" id="delete-confirm-btn" type="button"><span>Yes, delete</span></button>
       </div>
 
       <nav class="tabs">
@@ -1551,6 +1566,7 @@ function renderContactDetail(id){
   const all=getContactsForList();
   const c=all.find(x=>x.id===id)||all[0];
   if(!c) return;
+  if(typeof hideDeleteConfirm==='function') hideDeleteConfirm();
   const raw=IDX.contactById[c.id]||{};
   const co=IDX.companyById[raw.company_id]||{};
   const companyName=co.name||c.company||'';
@@ -2409,6 +2425,110 @@ document.getElementById('edit-btn').addEventListener('click',()=>{
   const all=getContactsForList();
   const c=all.find(x=>x.id===id)||all[0];
   if(c) openModal('edit',c);
+});
+
+/* ========== Delete Contact ========== */
+// Child tabs and the ID column used to delete their rows on the server.
+const DELETE_CHILD_TABS=[
+  {tab:'Activities', key:'activities', idColumn:'activity_id'},
+  {tab:'Events', key:'events', idColumn:'event_id'},
+  {tab:'Org_Chart', key:'org_chart', idColumn:'org_id'},
+  {tab:'Sources', key:'sources', idColumn:'source_id'},
+  {tab:'Confidence_Checks', key:'confidence_checks', idColumn:'check_id'},
+  {tab:'Playbook_Steps', key:'playbook_steps', idColumn:'step_id'},
+  {tab:'Templates', key:'templates', idColumn:'template_id'},
+  {tab:'Priority_Matrix', key:'priority_matrix', idColumn:'matrix_id'},
+  {tab:'Affiliations', key:'affiliations', idColumn:'affiliation_id'},
+  {tab:'Contact_Links', key:'contact_links', idColumn:'link_id'}
+];
+
+let pendingDeleteId=null;
+
+function showDeleteConfirm(id, name){
+  pendingDeleteId=id;
+  const mainBar=document.querySelector('#view-contact > .container > .action-bar:not(.action-bar--confirming)');
+  const confirmBar=document.getElementById('action-bar-confirm');
+  const msg=document.getElementById('delete-confirm-msg');
+  if(msg) msg.innerHTML=`Delete <b>${escapeHtml(name)}</b>? This removes them from the database.`;
+  const confirmBtn=document.getElementById('delete-confirm-btn');
+  const cancelBtn=document.getElementById('delete-cancel-btn');
+  if(confirmBtn) confirmBtn.disabled=false;
+  if(cancelBtn) cancelBtn.disabled=false;
+  if(mainBar) mainBar.style.display='none';
+  if(confirmBar) confirmBar.style.display='';
+}
+
+function hideDeleteConfirm(){
+  pendingDeleteId=null;
+  const mainBar=document.querySelector('#view-contact > .container > .action-bar:not(.action-bar--confirming)');
+  const confirmBar=document.getElementById('action-bar-confirm');
+  if(confirmBar) confirmBar.style.display='none';
+  if(mainBar) mainBar.style.display='';
+}
+
+async function performContactDelete(id, name){
+  const confirmBtn=document.getElementById('delete-confirm-btn');
+  const cancelBtn=document.getElementById('delete-cancel-btn');
+  if(confirmBtn) confirmBtn.disabled=true;
+  if(cancelBtn) cancelBtn.disabled=true;
+  showToast('Deleting contact…');
+
+  try {
+    await postToSheet({action:'delete', tab:'Contacts', idColumn:'contact_id', idValue:id});
+  } catch(err){
+    console.error('[LeadCheck] Contact delete failed', err);
+    showToast('Delete failed: '+(err.message||err));
+    hideDeleteConfirm();
+    return;
+  }
+
+  const D=window.__DATA||{};
+  for(const spec of DELETE_CHILD_TABS){
+    const rows=(D[spec.key]||[]).filter(r=>r && r.contact_id===id);
+    for(const row of rows){
+      const idValue=row[spec.idColumn];
+      if(!idValue) continue;
+      try {
+        await postToSheet({action:'delete', tab:spec.tab, idColumn:spec.idColumn, idValue});
+      } catch(err){
+        console.error('[LeadCheck] '+spec.tab+' delete failed', err, row);
+      }
+    }
+  }
+
+  if(Array.isArray(D.contacts)){
+    D.contacts=D.contacts.filter(c=>c.contact_id!==id);
+  }
+  for(const spec of DELETE_CHILD_TABS){
+    if(Array.isArray(D[spec.key])){
+      D[spec.key]=D[spec.key].filter(r=>r.contact_id!==id);
+    }
+  }
+  buildIndexes();
+  hideDeleteConfirm();
+  location.hash='#/';
+  renderList();
+  showToast('Deleted: '+name);
+}
+
+document.getElementById('delete-btn').addEventListener('click',()=>{
+  const id=(location.hash.split('/')[2])||'';
+  const IDX=window.__INDEX||{contactById:{}};
+  const raw=IDX.contactById[id];
+  if(!raw){ showToast('Contact not found'); return; }
+  const name=raw.full_name||raw.short_name||raw.email||'this contact';
+  showDeleteConfirm(id, name);
+});
+document.getElementById('delete-cancel-btn').addEventListener('click',()=>{
+  hideDeleteConfirm();
+});
+document.getElementById('delete-confirm-btn').addEventListener('click',()=>{
+  const id=pendingDeleteId;
+  if(!id) return;
+  const IDX=window.__INDEX||{contactById:{}};
+  const raw=IDX.contactById[id]||{};
+  const name=raw.full_name||raw.short_name||raw.email||'this contact';
+  performContactDelete(id, name);
 });
 
 // Refresh merge helpers — a new research result should never replace existing
