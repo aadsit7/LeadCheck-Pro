@@ -1572,24 +1572,42 @@ document.getElementById('source-trigger').addEventListener('click',()=>log.class
 const backdrop=document.getElementById('modal-backdrop');
 const modalTitle=document.getElementById('modal-title');
 
+function populateCompanySelect(){
+  const sel=document.getElementById('f-company');
+  if(!sel) return;
+  const D=window.__DATA||{};
+  const companies=(D.companies||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const current=sel.value;
+  sel.innerHTML='<option value="">Select a company…</option>'
+    +companies.map(c=>`<option value="${escapeHtml(c.company_id)}">${escapeHtml(c.name||'')}</option>`).join('')
+    +'<option value="__new">+ Create new company</option>';
+  if(current) sel.value=current;
+}
+
 function openModal(mode,contact){
   modalTitle.textContent=mode==='edit'?'Edit Contact':'New Contact';
   editingId=mode==='edit'&&contact?contact.id:null;
+  populateCompanySelect();
   if(mode==='edit'&&contact){
-    document.getElementById('f-name').value=contact.name;
-    document.getElementById('f-title').value=contact.title;
-    document.getElementById('f-company').value=contact.companyId||'';
-    document.getElementById('f-email').value='jane.smith@acme.example.com';
-    document.getElementById('f-location').value='Seattle, WA';
-    document.getElementById('f-linkedin').value='https://linkedin.com/in/janesmith';
-    document.querySelector('.editor__content').innerHTML='15-year EUC veteran. Joined Acme from Microsoft FastTrack in 2022. Built Acme\'s internal device lifecycle program.';
-    document.getElementById('f-decision').value='Budget holder for EUC tooling under $250K. Reports to Marcus Delaney for spend above that threshold.';
-    document.getElementById('f-angle').value='Lead with device lifecycle automation. Reference benchmark data on year-three program failures. Avoid generic MDM positioning.';
-    setChips('chip-themes',['Device Lifecycle','Modern Workplace','End User Productivity']);
-    setChips('chip-certs',['MCSE','Citrix CCP-V']);
+    const IDX=window.__INDEX||{};
+    const raw=(IDX.contactById&&IDX.contactById[contact.id])||{};
+    const links=(IDX.byContact&&IDX.byContact.contact_links&&IDX.byContact.contact_links[contact.id])||[];
+    const linkedin=links.find(l=>String(l.link_type||'').toLowerCase().includes('linkedin'));
+    document.getElementById('f-name').value=raw.full_name||contact.name||'';
+    document.getElementById('f-title').value=raw.title||contact.title||'';
+    document.getElementById('f-company').value=raw.company_id||contact.companyId||'';
+    document.getElementById('f-email').value=raw.email||'';
+    document.getElementById('f-location').value=raw.location||'';
+    document.getElementById('f-linkedin').value=(linkedin&&linkedin.url)||'';
+    document.querySelector('.editor__content').textContent=raw.background||'';
+    document.getElementById('f-decision').value=raw.decision_role||'';
+    document.getElementById('f-angle').value=raw.outreach_angle||'';
+    setChips('chip-themes',Array.isArray(raw.themes)?raw.themes:[]);
+    setChips('chip-certs',Array.isArray(raw.certifications)?raw.certifications:[]);
   }else{
-    document.querySelectorAll('.input,.textarea,.select').forEach(f=>f.value='');
-    document.querySelector('.editor__content').innerHTML='';
+    document.querySelectorAll('.input,.textarea').forEach(f=>f.value='');
+    document.getElementById('f-company').value='';
+    document.querySelector('.editor__content').textContent='';
     setChips('chip-themes',[]);
     setChips('chip-certs',[]);
   }
@@ -1610,12 +1628,93 @@ document.getElementById('modal-cancel').addEventListener('click',closeModal);
 backdrop.addEventListener('click',e=>{if(e.target===backdrop)closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
-document.getElementById('modal-save').addEventListener('click',()=>{
+function collectChipValues(containerId){
+  return Array.from(document.querySelectorAll('#'+containerId+' .chip-input__chip'))
+    .map(c=>(c.firstChild&&c.firstChild.textContent?c.firstChild.textContent.trim():''))
+    .filter(Boolean);
+}
+
+document.getElementById('modal-save').addEventListener('click',async()=>{
   const name=document.getElementById('f-name').value.trim();
-  const company=document.getElementById('f-company').value;
-  if(!name||!company){showToast('Name and company are required');return;}
-  closeModal();
-  showToast(editingId?'Contact updated · would write to Google Sheet':'Contact saved · would write to Google Sheet');
+  const companyId=document.getElementById('f-company').value;
+  if(!name||!companyId){ showToast('Name and company are required'); return; }
+  if(companyId==='__new'){ showToast('Creating new companies is not yet supported'); return; }
+
+  const themes=collectChipValues('chip-themes');
+  const certs=collectChipValues('chip-certs');
+  const bgEl=document.querySelector('.editor__content');
+  const background=((bgEl&&(bgEl.innerText||bgEl.textContent))||'').trim();
+  const today=new Date().toISOString().slice(0,10);
+
+  const fields={
+    full_name:name,
+    title:document.getElementById('f-title').value.trim(),
+    company_id:companyId,
+    email:document.getElementById('f-email').value.trim(),
+    location:document.getElementById('f-location').value.trim(),
+    background:background,
+    decision_role:document.getElementById('f-decision').value.trim(),
+    outreach_angle:document.getElementById('f-angle').value.trim(),
+    themes:themes.join('|'),
+    certifications:certs.join('|'),
+    last_updated:today
+  };
+
+  let payload;
+  if(editingId){
+    payload={ action:'update', tab:'Contacts', idColumn:'contact_id', idValue:editingId, data:fields };
+  } else {
+    const newId='C'+String(Date.now()).slice(-6);
+    fields.contact_id=newId;
+    fields.date_added=today;
+    payload={ action:'append', tab:'Contacts', data:fields };
+  }
+
+  const saveBtn=document.getElementById('modal-save');
+  const origLabel=saveBtn.textContent;
+  saveBtn.disabled=true; saveBtn.textContent='Saving…';
+
+  try {
+    // Apps Script CORS: omit Content-Type to avoid preflight; body is read via e.postData.contents.
+    const resp=await fetch(CONFIG.WEB_APP_URL, { method:'POST', body:JSON.stringify(payload) });
+    const text=await resp.text();
+    let result;
+    try { result=JSON.parse(text); } catch(_) { throw new Error('Invalid response: '+text.slice(0,120)); }
+    if(!result || result.ok===false){ throw new Error((result&&result.error)||'Unknown error'); }
+
+    closeModal();
+    showToast(editingId?'Contact updated':'Contact saved');
+
+    // Optimistic local update so UI reflects the change before refetch.
+    const D=window.__DATA;
+    const optimistic=Object.assign({}, fields, {
+      themes: splitPipe(fields.themes),
+      certifications: splitPipe(fields.certifications)
+    });
+    if(editingId){
+      const i=(D.contacts||[]).findIndex(c=>c.contact_id===editingId);
+      if(i>=0) Object.assign(D.contacts[i], optimistic);
+    } else {
+      D.contacts.push(optimistic);
+    }
+    buildIndexes();
+    renderList();
+    const viewed=(location.hash.split('/')[2])||'';
+    if(viewed) renderContactDetail(viewed);
+
+    // Background re-sync to catch any server-side derivations.
+    setTimeout(()=>{
+      loadAllData()
+        .then(()=>{ buildIndexes(); populateCompanySelect(); renderList();
+          const v=(location.hash.split('/')[2])||''; if(v) renderContactDetail(v); })
+        .catch(err=>console.error('[LeadCheck] Refresh failed', err));
+    }, 2000);
+  } catch(err) {
+    console.error('[LeadCheck] Save failed', err);
+    showToast('Save failed: '+(err.message||err));
+  } finally {
+    saveBtn.disabled=false; saveBtn.textContent=origLabel;
+  }
 });
 
 function setChips(containerId,values){
@@ -1665,6 +1764,7 @@ loadAllData()
   .then(()=>{
     buildIndexes();
     console.log('[LeadCheck] Data loaded:', window.__DATA, window.__INDEX);
+    populateCompanySelect();
     renderList();
     handleHash();
   })
