@@ -1429,6 +1429,13 @@ function renderContactDetail(id){
     meta.innerHTML=parts.join('');
   }
 
+  const emailBtn=document.getElementById('contact-email');
+  if(emailBtn){
+    const email=(raw.email||'').trim();
+    if(email){ emailBtn.href='mailto:'+email; emailBtn.style.display=''; }
+    else { emailBtn.removeAttribute('href'); emailBtn.style.display='none'; }
+  }
+
   renderActionBar(raw);
   renderProfilePanel(raw, c.id);
   renderCompanyPanel(raw, c.id);
@@ -1439,11 +1446,6 @@ function renderContactDetail(id){
 
 function renderActionBar(raw){
   const IDX=window.__INDEX||{};
-  const emailBtn=document.getElementById('contact-email');
-  if(emailBtn){
-    if(raw.email){ emailBtn.href='mailto:'+raw.email; emailBtn.style.display=''; }
-    else { emailBtn.style.display='none'; }
-  }
   const linkedinBtn=document.getElementById('contact-linkedin');
   if(linkedinBtn){
     const links=(IDX.byContact&&IDX.byContact.contact_links&&IDX.byContact.contact_links[raw.contact_id])||[];
@@ -1610,7 +1612,19 @@ function renderOrgPanel(raw, id){
   if(!panel) return;
   const IDX=window.__INDEX||{};
   const nodes=(IDX.byContact&&IDX.byContact.org_chart&&IDX.byContact.org_chart[id])||[];
-  const reporting=nodes.filter(n=>['topExec','functionHead','manager','target'].indexOf(n.role_type)>=0)
+  const CHAIN_PRIORITY={topExec:4,functionHead:3,manager:2,target:1};
+  const normName=(v)=>String(v||'').trim().toLowerCase().replace(/\s+/g,' ');
+  const chainByName=new Map();
+  for(const n of nodes){
+    if(!(n.role_type in CHAIN_PRIORITY)) continue;
+    const key=normName(n.name);
+    if(!key) continue;
+    const existing=chainByName.get(key);
+    const nextPrio=CHAIN_PRIORITY[n.role_type]||0;
+    const prevPrio=existing?(CHAIN_PRIORITY[existing.role_type]||0):-1;
+    if(!existing || nextPrio>prevPrio) chainByName.set(key,n);
+  }
+  const reporting=[...chainByName.values()]
     .slice().sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
   const peers=nodes.filter(n=>n.role_type==='peer');
   const reports=nodes.filter(n=>n.role_type==='directReport');
