@@ -891,7 +891,6 @@ Aaron</div>
 const CONFIG = {
   SHEET_ID: '11JvRXvlZAPoJTf5SwVRUD4EP32Q74Z7yd1ikZQ6NY2g',
   WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbyazU2KQWeqr7BtK9OdnYMUs4XGxBhcZUmrq8sR3I72BY3W7rmKR3sdMLwo2kjFI92U/exec',
-  ANTHROPIC_API_KEY: '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',
   TABS: [
     'Contacts', 'Companies', 'Contact_Links', 'Company_Links',
     'Company_Achievements', 'Affiliations', 'Activities', 'Events',
@@ -2052,20 +2051,9 @@ The JSON must be valid and parseable — no trailing commas, no comments, no ext
 }
 
 async function callResearchAPI(name, company){
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch(CONFIG.WEB_APP_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': CONFIG.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 10 }],
-      messages: [{ role: 'user', content: RESEARCH_PROMPT(name, company) }]
-    })
+    body: JSON.stringify({ action: 'research', name, company })
   });
   if(!resp.ok){
     const errText = await resp.text().catch(()=> '');
