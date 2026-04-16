@@ -867,6 +867,7 @@ Aaron</div>
 
     </div>
     <div class="modal__foot">
+      <span class="save-status" id="save-status"></span>
       <button class="btn btn--ghost" id="modal-cancel" type="button">Cancel</button>
       <button class="btn btn--primary" id="modal-save" type="button">Save Contact</button>
     </div>
@@ -1628,6 +1629,8 @@ function openModal(mode,contact){
     setChips('chip-themes',[]);
     setChips('chip-certs',[]);
   }
+  const statusEl=document.getElementById('save-status');
+  if(statusEl) statusEl.textContent='';
   backdrop.classList.add('open');
   if(typeof updateResearchBtnState==='function') updateResearchBtnState();
   setTimeout(()=>document.getElementById('f-name').focus(),50);
@@ -1650,6 +1653,149 @@ function collectChipValues(containerId){
   return Array.from(document.querySelectorAll('#'+containerId+' .chip-input__chip'))
     .map(c=>(c.firstChild&&c.firstChild.textContent?c.firstChild.textContent.trim():''))
     .filter(Boolean);
+}
+
+// Apps Script CORS: omit Content-Type to avoid preflight; body is read via e.postData.contents.
+async function postToSheet(payload){
+  const resp=await fetch(CONFIG.WEB_APP_URL, { method:'POST', body:JSON.stringify(payload) });
+  const text=await resp.text();
+  let result;
+  try { result=JSON.parse(text); } catch(_) { throw new Error('Invalid response: '+text.slice(0,120)); }
+  if(!result || result.ok===false){ throw new Error((result&&result.error)||'Unknown error'); }
+  return result;
+}
+
+function buildResearchChildTasks(contactId, companyId, targetName, r){
+  const tasks=[];
+  const base=Date.now();
+  let seq=0;
+  const uid=(prefix)=> prefix + String(base + (seq++));
+
+  const ci = r.company_info || {};
+  const oc = r.org_chart || {};
+
+  // Companies — update existing row with non-empty research fields
+  const cFields={};
+  if(ci.industry) cFields.industry=ci.industry;
+  if(ci.hq) cFields.hq=ci.hq;
+  if(ci.size) cFields.size=ci.size;
+  if(ci.revenue) cFields.revenue=ci.revenue;
+  if(ci.founded) cFields.founded=String(ci.founded);
+  if(ci.ceo) cFields.ceo=ci.ceo;
+  if(ci.ceo_prior) cFields.prior_ceo=ci.ceo_prior;
+  if(ci.core_focus) cFields.description=ci.core_focus;
+  if(Array.isArray(ci.partners)&&ci.partners.length) cFields.partners=ci.partners.filter(Boolean).join('|');
+  if(Array.isArray(ci.badges)&&ci.badges.length) cFields.badges=ci.badges.filter(Boolean).join('|');
+  if(ci.email_format) cFields.email_format=ci.email_format;
+  if(ci.email_format_confidence) cFields.email_format_confidence=String(ci.email_format_confidence);
+  if(ci.website) cFields.website=ci.website;
+  if(Object.keys(cFields).length){
+    tasks.push({label:'company', tab:'Companies', action:'update', data:cFields,
+      extra:{idColumn:'company_id', idValue:companyId}});
+  }
+
+  // Company_Achievements
+  (ci.achievements||[]).forEach(a=>{
+    if(!a || (!a.label && !a.description && !a.source_url)) return;
+    tasks.push({label:'achievement', tab:'Company_Achievements', action:'append', data:{
+      achievement_id: uid('CA'), company_id: companyId,
+      title: a.label||'', summary: a.description||'', description: a.description||'',
+      source_url: a.source_url||'', date: a.date||''
+    }});
+  });
+
+  // Email_Patterns
+  if(ci.email_format){
+    tasks.push({label:'email pattern', tab:'Email_Patterns', action:'append', data:{
+      pattern_id: uid('EP'), company_id: companyId,
+      pattern: ci.email_format, confidence: String(ci.email_format_confidence||''),
+      sample_email: r.email||''
+    }});
+  }
+
+  // Activities
+  (r.recent_activities||[]).forEach(a=>{
+    if(!a || (!a.text && !a.source_url)) return;
+    tasks.push({label:'activity', tab:'Activities', action:'append', data:{
+      activity_id: uid('AV'), contact_id: contactId,
+      activity_type: a.type||'', title: a.text||'', description:'',
+      date: a.date||'', url: a.source_url||'', source_name:''
+    }});
+  });
+
+  // Events
+  (r.upcoming_events||[]).forEach(e=>{
+    if(!e || !e.event_name) return;
+    tasks.push({label:'event', tab:'Events', action:'append', data:{
+      event_id: uid('EV'), contact_id: contactId,
+      name: e.event_name||'', date: e.event_date||'', role: e.status||'',
+      location: e.location||'', source_url: e.source_url||'',
+      insight_callout: e.insight_callout||''
+    }});
+  });
+
+  // Affiliations
+  (r.affiliations||[]).forEach(a=>{
+    if(!a || !a.name) return;
+    tasks.push({label:'affiliation', tab:'Affiliations', action:'append', data:{
+      affiliation_id: uid('AF'), contact_id: contactId,
+      label: a.name||'', name: a.name||'', source_url: a.source_url||''
+    }});
+  });
+
+  // Org_Chart — topExec, functionHead, manager, target (self), peers
+  const pushOrg=(roleType, node, order)=>{
+    if(!node || !node.name) return;
+    tasks.push({label:'org node', tab:'Org_Chart', action:'append', data:{
+      org_id: uid('OC'), contact_id: contactId, role_type: roleType,
+      name: node.name||'', title: node.title||'',
+      confidence: String(node.verified||'').toLowerCase(),
+      source_url: node.source_url||'', note: node.note||'',
+      display_order: order
+    }});
+  };
+  pushOrg('topExec', oc.topExec, 1);
+  pushOrg('functionHead', oc.functionHead, 2);
+  pushOrg('manager', oc.manager, 3);
+  pushOrg('target', { name: targetName, title: r.title||'', verified:'CONFIRMED' }, 4);
+  let peerOrder=10;
+  (oc.peers||[]).forEach(p=>{ pushOrg('peer', p, peerOrder++); });
+
+  // Sources
+  (r.sources||[]).forEach((s,i)=>{
+    if(!s || (!s.label && !s.url)) return;
+    tasks.push({label:'source', tab:'Sources', action:'append', data:{
+      source_id: uid('SR'), contact_id: contactId,
+      label: s.label||'', url: s.url||'', display_order: i+1
+    }});
+  });
+
+  // Confidence_Checks — 12-item checklist derived from what research found
+  const typeMatches=(arr, re)=> Array.isArray(arr) && arr.some(x => x && re.test(String(x.type||x.status||'')));
+  const checks=[
+    { name:'Name + title on LinkedIn', pass: !!(r.linkedin_url && r.title) },
+    { name:'Title on company site',    pass: !!r.title },
+    { name:'Email format match',       pass: !!(r.email && String(r.email_confidence||'').toUpperCase()!=='LOW') },
+    { name:'Published content',        pass: Array.isArray(r.recent_activities) && r.recent_activities.length>0 },
+    { name:'Certifications',           pass: Array.isArray(r.certifications) && r.certifications.length>0 },
+    { name:'Education',                pass: !!r.education },
+    { name:'Function head',            pass: !!(oc.functionHead && oc.functionHead.name) },
+    { name:'Peer directors',           pass: Array.isArray(oc.peers) && oc.peers.length>0 },
+    { name:'Direct manager sourced',   pass: !!(oc.manager && oc.manager.name) },
+    { name:'X / Twitter presence',     pass: false },
+    { name:'Personal blog',            pass: typeMatches(r.recent_activities, /blog|article/i) },
+    { name:'Conference speaking',      pass: typeMatches(r.upcoming_events, /speaker|keynote/i) || typeMatches(r.recent_activities, /talk|keynote|speak|panel/i) }
+  ];
+  checks.forEach((c,i)=>{
+    tasks.push({label:'check', tab:'Confidence_Checks', action:'append', data:{
+      check_id: uid('CC'), contact_id: contactId,
+      check_name: c.name, label: c.name,
+      passed: c.pass ? 'TRUE' : 'FALSE',
+      display_order: i+1
+    }});
+  });
+
+  return tasks;
 }
 
 document.getElementById('modal-save').addEventListener('click',async()=>{
@@ -1678,30 +1824,33 @@ document.getElementById('modal-save').addEventListener('click',async()=>{
     last_updated:today
   };
 
-  let payload;
+  const researchData=window.__lastResearch;
+  if(researchData && typeof researchData==='object'){
+    if(researchData.email_confidence) fields.email_confidence=String(researchData.email_confidence).toUpperCase();
+    if(researchData.overall_confidence!=null && researchData.overall_confidence!=='') fields.overall_confidence=String(researchData.overall_confidence);
+    if(researchData.education) fields.education=researchData.education;
+    if(researchData.verified===true || researchData.verified===false) fields.verified = researchData.verified?'TRUE':'FALSE';
+  }
+
+  let payload, contactId;
   if(editingId){
     payload={ action:'update', tab:'Contacts', idColumn:'contact_id', idValue:editingId, data:fields };
+    contactId=editingId;
   } else {
-    const newId='C'+String(Date.now()).slice(-6);
-    fields.contact_id=newId;
+    contactId='C'+String(Date.now()).slice(-6);
+    fields.contact_id=contactId;
     fields.date_added=today;
     payload={ action:'append', tab:'Contacts', data:fields };
   }
 
   const saveBtn=document.getElementById('modal-save');
+  const statusEl=document.getElementById('save-status');
   const origLabel=saveBtn.textContent;
   saveBtn.disabled=true; saveBtn.textContent='Saving…';
+  if(statusEl) statusEl.textContent='Saving contact…';
 
   try {
-    // Apps Script CORS: omit Content-Type to avoid preflight; body is read via e.postData.contents.
-    const resp=await fetch(CONFIG.WEB_APP_URL, { method:'POST', body:JSON.stringify(payload) });
-    const text=await resp.text();
-    let result;
-    try { result=JSON.parse(text); } catch(_) { throw new Error('Invalid response: '+text.slice(0,120)); }
-    if(!result || result.ok===false){ throw new Error((result&&result.error)||'Unknown error'); }
-
-    closeModal();
-    showToast(editingId?'Contact updated':'Contact saved');
+    await postToSheet(payload);
 
     // Optimistic local update so UI reflects the change before refetch.
     const D=window.__DATA;
@@ -1720,6 +1869,34 @@ document.getElementById('modal-save').addEventListener('click',async()=>{
     const viewed=(location.hash.split('/')[2])||'';
     if(viewed) renderContactDetail(viewed);
 
+    // Sequentially save research-derived child rows (Apps Script can't handle concurrent writes)
+    let childErrors=0, childTotal=0;
+    if(researchData && typeof researchData==='object'){
+      const tasks=buildResearchChildTasks(contactId, companyId, name, researchData);
+      childTotal=tasks.length;
+      for(let i=0;i<tasks.length;i++){
+        const t=tasks[i];
+        if(statusEl) statusEl.textContent=`Saving ${t.label} (${i+1}/${tasks.length})…`;
+        try {
+          await postToSheet(Object.assign({action:t.action, tab:t.tab, data:t.data}, t.extra||{}));
+        } catch(err){
+          childErrors++;
+          console.error(`[LeadCheck] ${t.tab} row failed`, err, t.data);
+        }
+      }
+      window.__lastResearch=null;
+    }
+
+    closeModal();
+    if(statusEl) statusEl.textContent='';
+    if(childErrors>0){
+      showToast(`Saved with ${childErrors} error${childErrors===1?'':'s'} — check console`);
+    } else if(childTotal>0){
+      showToast('Contact + research saved');
+    } else {
+      showToast(editingId?'Contact updated':'Contact saved');
+    }
+
     // Background re-sync to catch any server-side derivations.
     setTimeout(()=>{
       loadAllData()
@@ -1730,6 +1907,7 @@ document.getElementById('modal-save').addEventListener('click',async()=>{
   } catch(err) {
     console.error('[LeadCheck] Save failed', err);
     showToast('Save failed: '+(err.message||err));
+    if(statusEl) statusEl.textContent='';
   } finally {
     saveBtn.disabled=false; saveBtn.textContent=origLabel;
   }
