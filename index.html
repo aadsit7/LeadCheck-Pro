@@ -430,6 +430,16 @@ main{flex:1;padding-bottom:var(--s-9)}
 .org-drop-hover::before{content:attr(data-drop-label);position:absolute;top:-24px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;font-size:10px;font-weight:600;padding:3px 8px;border-radius:var(--r-sm);white-space:nowrap;pointer-events:none;z-index:5;box-shadow:var(--elev-2)}
 @keyframes orgDropFlash{0%{background:var(--green-bg);border-color:var(--green);box-shadow:0 0 0 3px var(--green-bg)}100%{background:var(--bg);border-color:var(--border);box-shadow:none}}
 .org-drop-flash{animation:orgDropFlash 900ms var(--ease)}
+.org-node--dragging{opacity:.5}
+.org-editable .org-node[draggable="true"]{cursor:grab}
+.org-editable .org-node[draggable="true"]:active{cursor:grabbing}
+.available-contact-card__place{display:none;margin-left:auto;padding:4px 20px 4px 8px;font-size:11px;font-weight:500;color:var(--ink);background:var(--bg-tint);border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;flex-shrink:0;max-width:170px;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B6B7A' stroke-width='2.2'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 4px center}
+.available-contact-card__place:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-100)}
+@media(hover:none) and (pointer:coarse){
+  .available-contact-card{cursor:default}
+  .available-contact-card__handle{display:none}
+  .available-contact-card__place{display:inline-block}
+}
 </style>
 </head>
 <body>
@@ -1846,8 +1856,9 @@ function orgNodeHtml(node,opts){
   }
   const orgIdAttr=node.org_id?` data-org-id="${escapeHtml(node.org_id)}"`:'';
   const roleAttr=node.role_type?` data-org-role="${escapeHtml(node.role_type)}"`:'';
+  const draggableAttr=(editable && node.org_id)?' draggable="true"':'';
   const chipText=orgChipText(node);
-  return `<div class="org-node ${baseCls}"${orgIdAttr}${roleAttr}>
+  return `<div class="org-node ${baseCls}"${orgIdAttr}${roleAttr}${draggableAttr}>
     <div class="org-node__name">${escapeHtml(node.name||'')}</div>
     <div class="org-node__title">${escapeHtml(node.title||'')}</div>
     ${chipText?`<span class="org-node__chip">${escapeHtml(chipText)}</span>`:''}
@@ -2082,6 +2093,9 @@ function renderAvailableContactsHtml(raw,panelContactId,orgRows){
     if(k && placedKeys.has(k)) return false;
     return true;
   });
+  const placeableNodes=(orgRows||[]).filter(r=>r && r.org_id && !isJunkOrgNode(r));
+  const placeOptions='<option value="">Place under…</option>'
+    +placeableNodes.map(n=>`<option value="${escapeHtml(n.org_id)}">${escapeHtml(n.name||'')}${n.title?' · '+escapeHtml(n.title):''}</option>`).join('');
   const handleSvg='<svg class="available-contact-card__handle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="6" r="1.2"/><circle cx="15" cy="6" r="1.2"/><circle cx="9" cy="12" r="1.2"/><circle cx="15" cy="12" r="1.2"/><circle cx="9" cy="18" r="1.2"/><circle cx="15" cy="18" r="1.2"/></svg>';
   const cards=available.map(c=>`<div class="available-contact-card" draggable="true" data-available-contact-id="${escapeHtml(c.contact_id)}" data-available-contact-name="${escapeHtml(c.full_name||'')}" data-available-contact-title="${escapeHtml(c.title||'')}">
     ${handleSvg}
@@ -2089,6 +2103,7 @@ function renderAvailableContactsHtml(raw,panelContactId,orgRows){
       <div class="available-contact-card__name">${escapeHtml(c.full_name||'')}</div>
       <div class="available-contact-card__title">${escapeHtml(c.title||'')}</div>
     </div>
+    <select class="available-contact-card__place" data-place-for-contact="${escapeHtml(c.contact_id)}" aria-label="Place under">${placeOptions}</select>
   </div>`).join('');
   const body=available.length?cards:'<div class="available-contacts__empty">All contacts at this company are already in the org chart.</div>';
   return `<div class="available-contacts">
@@ -2312,6 +2327,35 @@ async function handleOrgDropFromContact(contactId, targetOrgId){
   }
 }
 
+async function handleOrgReassignNode(orgId, targetOrgId){
+  const panelContactId=orgPanelContactId;
+  if(!panelContactId || !orgId || !targetOrgId) return;
+  if(orgId===targetOrgId) return;
+  const D=window.__DATA||{};
+  const row=(D.org_chart||[]).find(r=>r.org_id===orgId);
+  const targetRow=orgFindNodeByOrgId(targetOrgId);
+  if(!row || !targetRow){ showToast('Node not found'); return; }
+  const targetOrder=Number(targetRow.display_order);
+  const baseOrder=isNaN(targetOrder)?0:targetOrder;
+  const newOrder=String(baseOrder+1);
+  if(String(row.display_order)===newOrder && row.role_type==='directReport'){ return; }
+  const data={display_order:newOrder,role_type:'directReport'};
+  showToast('Reassigning…');
+  try{
+    await postToSheet({action:'update',tab:'Org_Chart',idColumn:'org_id',idValue:orgId,data});
+    Object.assign(row,data);
+    orgJustDroppedOrgId=orgId;
+    buildIndexes();
+    const raw=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[panelContactId])||{};
+    renderOrgPanel(raw,panelContactId);
+    showToast('Reporting line updated');
+    orgFlashDroppedNode();
+  }catch(err){
+    console.error('[LeadCheck] Org reassign failed',err);
+    showToast('Reassign failed: '+(err.message||err));
+  }
+}
+
 function orgFlashDroppedNode(){
   if(!orgJustDroppedOrgId) return;
   const panel=orgPanelEl();
@@ -2339,12 +2383,25 @@ document.addEventListener('dragstart',e=>{
     }catch(_){}
     return;
   }
+  const node=e.target.closest('.org-node[data-org-id]');
+  if(node && !node.classList.contains('org-node--editing')){
+    const orgId=node.getAttribute('data-org-id')||'';
+    const row=orgFindNodeByOrgId(orgId);
+    orgDragPayload={kind:'node',orgId,name:(row&&row.name)||''};
+    node.classList.add('org-node--dragging');
+    try{
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',orgId);
+    }catch(_){}
+    return;
+  }
 });
 
 document.addEventListener('dragend',e=>{
   const panel=orgPanelEl();
   if(!panel) return;
   panel.querySelectorAll('.available-contact-card--dragging').forEach(el=>el.classList.remove('available-contact-card--dragging'));
+  panel.querySelectorAll('.org-node--dragging').forEach(el=>el.classList.remove('org-node--dragging'));
   orgClearDropHover();
   orgDragPayload=null;
 });
@@ -2356,11 +2413,12 @@ document.addEventListener('dragover',e=>{
   const node=e.target.closest('.org-node[data-org-id]');
   if(!node) return;
   if(node.classList.contains('org-node--editing')) return;
+  const targetOrgId=node.getAttribute('data-org-id');
+  if(orgDragPayload.kind==='node' && orgDragPayload.orgId===targetOrgId) return;
   e.preventDefault();
-  try{ e.dataTransfer.dropEffect='link'; }catch(_){}
+  try{ e.dataTransfer.dropEffect=orgDragPayload.kind==='node'?'move':'link'; }catch(_){}
   if(!node.classList.contains('org-drop-hover')){
     orgClearDropHover();
-    const targetOrgId=node.getAttribute('data-org-id');
     const targetRow=orgFindNodeByOrgId(targetOrgId);
     const targetName=(targetRow&&targetRow.name)||'this node';
     node.setAttribute('data-drop-label','Reports to '+targetName);
@@ -2394,7 +2452,22 @@ document.addEventListener('drop',e=>{
   orgDragPayload=null;
   if(payload.kind==='contact' && payload.contactId){
     handleOrgDropFromContact(payload.contactId,targetOrgId);
+  } else if(payload.kind==='node' && payload.orgId && payload.orgId!==targetOrgId){
+    handleOrgReassignNode(payload.orgId,targetOrgId);
   }
+});
+
+document.addEventListener('change',e=>{
+  const panel=orgPanelEl();
+  if(!panel || !panel.contains(e.target)) return;
+  if(!orgEditMode) return;
+  const sel=e.target.closest('.available-contact-card__place');
+  if(!sel) return;
+  const contactId=sel.getAttribute('data-place-for-contact')||'';
+  const targetOrgId=sel.value||'';
+  if(!contactId || !targetOrgId){ sel.value=''; return; }
+  handleOrgDropFromContact(contactId,targetOrgId);
+  sel.value='';
 });
 /* ========== End Org Chart Drag & Drop ========== */
 
