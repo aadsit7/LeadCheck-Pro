@@ -864,10 +864,9 @@ Aaron</div>
 </div>
 
 <script>
-/* ========== Data Layer (Milestone 1) ==========
+/* ========== Data Layer ==========
    Fetches all 15 Google Sheet tabs via gviz CSV, parses, indexes.
-   Runs alongside the legacy mock CONTACTS array — rendering still
-   uses mocks until Milestone 2. */
+   Provides getContactsForList() in the shape used by renderList. */
 
 const CONFIG = {
   SHEET_ID: '11JvRXvlZAPoJTf5SwVRUD4EP32Q74Z7yd1ikZQ6NY2g',
@@ -1050,24 +1049,15 @@ function getContactsForList(){
 
 function showDataLoading(){
   const mount=document.getElementById('list-mount');
-  if(mount && !mount.hasChildNodes()) mount.innerHTML='<div class="list-section"><div class="list-section__head">Loading live data…</div></div>';
+  if(mount) mount.innerHTML='<div class="list-section"><div class="list-section__head">Loading live data…</div></div>';
 }
 
-// Kick off live data fetch in parallel with the existing mock rendering.
-showDataLoading();
-loadAllData()
-  .then(()=>{ buildIndexes(); console.log('[LeadCheck] Data loaded:', window.__DATA, window.__INDEX); })
-  .catch(err=>console.error('[LeadCheck] loadAllData failed', err));
+function escapeHtml(v){
+  if(v==null) return '';
+  return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 /* ========== End Data Layer ========== */
-
-const CONTACTS = [
-  {id:'C001',name:'Jane Smith',initials:'JS',title:'Director of End User Computing',company:'Acme Technologies',companyId:'CO001',conf:85,tier:'high',verified:true,stale:'2 days ago',added:5},
-  {id:'C002',name:'Marcus Delaney',initials:'MD',title:'VP IT Infrastructure',company:'Acme Technologies',companyId:'CO001',conf:78,tier:'high',verified:true,stale:'5 days ago',added:4},
-  {id:'C003',name:'Lin Park',initials:'LP',title:'CIO',company:'Northwind Health',companyId:'CO002',conf:62,tier:'med',verified:true,stale:'1 week ago',added:3},
-  {id:'C004',name:'Derek Okonkwo',initials:'DO',title:'VP Endpoint Strategy',company:'Sentinel Logistics',companyId:'CO003',conf:81,tier:'high',verified:true,stale:'3 days ago',added:2},
-  {id:'C005',name:'Priya Raman',initials:'PR',title:'Director, Cloud Operations',company:'Acme Technologies',companyId:'CO001',conf:55,tier:'med',verified:false,stale:'2 weeks ago',added:1}
-];
 
 let activeFilter='all',activeSort='recent',activeSearch='',editingId=null;
 
@@ -1095,28 +1085,38 @@ function avatarClass(c){
   return'avatar--amber';
 }
 
+function updateChipCounts(all){
+  const allChip=document.querySelector('.chip[data-filter="all"] .chip__count');
+  const highChip=document.querySelector('.chip[data-filter="high"] .chip__count');
+  if(allChip) allChip.textContent=all.length;
+  if(highChip) highChip.textContent=all.filter(c=>c.tier==='high').length;
+}
+
 function renderList(){
   const mount=document.getElementById('list-mount');
   const empty=document.getElementById('empty-state');
   const term=activeSearch.trim().toLowerCase();
 
-  let items=CONTACTS.slice();
-  if(term){items=items.filter(c=>c.name.toLowerCase().includes(term)||c.title.toLowerCase().includes(term)||c.company.toLowerCase().includes(term));}
+  const all=getContactsForList();
+  let items=all.slice();
+  if(term){items=items.filter(c=>(c.name||'').toLowerCase().includes(term)||(c.title||'').toLowerCase().includes(term)||(c.company||'').toLowerCase().includes(term));}
   if(activeFilter==='high')items=items.filter(c=>c.tier==='high');
 
-  if(activeSort==='name')items.sort((a,b)=>a.name.localeCompare(b.name));
+  if(activeSort==='name')items.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   else if(activeSort==='confidence')items.sort((a,b)=>b.conf-a.conf);
   else items.sort((a,b)=>b.added-a.added);
+
+  updateChipCounts(all);
 
   if(items.length===0){mount.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
 
   if(activeFilter==='company'){
     const groups={};
-    items.forEach(c=>{if(!groups[c.company])groups[c.company]=[];groups[c.company].push(c);});
+    items.forEach(c=>{const k=c.company||'—';if(!groups[k])groups[k]=[];groups[k].push(c);});
     mount.innerHTML=Object.keys(groups).sort().map(co=>`
       <div class="list-section">
-        <div class="list-section__head">${co} · ${groups[co].length}</div>
+        <div class="list-section__head">${escapeHtml(co)} · ${groups[co].length}</div>
         <div class="contact-list">${groups[co].map(itemHTML).join('')}</div>
       </div>`).join('');
   }else{
@@ -1124,29 +1124,31 @@ function renderList(){
   }
 }
 function itemHTML(c){
-  return`<button class="contact-item" data-route="contact" data-id="${c.id}">
-    <div class="avatar avatar--md ${avatarClass(c)}">${c.initials}</div>
+  return`<button class="contact-item" data-route="contact" data-id="${escapeHtml(c.id)}">
+    <div class="avatar avatar--md ${avatarClass(c)}">${escapeHtml(c.initials)}</div>
     <div class="contact-item__body">
-      <div class="contact-item__name">${c.name}</div>
-      <div class="contact-item__sub">${c.title} · <b>${c.company}</b></div>
+      <div class="contact-item__name">${escapeHtml(c.name)}</div>
+      <div class="contact-item__sub">${escapeHtml(c.title)} · <b>${escapeHtml(c.company)}</b></div>
     </div>
     <div class="contact-item__meta">
-      <span class="stale">${c.stale}</span>
+      <span class="stale">${escapeHtml(c.stale)}</span>
       <div class="conf conf--${c.tier}">
         <span class="conf__dots"><span class="conf__dot"></span><span class="conf__dot"></span><span class="conf__dot"></span></span>
-        <span class="conf__num">${c.conf}</span>
+        <span class="conf__num">${escapeHtml(c.conf)}</span>
       </div>
     </div>
   </button>`;
 }
 
 function renderContactDetail(id){
-  const c=CONTACTS.find(x=>x.id===id)||CONTACTS[0];
+  const all=getContactsForList();
+  const c=all.find(x=>x.id===id)||all[0];
+  if(!c) return;
   const av=document.getElementById('contact-avatar');
   av.textContent=c.initials;
   av.className='avatar avatar--lg '+avatarClass(c);
   document.getElementById('contact-name').textContent=c.name;
-  document.getElementById('contact-title').textContent=c.title+' · '+c.company;
+  document.getElementById('contact-title').textContent=(c.title||'')+(c.company?' · '+c.company:'');
 }
 
 document.querySelectorAll('.chip').forEach(chip=>{
@@ -1236,8 +1238,10 @@ function closeModal(){backdrop.classList.remove('open');}
 
 document.getElementById('add-btn').addEventListener('click',()=>openModal('new'));
 document.getElementById('edit-btn').addEventListener('click',()=>{
-  const id=(location.hash.split('/')[2])||'C001';
-  openModal('edit',CONTACTS.find(c=>c.id===id)||CONTACTS[0]);
+  const id=(location.hash.split('/')[2])||'';
+  const all=getContactsForList();
+  const c=all.find(x=>x.id===id)||all[0];
+  if(c) openModal('edit',c);
 });
 document.getElementById('modal-close').addEventListener('click',closeModal);
 document.getElementById('modal-cancel').addEventListener('click',closeModal);
@@ -1293,8 +1297,20 @@ function showToast(msg){
   toastTimer=setTimeout(()=>toast.classList.remove('show'),2400);
 }
 
-renderList();
-handleHash();
+// Bootstrap: fetch live data, then render.
+showDataLoading();
+loadAllData()
+  .then(()=>{
+    buildIndexes();
+    console.log('[LeadCheck] Data loaded:', window.__DATA, window.__INDEX);
+    renderList();
+    handleHash();
+  })
+  .catch(err=>{
+    console.error('[LeadCheck] loadAllData failed', err);
+    renderList();
+    handleHash();
+  });
 </script>
 </body>
 </html>
