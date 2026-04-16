@@ -114,12 +114,20 @@ main{flex:1;padding-bottom:var(--s-9)}
 .avatar--amber{background:var(--amber);color:#fff}
 .avatar--gray{background:var(--border);color:var(--ink-3)}
 .avatar--green{background:var(--green);color:#fff}
+.avatar--ink{background:var(--ink);color:#fff}
 
 .contact-item__body{flex:1;min-width:0}
 .contact-item__name{font-size:14px;font-weight:600;color:var(--ink);letter-spacing:-.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .contact-item__sub{font-size:12px;color:var(--ink-3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .contact-item__sub b{color:var(--ink-2);font-weight:500}
 .contact-item__meta{display:flex;align-items:center;gap:var(--s-3);flex-shrink:0}
+.company-card{position:relative;padding:var(--s-4) var(--s-3);border-radius:var(--r-md);transition:background var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease)}
+.company-card__name{font-size:16px;font-weight:700;color:var(--ink);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.company-card__sub{font-size:12px;color:var(--ink-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.company-card__pill{font-size:11px;font-weight:600;color:var(--ink-2);background:var(--bg-tint);padding:4px 10px;border-radius:100px;white-space:nowrap}
+.company-card[aria-expanded="true"]{background:var(--primary-100);box-shadow:inset 3px 0 0 var(--primary)}
+.company-card[aria-expanded="true"]:hover{background:var(--primary-100)}
+.company-card[aria-expanded="true"] .company-card__pill{background:#fff;color:var(--ink-2)}
 .stale{font-size:11px;color:var(--ink-4);font-variant-numeric:tabular-nums;white-space:nowrap}
 @media(max-width:540px){.stale{display:none}}
 
@@ -1172,6 +1180,7 @@ function renderList(){
   empty.style.display='none';
 
   if(activeFilter==='company'){
+    const IDX=window.__INDEX||{companyById:{}};
     const groups={};
     items.forEach(c=>{
       const cid=c.companyId||'__none';
@@ -1184,14 +1193,23 @@ function renderList(){
       const g=groups[cid];
       const isOpen=cid===openId;
       const safeCid=escapeHtml(cid);
+      const co=(IDX.companyById&&IDX.companyById[cid])||{};
+      const subtitle=[co.industry,co.hq].filter(Boolean).join(' · ');
+      const firstLetter=((g.name||'?').trim()[0]||'?').toUpperCase();
+      const countLabel=g.contacts.length===1?'1 contact':`${g.contacts.length} contacts`;
       const detailHtml=isOpen?renderCompanyExpanded(cid):'';
       return `<div class="list-section" data-company-section="${safeCid}">
-        <button class="list-section__head list-section__head--co" type="button" data-company-toggle="${safeCid}" aria-expanded="${isOpen?'true':'false'}">
-          <span>${escapeHtml(g.name)} · ${g.contacts.length}</span>
-          <svg class="list-section__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        <button class="contact-item company-card" type="button" data-company-toggle="${safeCid}" aria-expanded="${isOpen?'true':'false'}">
+          <div class="avatar avatar--md avatar--ink">${escapeHtml(firstLetter)}</div>
+          <div class="contact-item__body">
+            <div class="company-card__name">${escapeHtml(g.name)}</div>
+            ${subtitle?`<div class="company-card__sub">${escapeHtml(subtitle)}</div>`:''}
+          </div>
+          <div class="contact-item__meta">
+            <span class="company-card__pill">${countLabel}</span>
+          </div>
         </button>
         <div class="company-detail-slot">${detailHtml}</div>
-        <div class="contact-list">${g.contacts.map(itemHTML).join('')}</div>
       </div>`;
     }).join('');
   }else{
