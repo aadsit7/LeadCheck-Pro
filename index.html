@@ -2382,9 +2382,122 @@ async function smartLookup(inputText){
     return;
   }
 
-  // type==='none' — research path wired in commit 2
+  // type==='none' — kick off research, save, navigate
   const subject=parsed.name || parsed.email;
-  showLookupStatus('No match found — researching '+subject+'…', parsed.company ? 'Looking up '+subject+' at '+parsed.company : 'Looking up '+subject);
+  const researchTarget=parsed.name || parsed.email;
+  showLookupStatus('No match found — researching '+subject+'…', 'Searching online for public information');
+
+  try {
+    updateLookupStatus('Searching online…', parsed.company ? 'Looking up '+subject+' at '+parsed.company : 'Looking up '+subject);
+    const researchResult=await callResearchAPI(researchTarget, parsed.company || '');
+    if(lookupCancelled) return;
+
+    updateLookupStatus('Analyzing results…', 'Matching company and contact records');
+
+    // Resolve company: reuse existing match or create a new one via research.
+    const D=window.__DATA || (window.__DATA={});
+    if(!Array.isArray(D.companies)) D.companies=[];
+    if(!Array.isArray(D.contacts)) D.contacts=[];
+
+    const ci=(researchResult && researchResult.company_info) || {};
+    const resolvedCompanyName=(ci.name && String(ci.name).trim()) || parsed.company || '';
+    let companyId='';
+    if(resolvedCompanyName){
+      const existing=D.companies.find(co=>co.name && String(co.name).toLowerCase()===resolvedCompanyName.toLowerCase());
+      if(existing){
+        companyId=existing.company_id;
+      } else {
+        updateLookupStatus('Saving to database…', 'Creating company record for '+resolvedCompanyName);
+        companyId=await createCompanyFromResearch(resolvedCompanyName, ci);
+      }
+    }
+    if(lookupCancelled) return;
+
+    // Build contact row. Name + short_name use the parsed name when available,
+    // otherwise fall back to the email local part so there's always a label.
+    const fullName=parsed.name || (parsed.email ? parsed.email.split('@')[0] : subject);
+    const shortName=(fullName.split(/\s+/)[0] || '').trim();
+    const today=new Date().toISOString().slice(0,10);
+    const contactId='C'+String(Date.now()).slice(-6);
+
+    const contactFields={
+      contact_id: contactId,
+      full_name: fullName,
+      short_name: shortName,
+      initials: deriveInitials(fullName),
+      title: researchResult.title || '',
+      dual_role: researchResult.dual_role || '',
+      company_id: companyId,
+      location: researchResult.location || '',
+      education: researchResult.education || '',
+      certifications: Array.isArray(researchResult.certifications) ? researchResult.certifications.filter(Boolean).join('|') : '',
+      email: researchResult.email || parsed.email || '',
+      email_confidence: String(researchResult.email_confidence || 'LOW').toUpperCase(),
+      overall_confidence: researchResult.overall_confidence != null ? String(researchResult.overall_confidence) : '50',
+      linkedin_url: researchResult.linkedin_url || '',
+      verified: researchResult.verified ? 'TRUE' : 'FALSE',
+      background: researchResult.background || '',
+      decision_role: researchResult.decision_role || '',
+      outreach_angle: researchResult.outreach_angle || '',
+      themes: Array.isArray(researchResult.themes) ? researchResult.themes.filter(Boolean).join('|') : '',
+      date_added: today,
+      last_updated: today
+    };
+
+    updateLookupStatus('Saving to database…', 'Adding '+fullName+' to your contacts');
+    await postToSheet({ action:'append', tab:'Contacts', data:contactFields });
+    if(lookupCancelled) return;
+
+    // Optimistic local insert so the navigate-to-profile render has data.
+    D.contacts.push(Object.assign({}, contactFields, {
+      themes: splitPipe(contactFields.themes),
+      certifications: splitPipe(contactFields.certifications)
+    }));
+    buildIndexes();
+
+    // Child tab rows (activities, org chart, sources, confidence checks, etc.)
+    const tasks=buildResearchChildTasks(contactId, companyId, fullName, researchResult);
+    let childErrors=0;
+    for(let i=0;i<tasks.length;i++){
+      if(lookupCancelled) return;
+      const t=tasks[i];
+      updateLookupStatus('Saving '+t.label+' ('+(i+1)+'/'+tasks.length+')…', 'Storing research details');
+      try {
+        await postToSheet(Object.assign({ action:t.action, tab:t.tab, data:t.data }, t.extra||{}));
+      } catch(err){
+        childErrors++;
+        console.error('[LeadCheck] '+t.tab+' row failed', err, t.data);
+      }
+    }
+    if(lookupCancelled) return;
+
+    updateLookupStatus('Done — opening profile', childErrors ? 'Saved with '+childErrors+' minor errors' : 'Research complete');
+    await new Promise(r=>setTimeout(r, 600));
+    if(lookupCancelled) return;
+
+    // Clear the search bar, hide the status panel, navigate.
+    activeSearch='';
+    const si=document.getElementById('search-input');
+    if(si) si.value='';
+    updateGoBtn();
+    hideLookupStatus();
+    showToast('Added: '+fullName);
+    renderList();
+    navigate('contact', contactId);
+
+    // Background resync to pick up anything the server derived.
+    setTimeout(()=>{
+      loadAllData()
+        .then(()=>{ buildIndexes(); if(typeof populateCompanySelect==='function') populateCompanySelect(); renderList();
+          const v=(location.hash.split('/')[2])||''; if(v) renderContactDetail(v); })
+        .catch(err=>console.error('[LeadCheck] Refresh failed', err));
+    }, 2000);
+  } catch(err){
+    console.error('[LeadCheck] Smart lookup research failed', err);
+    updateLookupStatus('Research failed', String(err.message || err));
+    setTimeout(hideLookupStatus, 3000);
+    showToast('Lookup failed: '+(err.message || err));
+  }
 }
 
 function updateGoBtn(){
