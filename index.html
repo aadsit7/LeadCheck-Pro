@@ -69,6 +69,7 @@ main{flex:1;padding-bottom:var(--s-9)}
 .go-btn:hover{background:var(--primary-700)}
 .go-btn.show{display:inline-flex}
 @keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 1s linear infinite}
 .lookup-status{padding:8px 0}
 .lookup-status__inner{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg-tint);border-left:3px solid var(--primary);border-radius:0 var(--r-md) var(--r-md) 0}
 .lookup-status__spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
@@ -1361,11 +1362,18 @@ function renderCompanyExpanded(companyId){
     </div>`;
 
   const listItems=getContactsForList().filter(c=>c.companyId===companyId);
-  const contactsHtml=listItems.length?`
+  const syncBtn=`<button class="btn btn--sm btn--ghost" onclick="syncOpportunityContacts('${companyId}')" id="sync-btn-${companyId}" style="font-size:12px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2.5 11.5a10 10 0 0 1 18.17-4.5M21.5 12.5a10 10 0 0 1-18.17 4.5"/></svg>
+          Sync Contacts
+        </button>`;
+  const contactsHtml=`
     <div class="section">
-      <div class="section__head"><span class="section__title">All Contacts · ${listItems.length}</span></div>
-      <div class="section__body" style="padding:8px">${listItems.map(itemHTML).join('')}</div>
-    </div>`:'';
+      <div class="section__head" style="display:flex;align-items:center;gap:8px">
+        <span class="section__title">All Contacts · ${listItems.length}</span>
+        ${syncBtn}
+      </div>
+      ${listItems.length?`<div class="section__body" style="padding:8px">${listItems.map(itemHTML).join('')}</div>`:''}
+    </div>`;
 
   const chainRoles=new Set(['topExec','functionHead','manager','target']);
   const nodeMap=new Map();
@@ -3473,6 +3481,140 @@ async function callResearchAPI(name, company){
     }
     console.error('[LeadCheck] No JSON object found in extracted text.');
     throw new Error("Research completed but couldn't parse results — try again");
+  }
+}
+
+async function syncOpportunityContacts(companyId){
+  const IDX=window.__INDEX||{};
+  const D=window.__DATA||{};
+  const co=(IDX.companyById&&IDX.companyById[companyId])||null;
+  if(!co){showToast('Company not found');return;}
+  const companyName=co.name||'';
+  if(!companyName){showToast('Company has no name');return;}
+
+  const btn=document.getElementById('sync-btn-'+companyId);
+  const origHTML=btn?btn.innerHTML:'';
+  if(btn){
+    btn.disabled=true;
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2.5 11.5a10 10 0 0 1 18.17-4.5M21.5 12.5a10 10 0 0 1-18.17 4.5"/></svg> Scanning opportunity notes for '+escapeHtml(companyName)+'…';
+  }
+
+  try {
+    const resp=await fetch(CONFIG.WEB_APP_URL,{
+      method:'POST',
+      body:JSON.stringify({action:'syncOpportunities',companyName})
+    });
+    if(!resp.ok){
+      const errText=await resp.text().catch(()=>'');
+      throw new Error('API '+resp.status+': '+errText.slice(0,200));
+    }
+    const rawBody=await resp.text();
+    console.log('[LeadCheck Sync] Raw response length:', rawBody.length);
+
+    let data;
+    try{data=JSON.parse(rawBody);}
+    catch(e){throw new Error('Server returned non-JSON response');}
+
+    for(let i=0;i<4&&data&&typeof data==='object'&&!Array.isArray(data.content);i++){
+      const next=data.data??data.response??data.result??data.body??data.payload;
+      if(next==null)break;
+      data=(typeof next==='string')?(()=>{try{return JSON.parse(next);}catch(e){return next;}})():next;
+    }
+    if(typeof data==='string'){try{data=JSON.parse(data);}catch(e){}}
+
+    const blocks=(data&&Array.isArray(data.content))?data.content:[];
+    const textBlocks=blocks.filter(b=>b&&b.type==='text');
+    const text=textBlocks.map(b=>b.text||'').join('\n').trim();
+
+    console.log('[LeadCheck Sync] Content blocks:', blocks.length,
+      '| text blocks:', textBlocks.length,
+      '| extracted text preview:', text.slice(0,500));
+
+    if(!text) throw new Error('Sync completed but returned no text content');
+
+    let raw=text;
+    const fence=raw.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+    if(fence) raw=fence[1].trim();
+
+    let contacts;
+    try{contacts=JSON.parse(raw);}
+    catch(e1){
+      const first=raw.indexOf('[');
+      const last=raw.lastIndexOf(']');
+      if(first>=0&&last>first){
+        try{contacts=JSON.parse(raw.slice(first,last+1));}
+        catch(e2){throw new Error("Sync completed but couldn't parse results");}
+      } else {
+        throw new Error("Sync completed but couldn't parse results");
+      }
+    }
+
+    if(!Array.isArray(contacts)) contacts=[contacts];
+
+    const existingContacts=D.contacts||[];
+    const newContacts=[];
+    const alreadyExists=[];
+
+    for(const c of contacts){
+      if(!c||!c.name) continue;
+      const cName=(c.name||'').toLowerCase().trim();
+      const cEmail=(c.email||'').toLowerCase().trim();
+      const match=existingContacts.find(ex=>{
+        if(cName&&(ex.full_name||'').toLowerCase().trim()===cName) return true;
+        if(cEmail&&cEmail.includes('@')&&(ex.email||'').toLowerCase().trim()===cEmail) return true;
+        return false;
+      });
+      if(match) alreadyExists.push(c);
+      else newContacts.push(c);
+    }
+
+    if(btn) btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2.5 11.5a10 10 0 0 1 18.17-4.5M21.5 12.5a10 10 0 0 1-18.17 4.5"/></svg> Adding '+newContacts.length+' contact'+(newContacts.length===1?'':'s')+'…';
+
+    const today=new Date().toISOString().slice(0,10);
+    for(const c of newContacts){
+      const contactId='C'+String(Date.now()).slice(-6);
+      const fields={
+        contact_id:contactId,
+        full_name:c.name||'',
+        title:c.title||'',
+        email:c.email||'',
+        company_id:companyId,
+        company:companyName,
+        overall_confidence:'10',
+        verified:'FALSE',
+        date_added:today
+      };
+      await postToSheet({action:'append',tab:'Contacts',data:fields});
+      const optimistic=Object.assign({},fields,{
+        themes:splitPipe(fields.themes),
+        certifications:splitPipe(fields.certifications)
+      });
+      D.contacts.push(optimistic);
+      await new Promise(r=>setTimeout(r,300));
+    }
+
+    buildIndexes();
+    renderList();
+    const viewed=(location.hash.split('/')[2])||'';
+    if(viewed) renderContactDetail(viewed);
+
+    const parts=[];
+    if(newContacts.length) parts.push(newContacts.length+' new contact'+(newContacts.length===1?'':'s')+' added');
+    if(alreadyExists.length) parts.push(alreadyExists.length+' already in database');
+    showToast('Synced: '+parts.join(', '));
+
+    setTimeout(()=>{
+      loadAllData()
+        .then(()=>{buildIndexes();populateCompanySelect();renderList();
+          const v=(location.hash.split('/')[2])||'';if(v) renderContactDetail(v);})
+        .catch(err=>console.error('[LeadCheck] Sync refresh failed',err));
+    },2000);
+
+  } catch(err){
+    console.error('[LeadCheck] Sync failed',err);
+    showToast('Sync failed: '+(err.message||err));
+  } finally {
+    if(btn){btn.disabled=false;btn.innerHTML=origHTML;}
   }
 }
 
