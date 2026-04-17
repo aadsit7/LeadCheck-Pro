@@ -246,6 +246,25 @@ main{flex:1;padding-bottom:var(--s-9)}
 .org-node--gap{border-style:dashed;border-color:var(--border-strong);background:transparent;color:var(--ink-3);padding:6px 10px;max-width:200px}
 .org-node--gap .org-node__name{font-size:14px;color:var(--ink-3)}
 .org-node--gap .org-node__title{font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em}
+.org-node--source-db{background:var(--primary);border-color:var(--primary);color:#fff;cursor:pointer;box-shadow:var(--elev-1)}
+.org-node--source-db:hover{box-shadow:var(--elev-2)}
+.org-node--source-db .org-node__name{color:#fff;font-weight:700}
+.org-node--source-db .org-node__title{color:rgba(255,255,255,.75)}
+.org-node--source-db .org-node__chip{background:rgba(255,255,255,.20);color:#fff}
+.org-node--source-mentioned{border-style:dashed;border-color:var(--primary);background:var(--bg)}
+.org-node--source-mentioned .org-node__chip{background:var(--primary-100);color:var(--primary)}
+.org-node--source-researched{background:var(--bg-tint);border-color:var(--border)}
+.org-node--source-researched .org-node__name{color:var(--ink-3)}
+.org-node--source-researched .org-node__title{color:var(--ink-4)}
+.org-node--source-researched .org-node__chip{background:var(--border);color:var(--ink-4)}
+.org-gap-banner{padding:10px 14px;border-radius:var(--r-md);font-size:12px;line-height:1.6;margin-bottom:var(--s-4)}
+.org-gap-banner p{margin:0}
+.org-gap-banner p+p{margin-top:4px}
+.org-gap-banner--info{background:var(--primary-50);border:1px solid rgba(0,0,204,.15);color:var(--ink-2)}
+.org-gap-banner--warn{background:rgba(181,117,0,.06);border:1px solid rgba(181,117,0,.2);color:var(--ink-2)}
+.org-others{margin-top:var(--s-4);padding-top:var(--s-3);border-top:1px dashed var(--border-strong)}
+.org-others__head{font-size:11px;font-weight:700;color:var(--ink-4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:var(--s-2)}
+.org-others__body{display:flex;flex-wrap:wrap;gap:var(--s-2);align-items:flex-start}
 .org-connector{width:1px;height:24px;background-image:linear-gradient(to bottom,var(--border-strong) 50%,transparent 50%);background-size:1px 5px}
 
 .peer-section{margin-top:var(--s-5);padding-top:var(--s-4);border-top:1px solid var(--border)}
@@ -1295,6 +1314,7 @@ function renderList(){
 function orgKey(name){return String(name||'').toLowerCase().replace(/\./g,' ').replace(/\s+/g,' ').trim();}
 const ORG_ROLE_PRIORITY={topExec:6,functionHead:5,manager:4,target:3,peer:2,directReport:1};
 const ORG_ROLE_LABEL_LOOKUP={topExec:'top exec',functionHead:'function head',manager:'manager',target:'target',peer:'peer',directReport:'direct report'};
+const SOURCE_PRIORITY={DATABASE:3,MENTIONED:2,RESEARCHED:1};
 function isJunkOrgNode(n){
   const raw=String((n&&n.name)||'').trim();
   if(!raw) return true;
@@ -1322,6 +1342,8 @@ function orgNodeCompleteness(n){
 function isSparseOrgRow(r){
   if(!r) return false;
   if(r.dbContactId) return false;
+  const src=r.source||'RESEARCHED';
+  if(src==='DATABASE'||src==='MENTIONED') return false;
   const conf=String(r.confidence||'').toLowerCase();
   return conf!=='confirmed';
 }
@@ -1377,23 +1399,63 @@ function renderCompanyExpanded(companyId){
 
   const chainRoles=new Set(['topExec','functionHead','manager','target']);
   const nodeMap=new Map();
+  // Tracks alias keys (e.g. "tim walsh") → canonical key (e.g. "timothy walsh")
+  const nodeAliases=new Map();
+  function resolveOrgKey(k){
+    if(nodeAliases.has(k)) return nodeAliases.get(k);
+    if(nodeMap.has(k)) return k;
+    const parts=k.split(' ');
+    if(parts.length>=2){
+      const first=parts[0],rest=parts.slice(1).join(' ');
+      const aliases=SYNC_NICKNAMES[first];
+      if(aliases){
+        for(const alias of aliases){
+          const alt=alias+' '+rest;
+          if(nodeMap.has(alt)){ nodeAliases.set(k,alt); return alt; }
+        }
+      }
+    }
+    return k;
+  }
+  function dbIdForKey(k){
+    const direct=nameToContactId.get(k);
+    if(direct) return direct;
+    const parts=k.split(' ');
+    if(parts.length>=2){
+      const first=parts[0],rest=parts.slice(1).join(' ');
+      const aliases=SYNC_NICKNAMES[first];
+      if(aliases){
+        for(const alias of aliases){
+          const id=nameToContactId.get(alias+' '+rest);
+          if(id) return id;
+        }
+      }
+    }
+    return null;
+  }
   function getNode(r){
     if(isJunkOrgNode(r)) return null;
-    const k=orgKey(r.name);
-    if(!k) return null;
+    const rawK=orgKey(r.name);
+    if(!rawK) return null;
+    const k=resolveOrgKey(rawK);
     let node=nodeMap.get(k);
     const prio=ORG_ROLE_PRIORITY[r.role_type]||0;
+    const rawSrc=String(r.source||'').toUpperCase();
+    const src=(SOURCE_PRIORITY[rawSrc]?rawSrc:'RESEARCHED');
+    const srcPrio=SOURCE_PRIORITY[src];
     if(!node){
       node={
         key:k,name:r.name||'',title:r.title||'',
         confidence:r.confidence||'',initials:r.initials||'',
         source_url:r.source_url||'',note:r.note||'',
-        dbContactId:nameToContactId.get(k)||null,
+        dbContactId:dbIdForKey(k),
         priority:prio,roleType:r.role_type,
         children:new Map(),parents:new Map(),
-        peers:[],reports:[]
+        peers:[],reports:[],
+        source:src,sourcePriority:srcPrio
       };
       nodeMap.set(k,node);
+      if(rawK!==k) nodeAliases.set(rawK,k);
     } else {
       const prevComp=orgNodeCompleteness(node);
       const nextComp=orgNodeCompleteness(r);
@@ -1408,6 +1470,11 @@ function renderCompanyExpanded(companyId){
         node.priority=prio;
         node.roleType=r.role_type;
       }
+      if(srcPrio>node.sourcePriority){ node.source=src; node.sourcePriority=srcPrio; }
+    }
+    // A contact-table match always implies DATABASE
+    if(node.dbContactId && node.sourcePriority<SOURCE_PRIORITY.DATABASE){
+      node.source='DATABASE'; node.sourcePriority=SOURCE_PRIORITY.DATABASE;
     }
     return node;
   }
@@ -1420,7 +1487,11 @@ function renderCompanyExpanded(companyId){
     chain.forEach(r=>{
       const n=getNode(r);
       if(!n) return;
-      if(r.role_type==='target'){ n.dbContactId=n.dbContactId||c.contact_id; targetNode=n; }
+      if(r.role_type==='target'){
+        n.dbContactId=n.dbContactId||c.contact_id;
+        if(n.dbContactId&&n.sourcePriority<SOURCE_PRIORITY.DATABASE){n.source='DATABASE';n.sourcePriority=SOURCE_PRIORITY.DATABASE;}
+        targetNode=n;
+      }
       if(prev && prev!==n){ prev.children.set(n.key,n); n.parents.set(prev.key,prev); }
       prev=n;
     });
@@ -1437,18 +1508,78 @@ function renderCompanyExpanded(companyId){
       if(rt!=='peer' && rt!=='directReport') return;
       if(isJunkOrgNode(p)) return;
       const key=orgKey(p.name);
-      if(!key || placedNames.has(key)) return;
+      if(!key) return;
+      const resolvedPeerKey=resolveOrgKey(key);
+      if(placedNames.has(resolvedPeerKey)||placedNames.has(key)) return;
       if(rt==='peer') targetNode.peers.push(p);
       else targetNode.reports.push(p);
       placedNames.add(key);
+      if(resolvedPeerKey!==key) placedNames.add(resolvedPeerKey);
     });
   });
+
+  // --- Gap Analysis Banner ---
+  let gapBannerHtml='';
+  if(nodeMap.size>0){
+    // Deduplicate nodeMap values (alias keys point to same object)
+    const uniqueNodes=[...new Set(nodeMap.values())];
+    let dbCount=0,mentionedCount=0,researchedCount=0;
+    uniqueNodes.forEach(n=>{
+      const s=n.source||'RESEARCHED';
+      if(s==='DATABASE') dbCount++;
+      else if(s==='MENTIONED') mentionedCount++;
+      else researchedCount++;
+    });
+    // Find shallowest depth of any DATABASE node, warn about MENTIONED nodes above it
+    const depths=new Map();
+    function setDepth(n,d,vis){
+      if(vis.has(n.key)) return; vis.add(n.key);
+      depths.set(n.key,d);
+      n.children.forEach(c=>setDepth(c,d+1,vis));
+    }
+    uniqueNodes.filter(n=>n.parents.size===0).forEach(r=>setDepth(r,0,new Set()));
+    let shallowestDb=Infinity;
+    uniqueNodes.forEach(n=>{ if((n.source||'RESEARCHED')==='DATABASE'){ const d=depths.get(n.key)||0; if(d<shallowestDb) shallowestDb=d; } });
+    const gapWarnings=[];
+    uniqueNodes.forEach(n=>{ if((n.source||'RESEARCHED')==='MENTIONED'){ const d=depths.get(n.key); if(d!==undefined&&d<shallowestDb) gapWarnings.push(n.name); } });
+    const summaryParts=[];
+    if(dbCount>0) summaryParts.push(`You're engaged with <b>${dbCount}</b> contact${dbCount===1?'':'s'}`);
+    if(mentionedCount>0) summaryParts.push(`<b>${mentionedCount}</b> ${mentionedCount===1?'person was':'people were'} mentioned in meetings but not yet in your database`);
+    if(researchedCount>0) summaryParts.push(`research found <b>${researchedCount}</b> additional stakeholder${researchedCount===1?'':'s'}`);
+    const bannerLines=[];
+    if(summaryParts.length) bannerLines.push('<p>'+summaryParts.join('. ')+'.</p>');
+    gapWarnings.slice(0,2).forEach(name=>bannerLines.push(`<p>&#9888;&#65039; <b>${escapeHtml(name)}</b> was mentioned as a decision-maker but you haven't engaged them directly yet.</p>`));
+    if(bannerLines.length){
+      const cls=gapWarnings.length?'org-gap-banner--warn':'org-gap-banner--info';
+      gapBannerHtml=`<div class="org-gap-banner ${cls}">${bannerLines.join('')}</div>`;
+    }
+  }
 
   let orgBodyHtml='';
   if(nodeMap.size===0){
     orgBodyHtml='<p class="prose" style="color:var(--ink-3)">No org chart data available yet for this company.</p>';
   } else {
-    const roots=[...nodeMap.values()].filter(n=>n.parents.size===0);
+    const allRoots=[...new Set(nodeMap.values())].filter(n=>n.parents.size===0);
+    // Separate roots whose subtrees have at least one engaged (DATABASE/MENTIONED) node
+    function subtreeHasEngagement(n,vis){
+      if(vis.has(n.key)) return false; vis.add(n.key);
+      const s=n.source||'RESEARCHED';
+      if(s==='DATABASE'||s==='MENTIONED') return true;
+      for(const c of n.children.values()){ if(subtreeHasEngagement(c,vis)) return true; }
+      return false;
+    }
+    const roots=allRoots.filter(r=>subtreeHasEngagement(r,new Set()));
+    const floatingRoots=allRoots.filter(r=>!subtreeHasEngagement(r,new Set()));
+    // Collect all nodes from floating (RESEARCHED-only) trees
+    const floatingNodes=[];
+    const floatingVisited=new Set();
+    function collectFloating(n){
+      if(floatingVisited.has(n.key)) return; floatingVisited.add(n.key);
+      floatingNodes.push(n);
+      n.children.forEach(c=>collectFloating(c));
+    }
+    floatingRoots.forEach(r=>collectFloating(r));
+
     const gapHtml=(count)=>`<div class="org-node org-node--gap"><div class="org-node__name">…</div><div class="org-node__title">${count} unverified level${count===1?'':'s'}</div></div>`;
     const renderNode=(node,visited)=>{
       if(visited.has(node.key)) return '';
@@ -1495,29 +1626,40 @@ function renderCompanyExpanded(companyId){
       flushSparse();
       return parts.join('');
     };
-    if(roots.length===1){
-      orgBodyHtml=`<div class="org-tree">${renderNode(roots[0],new Set())}</div>`;
-    } else if(roots.length>1){
-      orgBodyHtml=`<div class="org-branch">${roots.map(r=>`<div class="org-branch__col"><div class="org-tree">${renderNode(r,new Set())}</div></div>`).join('')}</div>`;
+    const renderRoots=(rootList)=>{
+      if(rootList.length===0) return '';
+      if(rootList.length===1) return `<div class="org-tree">${renderNode(rootList[0],new Set())}</div>`;
+      return `<div class="org-branch">${rootList.map(r=>`<div class="org-branch__col"><div class="org-tree">${renderNode(r,new Set())}</div></div>`).join('')}</div>`;
+    };
+    orgBodyHtml=renderRoots(roots.length?roots:allRoots);
+    // "Other stakeholders found" section for floating RESEARCHED-only trees
+    if(floatingNodes.length&&roots.length){
+      const othersHtml=floatingNodes.map(n=>`<div class="org-node org-node--source-researched" style="max-width:180px;font-size:12px">
+        <div class="org-node__name" style="font-size:12px">${escapeHtml(n.name)}</div>
+        ${n.title?`<div class="org-node__title">${escapeHtml(n.title)}</div>`:''}
+      </div>`).join('');
+      orgBodyHtml+=`<div class="org-others"><div class="org-others__head">Other stakeholders found (${floatingNodes.length})</div><div class="org-others__body">${othersHtml}</div></div>`;
     }
   }
 
   const orgHtml=`
     <div class="section">
       <div class="section__head"><span class="section__title">Combined Org Chart</span></div>
-      <div class="section__body">${orgBodyHtml}</div>
+      <div class="section__body">${gapBannerHtml}${orgBodyHtml}</div>
     </div>`;
 
   return `<div class="company-detail">${summaryHtml}${contactsHtml}${orgHtml}</div>`;
 }
 
 function orgNodeHtmlCombined(node){
+  const effectiveSrc=node.dbContactId?'DATABASE':(node.source||'RESEARCHED');
   let cls='',chipText='';
-  if(node.dbContactId){ cls='org-node--target org-node--db'; chipText='In Database'; }
-  else {
-    const conf=String(node.confidence||'').toLowerCase();
-    if(conf==='confirmed'){ cls='org-node--confirmed'; chipText='Confirmed'; }
-    else if(conf==='inferred'){ cls='org-node--inferred'; chipText='Inferred'; }
+  if(effectiveSrc==='DATABASE'){
+    cls='org-node--source-db'; chipText='In Database';
+  } else if(effectiveSrc==='MENTIONED'){
+    cls='org-node--source-mentioned'; chipText='Mentioned in meetings';
+  } else {
+    cls='org-node--source-researched'; chipText='From research';
   }
   const attrs=node.dbContactId?` data-route="contact" data-id="${escapeHtml(node.dbContactId)}"`:'';
   const tag=node.dbContactId?'button':'div';
@@ -1525,7 +1667,7 @@ function orgNodeHtmlCombined(node){
   return `<${tag} class="org-node ${cls}"${attrs}${typeAttr}>
     <div class="org-node__name">${escapeHtml(node.name)}</div>
     <div class="org-node__title">${escapeHtml(node.title)}</div>
-    ${chipText?`<span class="org-node__chip">${escapeHtml(chipText)}</span>`:''}
+    <span class="org-node__chip">${escapeHtml(chipText)}</span>
   </${tag}>`;
 }
 
@@ -3073,14 +3215,15 @@ function buildResearchChildTasks(contactId, companyId, targetName, r, existing){
   // Org_Chart — for topExec/functionHead/manager/target, update the matching
   // row in place (so the manager swap propagates); for peers, append only when
   // the name isn't already present.
-  const pushOrg=(roleType, node, order)=>{
+  const pushOrg=(roleType, node, order, srcOverride)=>{
     if(!node || !node.name) return;
+    const src=srcOverride||(roleType==='target'?'DATABASE':'RESEARCHED');
     const data={
       contact_id: contactId, role_type: roleType,
       name: node.name||'', title: node.title||'',
       confidence: String(node.verified||'').toLowerCase(),
       source_url: node.source_url||'', note: node.note||'',
-      display_order: order
+      display_order: order, source: src
     };
     if(ex){
       if(roleType==='peer'){
@@ -3088,6 +3231,10 @@ function buildResearchChildTasks(contactId, companyId, targetName, r, existing){
       } else {
         const existingNode=exOrgByRole[roleType];
         if(existingNode && existingNode.org_id){
+          // Preserve higher source priority when updating an existing node
+          const existingSrcPrio=SOURCE_PRIORITY[String(existingNode.source||'').toUpperCase()]||1;
+          const newSrcPrio=SOURCE_PRIORITY[src]||1;
+          if(existingSrcPrio>newSrcPrio) delete data.source;
           tasks.push({label:'org node', tab:'Org_Chart', action:'update', data,
             extra:{idColumn:'org_id', idValue:existingNode.org_id}});
           return;
@@ -3100,7 +3247,7 @@ function buildResearchChildTasks(contactId, companyId, targetName, r, existing){
   pushOrg('topExec', oc.topExec, 1);
   pushOrg('functionHead', oc.functionHead, 2);
   pushOrg('manager', oc.manager, 3);
-  pushOrg('target', { name: targetName, title: r.title||'', verified:'CONFIRMED' }, 4);
+  pushOrg('target', { name: targetName, title: r.title||'', verified:'CONFIRMED' }, 4, 'DATABASE');
   let peerOrder=10;
   (oc.peers||[]).forEach(p=>{ pushOrg('peer', p, peerOrder++); });
 
@@ -3672,11 +3819,12 @@ async function syncOpportunityContacts(companyId){
     }
 
     const today=new Date().toISOString().slice(0,10);
+    const createdContacts=[];
     for(const c of newContacts){
       const contactId='C'+String(Date.now()).slice(-6);
       const fullName=c._cleanedName || c.name || '';
       const roleInDeal=String(c.role_in_deal||'').trim();
-      const reportsTo=String(c.reports_to||'').trim();
+      const reportsTo=cleanSyncName(String(c.reports_to||'').trim());
       let decisionRole=roleInDeal;
       if(reportsTo) decisionRole = decisionRole ? (decisionRole+' | Reports to: '+reportsTo) : ('Reports to: '+reportsTo);
       const sentiment=String(c.sentiment||'').trim();
@@ -3705,7 +3853,75 @@ async function syncOpportunityContacts(companyId){
         certifications:splitPipe(fields.certifications)
       });
       D.contacts.push(optimistic);
+      createdContacts.push({id:contactId, name:fullName, reportsTo});
       await new Promise(r=>setTimeout(r,300));
+    }
+
+    // Upgrade RESEARCHED org nodes to DATABASE for every newly synced name
+    const allOrgRows=D.org_chart||[];
+    const syncedNorms=new Set();
+    createdContacts.forEach(cc=>{ const n=normalizeForMatch(cc.name); if(n) syncedNorms.add(n); });
+    updates.forEach(u=>{ const n=normalizeForMatch(u.row.full_name||''); if(n) syncedNorms.add(n); });
+    for(const row of allOrgRows){
+      if(!row.org_id) continue;
+      if(String(row.source||'').toUpperCase()==='DATABASE') continue;
+      const rNorm=normalizeForMatch(row.name||'');
+      let hit=syncedNorms.has(rNorm);
+      if(!hit){
+        const rParts=rNorm.split(' ').filter(Boolean);
+        const rFirst=rParts[0]||'', rLast=rParts.length>1?rParts[rParts.length-1]:'';
+        if(rFirst&&rLast){
+          for(const sn of syncedNorms){
+            const sParts=sn.split(' ').filter(Boolean);
+            const sFirst=sParts[0]||'', sLast=sParts.length>1?sParts[sParts.length-1]:'';
+            if(sLast===rLast&&firstNamesMatch(sFirst,rFirst)){ hit=true; break; }
+          }
+        }
+      }
+      if(hit){
+        try{
+          await postToSheet({action:'update',tab:'Org_Chart',idColumn:'org_id',idValue:row.org_id,data:{source:'DATABASE'}});
+          row.source='DATABASE';
+        }catch(e){ console.error('[LeadCheck Sync] org node upgrade failed',row.org_id,e); }
+        await new Promise(r=>setTimeout(r,150));
+      }
+    }
+
+    // Create MENTIONED nodes for reports_to names not yet in the chart or database
+    let mentionedSeq=0;
+    for(const cc of createdContacts){
+      if(!cc.reportsTo) continue;
+      const rtNorm=normalizeForMatch(cc.reportsTo);
+      if(!rtNorm) continue;
+      // Skip if already a contact at this company
+      const alreadyContact=(D.contacts||[]).some(cx=>{
+        if(cx.company_id!==companyId) return false;
+        const cxNorm=normalizeForMatch(cx.full_name||'');
+        if(cxNorm===rtNorm) return true;
+        const cxP=cxNorm.split(' ').filter(Boolean), rtP=rtNorm.split(' ').filter(Boolean);
+        if(cxP.length>=2&&rtP.length>=2&&cxP[cxP.length-1]===rtP[rtP.length-1]&&firstNamesMatch(cxP[0],rtP[0])) return true;
+        return false;
+      });
+      if(alreadyContact) continue;
+      // Skip if already an org node at this company (any contact)
+      const companyContactIds=new Set((D.contacts||[]).filter(cx=>cx.company_id===companyId).map(cx=>cx.contact_id));
+      const alreadyNode=allOrgRows.some(row=>{
+        if(!companyContactIds.has(row.contact_id)) return false;
+        const rNorm=normalizeForMatch(row.name||'');
+        if(rNorm===rtNorm) return true;
+        const rP=rNorm.split(' ').filter(Boolean), rtP=rtNorm.split(' ').filter(Boolean);
+        if(rP.length>=2&&rtP.length>=2&&rP[rP.length-1]===rtP[rtP.length-1]&&firstNamesMatch(rP[0],rtP[0])) return true;
+        return false;
+      });
+      if(alreadyNode) continue;
+      const orgId='OC'+String(Date.now()+mentionedSeq++);
+      const newRow={org_id:orgId,contact_id:cc.id,role_type:'manager',name:cc.reportsTo,
+        title:'',confidence:'',source_url:'',note:'',display_order:3,source:'MENTIONED'};
+      try{
+        await postToSheet({action:'append',tab:'Org_Chart',data:newRow});
+        allOrgRows.push(newRow);
+      }catch(e){ console.error('[LeadCheck Sync] MENTIONED node creation failed',cc.reportsTo,e); }
+      await new Promise(r=>setTimeout(r,200));
     }
 
     buildIndexes();
