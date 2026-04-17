@@ -246,11 +246,11 @@ main{flex:1;padding-bottom:var(--s-9)}
 .org-node--gap{border-style:dashed;border-color:var(--border-strong);background:transparent;color:var(--ink-3);padding:6px 10px;max-width:200px}
 .org-node--gap .org-node__name{font-size:14px;color:var(--ink-3)}
 .org-node--gap .org-node__title{font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em}
-.org-node--source-db{background:var(--primary);border-color:var(--primary);color:#fff;cursor:pointer;box-shadow:var(--elev-1)}
+.org-node--source-db{background:#fff;border:2px solid #1a1a7e;color:var(--ink);cursor:pointer;box-shadow:var(--elev-1)}
 .org-node--source-db:hover{box-shadow:var(--elev-2)}
-.org-node--source-db .org-node__name{color:#fff;font-weight:700}
-.org-node--source-db .org-node__title{color:rgba(255,255,255,.75)}
-.org-node--source-db .org-node__chip{background:rgba(255,255,255,.20);color:#fff}
+.org-node--source-db .org-node__name{color:#1a1a7e;font-weight:700}
+.org-node--source-db .org-node__title{color:var(--ink-3)}
+.org-node--source-db .org-node__chip{background:var(--primary-100);color:#1a1a7e}
 .org-node--source-mentioned{border-style:dashed;border-color:var(--primary);background:var(--bg)}
 .org-node--source-mentioned .org-node__chip{background:var(--primary-100);color:var(--primary)}
 .org-node--source-researched{background:var(--bg-tint);border-color:var(--border)}
@@ -265,6 +265,14 @@ main{flex:1;padding-bottom:var(--s-9)}
 .org-others{margin-top:var(--s-4);padding-top:var(--s-3);border-top:1px dashed var(--border-strong)}
 .org-others__head{font-size:11px;font-weight:700;color:var(--ink-4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:var(--s-2)}
 .org-others__body{display:flex;flex-wrap:wrap;gap:var(--s-2);align-items:flex-start}
+.org-unmapped-card{padding:8px 12px;max-width:160px;text-align:center}
+.org-unmapped-card .org-node__name{font-size:11px}
+.org-unmapped-card .org-node__title{font-size:10px}
+.org-unmapped-card .org-node__chip{font-size:8px;padding:2px 5px}
+.org-unmapped-chip--db{background:var(--primary-100);color:#1a1a7e}
+.org-unmapped-chip--mentioned{background:var(--primary-100);color:var(--primary)}
+.org-unmapped-chip--peer{background:var(--border);color:var(--ink-4)}
+.org-unmapped-chip--researched{background:var(--border);color:var(--ink-4)}
 .org-connector{width:1px;height:24px;background-image:linear-gradient(to bottom,var(--border-strong) 50%,transparent 50%);background-size:1px 5px}
 
 .peer-section{margin-top:var(--s-5);padding-top:var(--s-4);border-top:1px solid var(--border)}
@@ -1312,6 +1320,13 @@ function renderList(){
   }
 }
 function orgKey(name){return String(name||'').toLowerCase().replace(/\./g,' ').replace(/\s+/g,' ').trim();}
+function displayOrgName(name){
+  const s=String(name||'').trim();
+  if(s.includes('.')&&!s.includes(' ')){
+    return s.split('.').filter(Boolean).map(p=>p.charAt(0).toUpperCase()+p.slice(1)).join(' ');
+  }
+  return s;
+}
 const ORG_ROLE_PRIORITY={topExec:6,functionHead:5,manager:4,target:3,peer:2,directReport:1};
 const ORG_ROLE_LABEL_LOOKUP={topExec:'top exec',functionHead:'function head',manager:'manager',target:'target',peer:'peer',directReport:'direct report'};
 const SOURCE_PRIORITY={DATABASE:3,MENTIONED:2,RESEARCHED:1};
@@ -1543,11 +1558,11 @@ function renderCompanyExpanded(companyId){
     const gapWarnings=[];
     uniqueNodes.forEach(n=>{ if((n.source||'RESEARCHED')==='MENTIONED'){ const d=depths.get(n.key); if(d!==undefined&&d<shallowestDb) gapWarnings.push(n.name); } });
     const summaryParts=[];
-    if(dbCount>0) summaryParts.push(`You're engaged with <b>${dbCount}</b> contact${dbCount===1?'':'s'}`);
-    if(mentionedCount>0) summaryParts.push(`<b>${mentionedCount}</b> ${mentionedCount===1?'person was':'people were'} mentioned in meetings but not yet in your database`);
-    if(researchedCount>0) summaryParts.push(`research found <b>${researchedCount}</b> additional stakeholder${researchedCount===1?'':'s'}`);
+    if(dbCount>0) summaryParts.push(`<b>${dbCount}</b> contact${dbCount===1?'':'s'} in your database`);
+    if(mentionedCount>0) summaryParts.push(`<b>${mentionedCount}</b> ${mentionedCount===1?'person':'people'} mentioned but not yet engaged`);
+    if(researchedCount>0) summaryParts.push(`<b>${researchedCount}</b> stakeholder${researchedCount===1?'':'s'} identified through research`);
     const bannerLines=[];
-    if(summaryParts.length) bannerLines.push('<p>'+summaryParts.join('. ')+'.</p>');
+    if(summaryParts.length) bannerLines.push('<p>'+summaryParts.join(' · ')+'</p>');
     gapWarnings.slice(0,2).forEach(name=>bannerLines.push(`<p>&#9888;&#65039; <b>${escapeHtml(name)}</b> was mentioned as a decision-maker but you haven't engaged them directly yet.</p>`));
     if(bannerLines.length){
       const cls=gapWarnings.length?'org-gap-banner--warn':'org-gap-banner--info';
@@ -1563,7 +1578,7 @@ function renderCompanyExpanded(companyId){
     // Separate roots whose subtrees have at least one engaged (DATABASE/MENTIONED) node
     function subtreeHasEngagement(n,vis){
       if(vis.has(n.key)) return false; vis.add(n.key);
-      const s=n.source||'RESEARCHED';
+      const s=n.dbContactId?'DATABASE':(n.source||'RESEARCHED');
       if(s==='DATABASE'||s==='MENTIONED') return true;
       for(const c of n.children.values()){ if(subtreeHasEngagement(c,vis)) return true; }
       return false;
@@ -1579,6 +1594,49 @@ function renderCompanyExpanded(companyId){
       n.children.forEach(c=>collectFloating(c));
     }
     floatingRoots.forEach(r=>collectFloating(r));
+
+    // Isolated engaged nodes: DATABASE/MENTIONED roots with no children → Not Yet Mapped
+    const isolatedEngagedNodes=roots.filter(r=>{
+      const src=r.dbContactId?'DATABASE':(r.source||'RESEARCHED');
+      return r.children.size===0&&(src==='DATABASE'||src==='MENTIONED');
+    });
+    const isolatedKeys=new Set(isolatedEngagedNodes.map(n=>n.key));
+    const connectedRoots=roots.filter(r=>!isolatedKeys.has(r.key));
+
+    // Collect all peers from tree nodes into Not Yet Mapped pool; clear peers so side groups skip them
+    const notYetMappedPeers=[];
+    new Set(nodeMap.values()).forEach(n=>{
+      if(n.peers&&n.peers.length){
+        n.peers.forEach(p=>{
+          const nameLower=String(p.name||'').toLowerCase().trim();
+          const dbId=nameToContactId.get(nameLower)||null;
+          notYetMappedPeers.push({name:p.name||'',title:p.title||'',dbContactId:dbId,src:dbId?'DATABASE':'PEER'});
+        });
+        n.peers=[];
+      }
+    });
+
+    // Build unified Not Yet Mapped list
+    const notYetMappedItems=[
+      ...isolatedEngagedNodes.map(n=>({name:n.name,title:n.title||'',dbContactId:n.dbContactId||null,src:n.dbContactId?'DATABASE':(n.source||'RESEARCHED')})),
+      ...notYetMappedPeers,
+      ...floatingNodes.map(n=>({name:n.name,title:n.title||'',dbContactId:null,src:'RESEARCHED'}))
+    ];
+
+    const orgUnmappedCardHtml=(item)=>{
+      let chipCls='',chipText='';
+      if(item.src==='DATABASE'){ chipCls='org-unmapped-chip--db'; chipText='✓ In Database'; }
+      else if(item.src==='MENTIONED'){ chipCls='org-unmapped-chip--mentioned'; chipText='Mentioned'; }
+      else if(item.src==='PEER'){ chipCls='org-unmapped-chip--peer'; chipText='Peer'; }
+      else { chipCls='org-unmapped-chip--researched'; chipText='Research'; }
+      const attrs=item.dbContactId?` data-route="contact" data-id="${escapeHtml(item.dbContactId)}" type="button"`:'';
+      const tag=item.dbContactId?'button':'div';
+      return `<${tag} class="org-node org-unmapped-card"${attrs}>
+        <div class="org-node__name">${escapeHtml(displayOrgName(item.name))}</div>
+        ${item.title?`<div class="org-node__title">${escapeHtml(item.title)}</div>`:''}
+        <span class="org-node__chip ${chipCls}">${chipText}</span>
+      </${tag}>`;
+    };
 
     const gapHtml=(count)=>`<div class="org-node org-node--gap"><div class="org-node__name">…</div><div class="org-node__title">${count} unverified level${count===1?'':'s'}</div></div>`;
     const renderNode=(node,visited)=>{
@@ -1608,7 +1666,7 @@ function renderCompanyExpanded(companyId){
           flushSparse();
           if(parts.length) parts.push('<div class="org-connector"></div>');
           parts.push(orgNodeHtmlCombined(cur));
-          if(cur.dbContactId && (cur.peers.length||cur.reports.length)){
+          if(cur.dbContactId && cur.reports.length){
             parts.push(renderNodeSideGroups(cur));
           }
         }
@@ -1631,14 +1689,13 @@ function renderCompanyExpanded(companyId){
       if(rootList.length===1) return `<div class="org-tree">${renderNode(rootList[0],new Set())}</div>`;
       return `<div class="org-branch">${rootList.map(r=>`<div class="org-branch__col"><div class="org-tree">${renderNode(r,new Set())}</div></div>`).join('')}</div>`;
     };
-    orgBodyHtml=renderRoots(roots.length?roots:allRoots);
-    // "Other stakeholders found" section for floating RESEARCHED-only trees
-    if(floatingNodes.length&&roots.length){
-      const othersHtml=floatingNodes.map(n=>`<div class="org-node org-node--source-researched" style="max-width:180px;font-size:12px">
-        <div class="org-node__name" style="font-size:12px">${escapeHtml(n.name)}</div>
-        ${n.title?`<div class="org-node__title">${escapeHtml(n.title)}</div>`:''}
-      </div>`).join('');
-      orgBodyHtml+=`<div class="org-others"><div class="org-others__head">Other stakeholders found (${floatingNodes.length})</div><div class="org-others__body">${othersHtml}</div></div>`;
+    // Use connected engaged roots for main tree; fall back to RESEARCHED-only roots if no engaged connections
+    const mainRoots=connectedRoots.length?connectedRoots:floatingRoots;
+    orgBodyHtml=renderRoots(mainRoots.length?mainRoots:allRoots);
+    // "Contacts — Not Yet Mapped" section
+    if(notYetMappedItems.length){
+      const cardsHtml=notYetMappedItems.map(item=>orgUnmappedCardHtml(item)).join('');
+      orgBodyHtml+=`<div class="org-others"><div class="org-others__head">Contacts — Not Yet Mapped</div><div class="org-others__body">${cardsHtml}</div></div>`;
     }
   }
 
@@ -1655,7 +1712,7 @@ function orgNodeHtmlCombined(node){
   const effectiveSrc=node.dbContactId?'DATABASE':(node.source||'RESEARCHED');
   let cls='',chipText='';
   if(effectiveSrc==='DATABASE'){
-    cls='org-node--source-db'; chipText='In Database';
+    cls='org-node--source-db'; chipText='✓ In Database';
   } else if(effectiveSrc==='MENTIONED'){
     cls='org-node--source-mentioned'; chipText='Mentioned in meetings';
   } else {
@@ -1665,7 +1722,7 @@ function orgNodeHtmlCombined(node){
   const tag=node.dbContactId?'button':'div';
   const typeAttr=node.dbContactId?' type="button"':'';
   return `<${tag} class="org-node ${cls}"${attrs}${typeAttr}>
-    <div class="org-node__name">${escapeHtml(node.name)}</div>
+    <div class="org-node__name">${escapeHtml(displayOrgName(node.name))}</div>
     <div class="org-node__title">${escapeHtml(node.title)}</div>
     <span class="org-node__chip">${escapeHtml(chipText)}</span>
   </${tag}>`;
@@ -1680,7 +1737,7 @@ function orgSideRow(r,nameToContactId){
   const attrs=dbId?` data-route="contact" data-id="${escapeHtml(dbId)}" type="button"`:'';
   return `<${tag} class="peer-row"${attrs} style="width:100%">
     <div class="avatar avatar--sm ${color}">${escapeHtml(init)}</div>
-    <div class="peer-row__body"><div class="peer-row__name">${escapeHtml(r.name||'')}</div><div class="peer-row__title">${escapeHtml(r.title||'')}</div></div>
+    <div class="peer-row__body"><div class="peer-row__name">${escapeHtml(displayOrgName(r.name||''))}</div><div class="peer-row__title">${escapeHtml(r.title||'')}</div></div>
   </${tag}>`;
 }
 
