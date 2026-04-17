@@ -3484,6 +3484,46 @@ async function callResearchAPI(name, company){
   }
 }
 
+const SYNC_NICKNAMES = (() => {
+  const pairs = [
+    ['tim','timothy'],['bob','robert'],['rob','robert'],['bill','william'],
+    ['will','william'],['jim','james'],['joe','joseph'],['mike','michael'],
+    ['dan','daniel'],['dave','david'],['tom','thomas'],['dick','richard'],
+    ['rick','richard'],['ed','edward'],['ted','edward'],['chris','christopher'],
+    ['matt','matthew'],['nick','nicholas'],['tony','anthony'],['steve','steven'],
+    ['pat','patrick'],['ben','benjamin']
+  ];
+  const m = {};
+  for(const [a,b] of pairs){
+    (m[a] || (m[a]=new Set())).add(b);
+    (m[b] || (m[b]=new Set())).add(a);
+  }
+  return m;
+})();
+
+function cleanSyncName(raw){
+  const s = String(raw||'').trim();
+  if(!s) return '';
+  if(s.indexOf('.')>=0 && s.indexOf(' ')<0){
+    return s.split('.').filter(Boolean)
+      .map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+      .join(' ');
+  }
+  return s;
+}
+
+function normalizeForMatch(name){
+  return String(name||'').toLowerCase().replace(/\./g,' ').replace(/\s+/g,' ').trim();
+}
+
+function firstNamesMatch(a, b){
+  if(!a || !b) return false;
+  if(a === b) return true;
+  const aliases = SYNC_NICKNAMES[a];
+  if(aliases && aliases.has(b)) return true;
+  return false;
+}
+
 async function syncOpportunityContacts(companyId){
   const IDX=window.__INDEX||{};
   const D=window.__DATA||{};
@@ -3554,33 +3594,108 @@ async function syncOpportunityContacts(companyId){
     const existingContacts=D.contacts||[];
     const newContacts=[];
     const alreadyExists=[];
+    const updates=[]; // {row, data}
 
     for(const c of contacts){
       if(!c||!c.name) continue;
-      const cName=(c.name||'').toLowerCase().trim();
-      const cEmail=(c.email||'').toLowerCase().trim();
+
+      const rawName=String(c.name||'');
+      let extractedEmail=String(c.email||'').trim();
+      let nameForCleaning=rawName;
+      if(!extractedEmail && rawName.indexOf('@')>=0){
+        extractedEmail=rawName.trim();
+        nameForCleaning=rawName.split('@')[0];
+      } else if(rawName.indexOf('@')>=0){
+        nameForCleaning=rawName.split('@')[0];
+      }
+
+      const cleanedName=cleanSyncName(nameForCleaning);
+      const cEmailLower=extractedEmail.toLowerCase();
+      const cNorm=normalizeForMatch(cleanedName);
+      const cParts=cNorm.split(' ').filter(Boolean);
+      const cFirst=cParts[0]||'';
+      const cLast=cParts.length>1?cParts[cParts.length-1]:'';
+
       const match=existingContacts.find(ex=>{
-        if(cName&&(ex.full_name||'').toLowerCase().trim()===cName) return true;
-        if(cEmail&&cEmail.includes('@')&&(ex.email||'').toLowerCase().trim()===cEmail) return true;
+        const exEmail=(ex.email||'').toLowerCase().trim();
+        if(cEmailLower && cEmailLower.includes('@') && exEmail && exEmail===cEmailLower) return true;
+        const exNorm=normalizeForMatch(ex.full_name||'');
+        if(cNorm && exNorm && cNorm===exNorm) return true;
+        if(cFirst && cLast){
+          const exParts=exNorm.split(' ').filter(Boolean);
+          if(exParts.length>=2){
+            const exFirst=exParts[0];
+            const exLast=exParts[exParts.length-1];
+            if(cLast===exLast && firstNamesMatch(cFirst, exFirst)) return true;
+          }
+        }
         return false;
       });
-      if(match) alreadyExists.push(c);
-      else newContacts.push(c);
+
+      const enriched=Object.assign({},c,{
+        _cleanedName:cleanedName,
+        _email:extractedEmail
+      });
+
+      if(match){
+        const data={};
+        const newCtx=String(c.context||'').trim();
+        if(newCtx){
+          const existingBg=String(match.background||'').trim();
+          data.background = existingBg ? (existingBg+'\n\n'+newCtx) : newCtx;
+        }
+        if(!String(match.title||'').trim() && c.title){
+          data.title=String(c.title).trim();
+        }
+        if(!String(match.email||'').trim() && extractedEmail){
+          data.email=extractedEmail;
+        }
+        if(Object.keys(data).length && match.contact_id){
+          updates.push({row:match, data});
+        }
+        alreadyExists.push(enriched);
+      } else {
+        newContacts.push(enriched);
+      }
     }
 
     if(btn) btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2.5 11.5a10 10 0 0 1 18.17-4.5M21.5 12.5a10 10 0 0 1-18.17 4.5"/></svg> Adding '+newContacts.length+' contact'+(newContacts.length===1?'':'s')+'…';
 
+    for(const u of updates){
+      try{
+        await postToSheet({action:'update',tab:'Contacts',idColumn:'contact_id',idValue:u.row.contact_id,data:u.data});
+        Object.assign(u.row, u.data);
+      }catch(e){
+        console.error('[LeadCheck Sync] update failed for', u.row.contact_id, e);
+      }
+      await new Promise(r=>setTimeout(r,200));
+    }
+
     const today=new Date().toISOString().slice(0,10);
     for(const c of newContacts){
       const contactId='C'+String(Date.now()).slice(-6);
+      const fullName=c._cleanedName || c.name || '';
+      const roleInDeal=String(c.role_in_deal||'').trim();
+      const reportsTo=String(c.reports_to||'').trim();
+      let decisionRole=roleInDeal;
+      if(reportsTo) decisionRole = decisionRole ? (decisionRole+' | Reports to: '+reportsTo) : ('Reports to: '+reportsTo);
+      const sentiment=String(c.sentiment||'').trim();
+      const outreachAngle=sentiment ? ('Based on meeting interactions: '+sentiment) : '';
+      const themesStr=Array.isArray(c.priorities) ? c.priorities.filter(Boolean).join('|') : '';
+      const background=String(c.context||'').trim();
       const fields={
         contact_id:contactId,
-        full_name:c.name||'',
-        title:c.title||'',
-        email:c.email||'',
+        full_name:fullName,
+        initials:deriveInitials(fullName),
+        title:String(c.title||'').trim(),
+        email:c._email||'',
         company_id:companyId,
         company:companyName,
-        overall_confidence:'10',
+        background,
+        decision_role:decisionRole,
+        outreach_angle:outreachAngle,
+        themes:themesStr,
+        overall_confidence:'25',
         verified:'FALSE',
         date_added:today
       };
