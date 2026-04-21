@@ -468,6 +468,26 @@ main{flex:1;padding-bottom:var(--s-9)}
   .available-contact-card__handle{display:none}
   .available-contact-card__place{display:inline-block}
 }
+
+/* App-level navigation (Contacts / Company Search) */
+.app-nav{display:flex;gap:2px;margin-left:auto}
+.app-nav__tab{padding:5px 10px;font-size:12px;font-weight:600;color:var(--ink-3);border-radius:var(--r-md);transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
+.app-nav__tab:hover{background:var(--bg-tint);color:var(--ink)}
+.app-nav__tab.active{background:var(--primary-100);color:var(--primary)}
+
+/* Company Search View */
+.co-search{padding:var(--s-6) 0}
+.co-search__header{margin-bottom:var(--s-5)}
+.co-search__title{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.co-search__desc{font-size:13px;color:var(--ink-3)}
+.co-search__form{display:flex;gap:8px;align-items:center;margin-bottom:var(--s-4)}
+.co-search__input{flex:1;padding:10px 14px;background:var(--bg-tint);border:1px solid transparent;border-radius:var(--r-md);font-size:14px;color:var(--ink);transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
+.co-search__input::placeholder{color:var(--ink-4)}
+.co-search__input:hover{background:var(--border)}
+.co-search__input:focus{outline:none;background:var(--bg);border-color:var(--primary)}
+.co-search__status{margin-bottom:var(--s-4);border-left:3px solid var(--primary);border-radius:0 var(--r-md) var(--r-md) 0}
+.co-result{margin-top:var(--s-4)}
+.co-result__actions{display:flex;gap:8px;margin-top:var(--s-4);flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -481,6 +501,10 @@ main{flex:1;padding-bottom:var(--s-9)}
         <span class="brand__name">Recast</span>
         <span class="brand__product">LeadCheck Pro</span>
       </button>
+      <nav class="app-nav" id="app-nav">
+        <button class="app-nav__tab active" data-nav="home" type="button">Contacts</button>
+        <button class="app-nav__tab" data-nav="company-search" type="button">Company Search</button>
+      </nav>
     </div>
     <div class="search-wrap">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -895,6 +919,35 @@ Aaron</div>
 
     </div>
   </section>
+
+  <section class="view" id="view-company-search">
+    <div class="container">
+      <div class="co-search">
+        <div class="co-search__header">
+          <h2 class="co-search__title">Company Lookup</h2>
+          <p class="co-search__desc">Research any company and add it to your database — no contact required.</p>
+        </div>
+        <div class="co-search__form">
+          <input class="co-search__input" type="text" id="co-search-input" placeholder="Enter company name, e.g. Acme Technologies" autocomplete="off" spellcheck="false">
+          <button class="btn btn--primary" id="co-search-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Research
+          </button>
+        </div>
+        <div id="co-search-status" class="co-search__status" style="display:none">
+          <div class="lookup-status__inner">
+            <div class="lookup-status__spinner" id="co-lookup-spinner"></div>
+            <div class="lookup-status__body">
+              <div class="lookup-status__title" id="co-search-status-title">Researching…</div>
+              <div class="lookup-status__detail" id="co-search-status-detail">Searching online for company information</div>
+            </div>
+            <button class="lookup-status__cancel" id="co-search-cancel" type="button">Cancel</button>
+          </div>
+        </div>
+        <div id="co-search-result" class="co-result" style="display:none"></div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer class="app-footer">
@@ -1234,18 +1287,22 @@ let activeFilter='company',activeSort='recent',activeSearch='',editingId=null,ex
 
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
-  document.getElementById('filter-row').style.display=name==='home'?'':'none';
-  document.querySelector('.search-wrap').style.display=name==='home'?'':'none';
+  const isHome=name==='home';
+  document.getElementById('filter-row').style.display=isHome?'':'none';
+  document.querySelector('.search-wrap').style.display=isHome?'':'none';
+  document.querySelectorAll('.app-nav__tab').forEach(t=>t.classList.toggle('active',t.dataset.nav===name));
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function navigate(route,id){
   if(route==='home')location.hash='#/';
   else if(route==='contact')location.hash='#/contact/'+(id||'C001');
+  else if(route==='company-search')location.hash='#/company-search';
 }
 function handleHash(){
   const hash=location.hash||'#/';
   const parts=hash.replace(/^#\//,'').split('/');
   if(parts[0]==='contact'){renderContactDetail(parts[1]||'C001');showView('contact');}
+  else if(parts[0]==='company-search'){showView('company-search');}
   else showView('home');
 }
 window.addEventListener('hashchange',handleHash);
@@ -4416,6 +4473,227 @@ searchInput.addEventListener('keydown', e=>{
 searchInput.addEventListener('input', updateGoBtn);
 
 /* ========== End Smart Lookup Bar ========== */
+
+/* ========== Company Search ========== */
+
+let coSearchCancelled = false;
+let coLastResult = null;
+
+function coUpdateStatus(title, detail){
+  const t=document.getElementById('co-search-status-title');
+  const d=document.getElementById('co-search-status-detail');
+  if(t) t.textContent=title;
+  if(d) d.textContent=detail||'';
+}
+function coShowStatus(title, detail){
+  const el=document.getElementById('co-search-status');
+  if(el) el.style.display='';
+  coUpdateStatus(title, detail);
+}
+function coHideStatus(){
+  const el=document.getElementById('co-search-status');
+  if(el) el.style.display='none';
+}
+
+function renderCoResult(ci, resolvedName){
+  const name=resolvedName||ci.name||'';
+  const kv=[];
+  if(ci.industry) kv.push(['Industry', ci.industry]);
+  if(ci.hq) kv.push(['HQ', ci.hq]);
+  if(ci.size) kv.push(['Size', ci.size]);
+  if(ci.revenue) kv.push(['Revenue', ci.revenue]);
+  if(ci.founded) kv.push(['Founded', String(ci.founded)]);
+  if(ci.ceo) kv.push(['CEO', ci.ceo]);
+  if(ci.ceo_prior) kv.push(['Prior CEO', ci.ceo_prior]);
+  if(ci.website) kv.push(['Website', ci.website]);
+  if(ci.email_format) kv.push(['Email pattern', ci.email_format]);
+  const partners=Array.isArray(ci.partners)?ci.partners.filter(Boolean):[];
+  if(partners.length) kv.push(['Partners', partners.join(' · ')]);
+
+  const kvHtml=kv.length
+    ? `<dl class="kv">${kv.map(([k,v])=>`<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('')}</dl>`
+    : '';
+  const descHtml=ci.core_focus
+    ? `<p class="prose" style="margin-bottom:14px">${escapeHtml(ci.core_focus)}</p>`
+    : '';
+  const achv=Array.isArray(ci.achievements)?ci.achievements.filter(a=>a&&(a.label||a.description)):[];
+  const achvHtml=achv.length
+    ? `<div class="section" style="margin-top:12px">
+        <div class="section__head"><span class="section__title">Achievements &amp; News</span></div>
+        <div class="section__body">
+          ${achv.map((a,i)=>`${i>0?'<hr class="divider">':''}<p class="prose">${a.label?`<b>${escapeHtml(a.label)}:</b> `:''}${escapeHtml(a.description||'')}</p>`).join('')}
+        </div>
+      </div>`
+    : '';
+  const existsCo=(window.__DATA&&window.__DATA.companies||[]).find(
+    c=>c.name&&c.name.toLowerCase()===(name||'').toLowerCase()
+  );
+  const saveLabel=existsCo?'Update in Database':'Add to Database';
+  const visitBtn=ci.website
+    ? `<a class="btn btn--ghost" style="font-size:12px;padding:4px 8px" href="${escapeHtml(ci.website)}" target="_blank" rel="noopener">Visit site</a>`
+    : '';
+
+  return `
+    <div class="section">
+      <div class="section__head">
+        <span class="section__title">${escapeHtml(name)}</span>
+        ${visitBtn}
+      </div>
+      <div class="section__body">
+        ${descHtml}${kvHtml}
+      </div>
+    </div>
+    ${achvHtml}
+    <div class="co-result__actions">
+      <button class="btn btn--primary" id="co-save-btn" type="button">${saveLabel}</button>
+      <button class="btn btn--ghost" id="co-search-again-btn" type="button">Search Again</button>
+    </div>`;
+}
+
+async function saveCoToSheet(resolvedName, ci){
+  const D=window.__DATA||(window.__DATA={});
+  if(!Array.isArray(D.companies)) D.companies=[];
+  const existing=D.companies.find(c=>c.name&&c.name.toLowerCase()===resolvedName.toLowerCase());
+  const base=Date.now();
+  let seq=0;
+  const uid=(p)=>p+String(base+(seq++));
+  let companyId;
+
+  const buildFields=(data)=>{
+    if(ci.industry) data.industry=ci.industry;
+    if(ci.hq) data.hq=ci.hq;
+    if(ci.size) data.size=ci.size;
+    if(ci.revenue) data.revenue=ci.revenue;
+    if(ci.founded) data.founded=String(ci.founded);
+    if(ci.ceo) data.ceo=ci.ceo;
+    if(ci.ceo_prior) data.prior_ceo=ci.ceo_prior;
+    if(ci.core_focus) data.description=ci.core_focus;
+    if(Array.isArray(ci.partners)&&ci.partners.length) data.partners=ci.partners.filter(Boolean).join('|');
+    if(Array.isArray(ci.badges)&&ci.badges.length) data.badges=ci.badges.filter(Boolean).join('|');
+    if(ci.email_format) data.email_format=ci.email_format;
+    if(ci.email_format_confidence) data.email_format_confidence=String(ci.email_format_confidence);
+    if(ci.website) data.website=ci.website;
+    return data;
+  };
+
+  if(existing){
+    companyId=existing.company_id;
+    const fields=buildFields({});
+    if(Object.keys(fields).length){
+      await postToSheet({action:'update',tab:'Companies',idColumn:'company_id',idValue:companyId,data:fields});
+      Object.assign(existing, fields);
+    }
+  } else {
+    companyId='CO'+String(Date.now()).slice(-6);
+    const data=buildFields({company_id:companyId, name:resolvedName});
+    await postToSheet({action:'append',tab:'Companies',data});
+    D.companies.push(data);
+  }
+
+  const achv=Array.isArray(ci.achievements)?ci.achievements.filter(a=>a&&(a.label||a.description)):[];
+  for(const a of achv){
+    await postToSheet({action:'append',tab:'Company_Achievements',data:{
+      achievement_id:uid('CA'), company_id:companyId,
+      title:a.label||'', summary:a.description||'', description:a.description||'',
+      source_url:a.source_url||'', date:a.date||''
+    }});
+  }
+  if(ci.email_format){
+    await postToSheet({action:'append',tab:'Email_Patterns',data:{
+      pattern_id:uid('EP'), company_id:companyId,
+      pattern:ci.email_format, confidence:String(ci.email_format_confidence||''),
+      sample_email:''
+    }});
+  }
+  if(ci.website){
+    await postToSheet({action:'append',tab:'Company_Links',data:{
+      link_id:uid('CL'), company_id:companyId,
+      link_type:'Website', label:'Website', url:ci.website
+    }});
+  }
+  buildIndexes();
+  populateCompanySelect();
+  return companyId;
+}
+
+async function coSearchLookup(){
+  const input=document.getElementById('co-search-input');
+  const companyName=(input?input.value:'').trim();
+  if(!companyName){showToast('Enter a company name first');return;}
+
+  coSearchCancelled=false;
+  coLastResult=null;
+  const resultDiv=document.getElementById('co-search-result');
+  if(resultDiv){resultDiv.style.display='none';resultDiv.innerHTML='';}
+  const btn=document.getElementById('co-search-btn');
+  if(btn) btn.disabled=true;
+
+  coShowStatus('Researching '+companyName+'…','Searching online for company information');
+  try {
+    coUpdateStatus('Searching online…','Looking up '+companyName);
+    // Pass the company name as both name and company so the backend
+    // returns a full company_info block even without a specific contact.
+    const result=await callResearchAPI(companyName, companyName);
+    if(coSearchCancelled) return;
+    const ci=(result&&result.company_info)||{};
+    const resolvedName=(ci.name&&String(ci.name).trim())||companyName;
+    coLastResult={ci, resolvedName};
+    coHideStatus();
+    if(resultDiv){
+      resultDiv.innerHTML=renderCoResult(ci, resolvedName);
+      resultDiv.style.display='';
+      document.getElementById('co-save-btn').addEventListener('click', async ()=>{
+        const saveBtn=document.getElementById('co-save-btn');
+        if(!saveBtn||!coLastResult) return;
+        saveBtn.disabled=true;
+        saveBtn.textContent='Saving…';
+        try {
+          await saveCoToSheet(coLastResult.resolvedName, coLastResult.ci);
+          showToast('Saved: '+coLastResult.resolvedName);
+          saveBtn.textContent='Saved ✓';
+          renderList();
+          setTimeout(()=>{
+            loadAllData()
+              .then(()=>{buildIndexes();populateCompanySelect();renderList();})
+              .catch(err=>console.error('[LeadCheck] Refresh failed',err));
+          }, 1500);
+        } catch(err){
+          console.error('[LeadCheck] Company save failed',err);
+          showToast('Save failed: '+(err.message||err));
+          saveBtn.disabled=false;
+          saveBtn.textContent='Add to Database';
+        }
+      });
+      document.getElementById('co-search-again-btn').addEventListener('click', ()=>{
+        if(resultDiv){resultDiv.style.display='none';resultDiv.innerHTML='';}
+        if(input){input.value='';input.focus();}
+      });
+    }
+  } catch(err){
+    console.error('[LeadCheck] Company search failed',err);
+    coHideStatus();
+    showToast('Research failed: '+(err.message||err));
+  } finally {
+    if(btn) btn.disabled=false;
+  }
+}
+
+document.getElementById('co-search-btn').addEventListener('click', coSearchLookup);
+document.getElementById('co-search-input').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){e.preventDefault();coSearchLookup();}
+});
+document.getElementById('co-search-cancel').addEventListener('click', ()=>{
+  coSearchCancelled=true;
+  coHideStatus();
+  const btn=document.getElementById('co-search-btn');
+  if(btn) btn.disabled=false;
+  showToast('Search cancelled');
+});
+document.querySelectorAll('.app-nav__tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>navigate(tab.dataset.nav));
+});
+
+/* ========== End Company Search ========== */
 
 // Bootstrap: fetch live data, then render.
 showDataLoading();
