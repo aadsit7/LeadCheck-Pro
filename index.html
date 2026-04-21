@@ -3786,7 +3786,32 @@ const SYNC_NICKNAMES = (() => {
     ['dan','daniel'],['dave','david'],['tom','thomas'],['dick','richard'],
     ['rick','richard'],['ed','edward'],['ted','edward'],['chris','christopher'],
     ['matt','matthew'],['nick','nicholas'],['tony','anthony'],['steve','steven'],
-    ['pat','patrick'],['ben','benjamin']
+    ['pat','patrick'],['ben','benjamin'],
+    // Additional well-known nickname pairs
+    ['jimmy','james'],['jamie','james'],['jay','james'],
+    ['jack','john'],['jon','john'],['johnny','john'],
+    ['andy','andrew'],['drew','andrew'],
+    ['charlie','charles'],['chuck','charles'],
+    ['greg','gregory'],
+    ['frank','francis'],['fran','francis'],
+    ['fred','frederick'],
+    ['liz','elizabeth'],['beth','elizabeth'],['ellie','elizabeth'],
+    ['kate','katherine'],['kathy','katherine'],['kat','katherine'],
+    ['cathy','catherine'],['cat','catherine'],
+    ['sue','susan'],['suzy','susan'],
+    ['jen','jennifer'],['jenny','jennifer'],
+    ['sam','samuel'],['al','albert'],['al','alfred'],
+    ['hank','henry'],['hal','harold'],
+    ['jerry','gerald'],['gerry','gerald'],
+    ['larry','lawrence'],
+    ['pete','peter'],
+    ['phil','philip'],['phil','phillip'],
+    ['ray','raymond'],
+    ['ron','ronald'],
+    ['stu','stuart'],['stu','stewart'],
+    ['vince','vincent'],
+    ['walt','walter'],
+    ['zach','zachary'],['zak','zachary']
   ];
   const m = {};
   for(const [a,b] of pairs){
@@ -3911,17 +3936,33 @@ async function syncOpportunityContacts(companyId){
       const cFirst=cParts[0]||'';
       const cLast=cParts.length>1?cParts[cParts.length-1]:'';
 
+      const cLinkedin=String(c.linkedin_url||'').trim().toLowerCase().replace(/\/$/,'');
       const match=existingContacts.find(ex=>{
+        // Tier 1: exact email — strongest signal
         const exEmail=(ex.email||'').toLowerCase().trim();
         if(cEmailLower && cEmailLower.includes('@') && exEmail && exEmail===cEmailLower) return true;
+
+        // Tier 2: LinkedIn URL — very strong signal
+        const exLinkedin=String(ex.linkedin_url||'').trim().toLowerCase().replace(/\/$/,'');
+        if(cLinkedin && exLinkedin && cLinkedin===exLinkedin) return true;
+
+        // Tier 3: exact normalized full name
         const exNorm=normalizeForMatch(ex.full_name||'');
         if(cNorm && exNorm && cNorm===exNorm) return true;
+
         if(cFirst && cLast){
           const exParts=exNorm.split(' ').filter(Boolean);
           if(exParts.length>=2){
             const exFirst=exParts[0];
             const exLast=exParts[exParts.length-1];
+
+            // Tier 4: last name + known nickname alias (any company)
             if(cLast===exLast && firstNamesMatch(cFirst, exFirst)) return true;
+
+            // Tier 5: company-scoped — same last name + same first initial
+            // Catches "Joe Richardson" vs "James Richardson" at the same company
+            // where the same person goes by a nickname not in the alias map.
+            if(ex.company_id===companyId && cLast===exLast && cFirst[0]===exFirst[0]) return true;
           }
         }
         return false;
