@@ -87,6 +87,11 @@ main{flex:1;padding-bottom:var(--s-9)}
 .chip__count{font-size:11px;margin-left:4px;opacity:.7;font-variant-numeric:tabular-nums}
 .sort{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3)}
 .sort select{background:transparent;border:0;font-weight:600;color:var(--ink);padding:4px 18px 4px 4px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2315151F' stroke-width='2.5'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 2px center}
+.refresh-btn{background:transparent;border:0;padding:4px;cursor:pointer;color:var(--ink-3);border-radius:var(--r-sm);transition:color var(--t-fast) var(--ease),background var(--t-fast) var(--ease);display:inline-flex;align-items:center;justify-content:center}
+.refresh-btn:hover{color:var(--ink);background:var(--bg-tint)}
+.refresh-btn svg{width:14px;height:14px}
+.refresh-btn.spinning svg{animation:spin .7s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 .list-section{padding:var(--s-4) 0}
 .list-section__head{font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;padding:var(--s-2) 0;margin-bottom:var(--s-2)}
@@ -518,6 +523,9 @@ main{flex:1;padding-bottom:var(--s-9)}
         <button class="chip" data-filter="high">High Confidence<span class="chip__count">3</span></button>
       </div>
       <div class="sort">
+        <button class="refresh-btn" id="refresh-contacts-btn" type="button" aria-label="Refresh" title="Refresh contacts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.09"/></svg>
+        </button>
         <span>Sort:</span>
         <select id="sort-select" aria-label="Sort">
           <option value="recent">Recent</option>
@@ -1336,17 +1344,26 @@ function renderList(){
 
   updateChipCounts(all);
 
-  if(items.length===0){mount.innerHTML='';empty.style.display='block';return;}
-  empty.style.display='none';
-
   if(activeFilter==='company'){
     const IDX=window.__INDEX||{companyById:{}};
+    const D2=window.__DATA||{};
     const groups={};
     items.forEach(c=>{
       const cid=c.companyId||'__none';
       if(!groups[cid]) groups[cid]={name:c.company||'—',contacts:[]};
       groups[cid].contacts.push(c);
     });
+    // Also show companies that exist in the database but have no contacts yet
+    (D2.companies||[]).forEach(co=>{
+      if(co.company_id && !groups[co.company_id]){
+        const coName=co.name||'—';
+        if(!term || coName.toLowerCase().includes(term)){
+          groups[co.company_id]={name:coName,contacts:[]};
+        }
+      }
+    });
+    if(Object.keys(groups).length===0){mount.innerHTML='';empty.style.display='block';return;}
+    empty.style.display='none';
     const order=Object.keys(groups).sort((a,b)=>groups[a].name.localeCompare(groups[b].name));
     const openId=(expandedCompanyId && groups[expandedCompanyId])?expandedCompanyId:null;
     mount.innerHTML=order.map(cid=>{
@@ -1373,6 +1390,8 @@ function renderList(){
       </div>`;
     }).join('');
   }else{
+    if(items.length===0){mount.innerHTML='';empty.style.display='block';return;}
+    empty.style.display='none';
     mount.innerHTML=`<div class="list-section"><div class="contact-list">${items.map(itemHTML).join('')}</div></div>`;
   }
 }
@@ -2826,6 +2845,21 @@ document.querySelectorAll('.chip').forEach(chip=>{
   });
 });
 document.getElementById('sort-select').addEventListener('change',e=>{activeSort=e.target.value;renderList();});
+document.getElementById('refresh-contacts-btn').addEventListener('click',async()=>{
+  const btn=document.getElementById('refresh-contacts-btn');
+  if(btn) btn.classList.add('spinning');
+  try{
+    await loadAllData();
+    buildIndexes();
+    populateCompanySelect();
+    renderList();
+  }catch(err){
+    console.error('[LeadCheck] Refresh failed',err);
+    showToast('Refresh failed');
+  }finally{
+    if(btn) btn.classList.remove('spinning');
+  }
+});
 
 let searchTimer;
 const searchInput=document.getElementById('search-input');
