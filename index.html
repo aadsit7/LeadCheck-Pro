@@ -1302,6 +1302,38 @@ function applyOpportunityPlaceholders(names){
   return { placeholders, realIds };
 }
 
+// Append a real row to the Companies tab for each placeholder so opportunity
+// companies behave identically to existing Companies (full expanded view,
+// Sync Contacts button, can hold contacts, etc). Updates D.companies in
+// place, swapping each placeholder for its real row. Returns the new real
+// company_ids that were created.
+async function promoteOpportunityPlaceholders(placeholders){
+  if(!placeholders || !placeholders.length) return [];
+  const D = window.__DATA || {};
+  const today = new Date().toISOString().slice(0,10);
+  const baseTs = String(Date.now()).slice(-6);
+  const created = [];
+  for(let i = 0; i < placeholders.length; i++){
+    const ph = placeholders[i];
+    const name = ph.name;
+    const realId = 'CO' + baseTs + (i || '');
+    showAutoSyncStatus('Adding ' + name + ' to Companies…');
+    try {
+      const fields = { company_id: realId, name: name, date_added: today };
+      await postToSheet({ action: 'append', tab: 'Companies', data: fields });
+      const realRow = Object.assign({}, fields, { partners: [], badges: [] });
+      const idx = (D.companies || []).indexOf(ph);
+      if(idx >= 0) D.companies[idx] = realRow;
+      else (D.companies || (D.companies = [])).push(realRow);
+      created.push(realId);
+    } catch(err){
+      console.error('[LeadCheck] failed to promote placeholder', name, err);
+    }
+    await new Promise(r => setTimeout(r, 200));
+  }
+  return created;
+}
+
 function buildIndexes(){
   const D = window.__DATA || {};
   const idx = {
@@ -4972,21 +5004,28 @@ loadAllData()
     handleHash();
 
     showAutoSyncStatus('Loading opportunity companies…');
-    let realIds = [];
+    let allOpportunityIds = [];
     try {
       const names = await fetchOpportunityCompanies();
       console.log('[LeadCheck] Opportunity companies:', names.length);
       const applied = applyOpportunityPlaceholders(names);
-      realIds = applied.realIds;
+      // Promote any placeholders to real Companies rows before render so every
+      // opportunity company gets the full company experience (Sync Contacts
+      // button, expanded view, contact list, etc.) on first page open.
+      let promotedIds = [];
+      if(applied.placeholders.length){
+        promotedIds = await promoteOpportunityPlaceholders(applied.placeholders);
+      }
       buildIndexes();
       populateCompanySelect();
       renderList();
+      allOpportunityIds = applied.realIds.concat(promotedIds);
     } catch(err){
       console.error('[LeadCheck] opportunity bootstrap failed', err);
     }
 
-    if(realIds.length){
-      autoSyncOpportunityCompanies(realIds);
+    if(allOpportunityIds.length){
+      autoSyncOpportunityCompanies(allOpportunityIds);
     } else {
       hideAutoSyncStatus();
     }
