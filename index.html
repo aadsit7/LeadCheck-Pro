@@ -1197,6 +1197,111 @@ async function loadAllData(){
   return window.__DATA;
 }
 
+// Fetch opportunity company names from the Apps Script backend.
+// Backend action: 'listOpportunityCompanies' — reads the linked Opportunities
+// sheet and returns company names. Tolerates a few response shapes (raw array,
+// {companies}, {names}, or anthropic-style {content:[{type:'text',text:'...'}]}).
+async function fetchOpportunityCompanies(){
+  try {
+    const resp = await fetch(CONFIG.WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'listOpportunityCompanies' })
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const rawBody = await resp.text();
+    let data;
+    try { data = JSON.parse(rawBody); }
+    catch(e){ throw new Error('Server returned non-JSON response'); }
+
+    for(let i=0; i<4 && data && typeof data === 'object'
+        && !Array.isArray(data) && !Array.isArray(data.content)
+        && !Array.isArray(data.companies) && !Array.isArray(data.names); i++){
+      const next = data.data ?? data.response ?? data.result ?? data.body ?? data.payload;
+      if(next == null) break;
+      data = (typeof next === 'string')
+        ? (()=>{ try { return JSON.parse(next); } catch(e){ return next; } })()
+        : next;
+    }
+    if(typeof data === 'string'){ try { data = JSON.parse(data); } catch(e){} }
+
+    let names = [];
+    if(Array.isArray(data)) names = data;
+    else if(data && Array.isArray(data.companies)) names = data.companies;
+    else if(data && Array.isArray(data.names)) names = data.names;
+    else if(data && Array.isArray(data.content)){
+      const text = data.content.filter(b=>b && b.type==='text').map(b=>b.text||'').join('\n').trim();
+      const fence = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+      const raw = fence ? fence[1].trim() : text;
+      try {
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed)) names = parsed;
+        else if(parsed && Array.isArray(parsed.companies)) names = parsed.companies;
+        else if(parsed && Array.isArray(parsed.names)) names = parsed.names;
+      } catch(e){}
+    }
+
+    const out = [];
+    const seen = new Set();
+    for(const n of names){
+      const s = (typeof n === 'string') ? n : (n && (n.name || n.company || ''));
+      const t = String(s||'').trim();
+      if(!t) continue;
+      const k = t.toLowerCase();
+      if(seen.has(k)) continue;
+      seen.add(k);
+      out.push(t);
+    }
+    return out;
+  } catch(err){
+    console.error('[LeadCheck] listOpportunityCompanies failed', err);
+    return [];
+  }
+}
+
+function opportunityPlaceholderId(name){
+  const slug = String(name||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  return 'OPP-' + (slug || 'unknown');
+}
+
+// Add in-memory placeholder rows to D.companies for opportunity company names
+// that don't already exist in the Companies tab. Returns the real company_ids
+// of opportunity companies that *already* exist in Companies (eligible for
+// auto-sync) plus the placeholder rows that were added.
+function applyOpportunityPlaceholders(names){
+  const D = window.__DATA || {};
+  const existing = D.companies || [];
+  const byNameLower = new Map();
+  existing.forEach(co => {
+    if(co && co.name) byNameLower.set(String(co.name).trim().toLowerCase(), co);
+  });
+  const placeholders = [];
+  const realIds = [];
+  for(const rawName of (names||[])){
+    const name = String(rawName||'').trim();
+    if(!name) continue;
+    const key = name.toLowerCase();
+    const existingCo = byNameLower.get(key);
+    if(existingCo){
+      if(existingCo.company_id && !existingCo._opportunity) realIds.push(existingCo.company_id);
+      continue;
+    }
+    const placeholder = {
+      company_id: opportunityPlaceholderId(name),
+      name,
+      partners: [],
+      badges: [],
+      _opportunity: true
+    };
+    placeholders.push(placeholder);
+    byNameLower.set(key, placeholder);
+  }
+  if(placeholders.length){
+    D.companies = existing.concat(placeholders);
+  }
+  window.__OPPORTUNITY_NAMES = (names||[]).slice();
+  return { placeholders, realIds };
+}
+
 function buildIndexes(){
   const D = window.__DATA || {};
   const idx = {
@@ -1371,12 +1476,15 @@ function renderList(){
       const isOpen=cid===openId;
       const safeCid=escapeHtml(cid);
       const co=(IDX.companyById&&IDX.companyById[cid])||{};
-      const subtitle=[co.industry,co.hq].filter(Boolean).join(' · ');
+      const isOpp=!!co._opportunity;
+      const subtitle=isOpp
+        ? 'From opportunities · not yet in database'
+        : [co.industry,co.hq].filter(Boolean).join(' · ');
       const firstLetter=((g.name||'?').trim()[0]||'?').toUpperCase();
-      const countLabel=g.contacts.length===1?'1 contact':`${g.contacts.length} contacts`;
+      const countLabel=isOpp ? 'Lead' : (g.contacts.length===1?'1 contact':`${g.contacts.length} contacts`);
       const detailHtml=isOpen?renderCompanyExpanded(cid):'';
       return `<div class="list-section" data-company-section="${safeCid}">
-        <button class="contact-item company-card" type="button" data-company-toggle="${safeCid}" aria-expanded="${isOpen?'true':'false'}">
+        <button class="contact-item company-card${isOpp?' company-card--opportunity':''}" type="button" data-company-toggle="${safeCid}" aria-expanded="${isOpen?'true':'false'}">
           <div class="avatar avatar--md avatar--ink">${escapeHtml(firstLetter)}</div>
           <div class="contact-item__body">
             <div class="company-card__name">${escapeHtml(g.name)}</div>
@@ -1444,6 +1552,15 @@ function renderCompanyExpanded(companyId){
   const IDX=window.__INDEX||{};
   const co=(IDX.companyById&&IDX.companyById[companyId])||null;
   if(!co) return '<div class="empty" style="padding:var(--s-5)"><b>Company not found</b></div>';
+  if(co._opportunity){
+    return `<div class="section">
+        <div class="section__head"><span class="section__title">${escapeHtml(co.name||'')}</span></div>
+        <div class="section__body">
+          <p class="prose">This company appears in your opportunities sheet but isn't in your contact database yet.</p>
+          <p class="prose" style="color:var(--ink-3);font-size:13px;margin-top:8px">Add a contact at this company (use the new-contact form and pick "+ Create new company") to enable opportunity sync.</p>
+        </div>
+      </div>`;
+  }
   const contactsAtCo=(D.contacts||[]).filter(c=>c.company_id===companyId && c.contact_id);
   const nameToContactId=new Map();
   contactsAtCo.forEach(c=>{
@@ -3844,13 +3961,16 @@ function firstNamesMatch(a, b){
   return false;
 }
 
-async function syncOpportunityContacts(companyId){
+async function syncOpportunityContacts(companyId, opts){
+  const silent = !!(opts && opts.silent);
+  const skipReload = !!(opts && opts.skipReload);
   const IDX=window.__INDEX||{};
   const D=window.__DATA||{};
   const co=(IDX.companyById&&IDX.companyById[companyId])||null;
-  if(!co){showToast('Company not found');return;}
+  if(!co){ if(!silent) showToast('Company not found'); return; }
+  if(co._opportunity){ if(!silent) showToast('Add this company to the database first'); return; }
   const companyName=co.name||'';
-  if(!companyName){showToast('Company has no name');return;}
+  if(!companyName){ if(!silent) showToast('Company has no name'); return; }
 
   const btn=document.getElementById('sync-btn-'+companyId);
   const origHTML=btn?btn.innerHTML:'';
@@ -4121,20 +4241,87 @@ async function syncOpportunityContacts(companyId){
     const parts=[];
     if(newContacts.length) parts.push(newContacts.length+' new contact'+(newContacts.length===1?'':'s')+' added');
     if(alreadyExists.length) parts.push(alreadyExists.length+' already in database');
-    showToast('Synced: '+parts.join(', '));
+    if(!silent) showToast('Synced: '+parts.join(', '));
 
-    setTimeout(()=>{
-      loadAllData()
-        .then(()=>{buildIndexes();populateCompanySelect();renderList();
-          const v=(location.hash.split('/')[2])||'';if(v) renderContactDetail(v);})
-        .catch(err=>console.error('[LeadCheck] Sync refresh failed',err));
-    },2000);
+    if(!skipReload){
+      setTimeout(()=>{
+        loadAllData()
+          .then(()=>{
+            if(window.__OPPORTUNITY_NAMES) applyOpportunityPlaceholders(window.__OPPORTUNITY_NAMES);
+            buildIndexes();populateCompanySelect();renderList();
+            const v=(location.hash.split('/')[2])||'';if(v) renderContactDetail(v);
+          })
+          .catch(err=>console.error('[LeadCheck] Sync refresh failed',err));
+      },2000);
+    }
 
+    return { newContacts: newContacts.length, alreadyExists: alreadyExists.length };
   } catch(err){
     console.error('[LeadCheck] Sync failed',err);
-    showToast('Sync failed: '+(err.message||err));
+    if(!silent) showToast('Sync failed: '+(err.message||err));
+    return { error: err };
   } finally {
     if(btn){btn.disabled=false;btn.innerHTML=origHTML;}
+  }
+}
+
+let __autoSyncRunning = false;
+
+function showAutoSyncStatus(msg){
+  let el = document.getElementById('auto-sync-status');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'auto-sync-status';
+    el.style.cssText = 'position:sticky;top:0;z-index:50;background:var(--bg-tint);color:var(--ink-2);padding:8px 16px;font-size:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px';
+    const main = document.querySelector('main');
+    if(main && main.parentNode) main.parentNode.insertBefore(el, main);
+    else document.body.insertBefore(el, document.body.firstChild);
+  }
+  el.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2.5 11.5a10 10 0 0 1 18.17-4.5M21.5 12.5a10 10 0 0 1-18.17 4.5"/></svg><span>'+escapeHtml(msg)+'</span>';
+}
+
+function hideAutoSyncStatus(){
+  const el = document.getElementById('auto-sync-status');
+  if(el) el.remove();
+}
+
+// Sequentially run syncOpportunityContacts for each opportunity company that
+// already has a real Companies row. Placeholders are listed but not synced
+// (they have no real company_id to attach contacts to).
+async function autoSyncOpportunityCompanies(companyIds){
+  if(__autoSyncRunning) return;
+  const ids = (companyIds||[]).filter(Boolean);
+  if(!ids.length){ hideAutoSyncStatus(); return; }
+  __autoSyncRunning = true;
+  try {
+    const total = ids.length;
+    for(let i=0;i<total;i++){
+      const cid = ids[i];
+      const co = (window.__INDEX && window.__INDEX.companyById && window.__INDEX.companyById[cid]) || null;
+      const name = co ? (co.name||'') : '';
+      showAutoSyncStatus('Syncing opportunities '+(i+1)+' of '+total+(name ? ' · '+name : '')+'…');
+      try {
+        await syncOpportunityContacts(cid, { silent: true, skipReload: true });
+      } catch(err){
+        console.error('[LeadCheck] auto-sync error for', cid, err);
+      }
+      await new Promise(r => setTimeout(r, 500));
+    }
+    showAutoSyncStatus('Refreshing data…');
+    try {
+      await loadAllData();
+      if(window.__OPPORTUNITY_NAMES) applyOpportunityPlaceholders(window.__OPPORTUNITY_NAMES);
+      buildIndexes();
+      if(typeof populateCompanySelect === 'function') populateCompanySelect();
+      renderList();
+      const v = (location.hash.split('/')[2]) || '';
+      if(v) renderContactDetail(v);
+    } catch(err){
+      console.error('[LeadCheck] post-auto-sync reload failed', err);
+    }
+    hideAutoSyncStatus();
+  } finally {
+    __autoSyncRunning = false;
   }
 }
 
@@ -4770,15 +4957,39 @@ document.querySelectorAll('.app-nav__tab').forEach(tab=>{
 
 /* ========== End Company Search ========== */
 
-// Bootstrap: fetch live data, then render.
+// Bootstrap: fetch live data, then render. On every page open we also pull
+// the list of opportunity company names from the Apps Script backend, surface
+// any that aren't yet in the Companies tab as placeholder cards in the Lead
+// Check section, and kick off a background syncOpportunities pass for each
+// real company that appears in opportunities.
 showDataLoading();
 loadAllData()
-  .then(()=>{
+  .then(async ()=>{
     buildIndexes();
     console.log('[LeadCheck] Data loaded:', window.__DATA, window.__INDEX);
     populateCompanySelect();
     renderList();
     handleHash();
+
+    showAutoSyncStatus('Loading opportunity companies…');
+    let realIds = [];
+    try {
+      const names = await fetchOpportunityCompanies();
+      console.log('[LeadCheck] Opportunity companies:', names.length);
+      const applied = applyOpportunityPlaceholders(names);
+      realIds = applied.realIds;
+      buildIndexes();
+      populateCompanySelect();
+      renderList();
+    } catch(err){
+      console.error('[LeadCheck] opportunity bootstrap failed', err);
+    }
+
+    if(realIds.length){
+      autoSyncOpportunityCompanies(realIds);
+    } else {
+      hideAutoSyncStatus();
+    }
   })
   .catch(err=>{
     console.error('[LeadCheck] loadAllData failed', err);
