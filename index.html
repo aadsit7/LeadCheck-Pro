@@ -3777,6 +3777,11 @@ function showToast(msg){
 
 /* ========== AI Research Agent (Milestone 1) ========== */
 
+// RESEARCH_PROMPT is reference documentation only — the live prompt that gets
+// sent to Anthropic lives in the Apps Script backend (it was moved there in
+// commit 0d3f1f2 to remove the embedded API key). Treat the body of this
+// function as the canonical version of the prompt and mirror any edits into
+// the Apps Script's research handler so the runtime stays in sync.
 function RESEARCH_PROMPT(name, company){
   const companyKnown = !!(company && company.trim());
   const companyTarget = companyKnown ? company : '(unknown — identify the current employer from their LinkedIn profile)';
@@ -3787,8 +3792,9 @@ Target company: ${companyTarget}
 
 RESEARCH STEPS
 1. Search LinkedIn for "${name}"${companyKnown?` at "${company}"`:''}. Capture exact current title, location, education, certifications, LinkedIn URL${companyKnown?'':', and the exact canonical name of their current employer'}.
+   IMPORTANT: also search common nickname/full-name variants (e.g. Bill↔William, Bob↔Robert, Mike↔Michael, Jim↔James, Tom↔Thomas, Kate↔Katherine, Liz↔Elizabeth, Chris↔Christopher, Tony↔Anthony, Rob↔Robert, Dave↔David, Joe↔Joseph, Dan↔Daniel, Tim↔Timothy, Steve↔Steven, Pat↔Patrick, Dick/Rick↔Richard, Ben↔Benjamin, Andy↔Andrew, Ed/Ted↔Edward, Charlie/Chuck↔Charles, Greg↔Gregory, Frank↔Francis, Fred↔Frederick, Sam↔Samuel, Pete↔Peter, Phil↔Philip, Ray↔Raymond, Ron↔Ronald). If a nickname-variant profile turns up (e.g. "William Francesconi" for "Bill Francesconi"), treat it as the same person and surface what you find — don't discard partial matches.
 2. Search the company website and ${companyKnown?`"${company}"`:"the identified company's"} leadership/team pages.
-3. Google the person with terms like "article", "blog", "podcast", "webinar", "keynote", "speaker" to surface recent public content.
+3. Google the person with terms like "article", "blog", "podcast", "webinar", "keynote", "speaker" to surface recent public content. Also check ZoomInfo, RocketReach, Crunchbase, and The Org for confirmed title/role.
 4. Determine the company's email pattern (rocketreach, hunter, LinkedIn contact info, press releases). If the pattern is well-sourced, construct the person's email from it.
 5. Find upcoming events where they speak or appear in the agenda.
 6. Reporting chain: CEO, the function head (SVP/EVP) they ladder up to, their direct manager, and 2-4 peer directors. Use leadership pages, press releases, and LinkedIn.
@@ -3796,14 +3802,24 @@ RESEARCH STEPS
 
 RULES
 - Only include information you can verify from public sources. If unknown, use null, empty string, or empty array. Do NOT fabricate.
+- Surface partial findings even when verification is incomplete. If a ZoomInfo / RocketReach / The Org listing names the person at the company but you can't find a LinkedIn match, populate title from that source, set verified=false, and lower overall_confidence — but still include the data and source. An empty record is worse than a partially-verified one.
 - Include a source_url on every claim that carries one in the schema.
 - email_confidence: "HIGH" if the address is directly verified; "MEDIUM" if constructed from a verified pattern; "LOW" if guessed.
 - overall_confidence: integer 0-100 reflecting how well-sourced the overall record is.
 - org_chart entries: verified is "CONFIRMED" when sourced directly, "INFERRED" when deduced.
 - All dates in YYYY-MM-DD format.
 
-OUTPUT
-Respond with ONLY a single valid JSON object in the exact shape below. No markdown, no backticks, no preamble, no trailing commentary — just the JSON.
+OUTPUT FORMAT — READ CAREFULLY
+Your ENTIRE response must be a single JSON object and NOTHING else.
+- The very first character of your response MUST be \`{\`.
+- The very last character of your response MUST be \`}\`.
+- Do NOT write any explanation, summary, caveat, or commentary before or after the JSON.
+- Do NOT wrap the JSON in markdown code fences (\`\`\`json … \`\`\`).
+- Do NOT include any \`{\` or \`}\` characters outside the single top-level JSON object.
+- If you have caveats, put them inside the "background" string field — never as prose around the JSON.
+- This is a non-negotiable requirement: the response is parsed by a machine that fails if any non-JSON text appears.
+
+Use the exact shape below:
 
 {
   "title": "",
@@ -3865,6 +3881,49 @@ Respond with ONLY a single valid JSON object in the exact shape below. No markdo
 The JSON must be valid and parseable — no trailing commas, no comments, no extra keys.`;
 }
 
+// Find the largest top-level balanced JSON object in `text`. Walks every '{'
+// and matches braces while respecting strings and escapes, so prose like
+// "format is {first}.{last}@example.com" before the real JSON doesn't break
+// extraction. Returns the parsed object or null if none found.
+function extractLargestJsonObject(text){
+  if(!text) return null;
+  let bestParsed = null;
+  let bestLen = 0;
+  const len = text.length;
+  for(let start = 0; start < len; start++){
+    if(text[start] !== '{') continue;
+    let depth = 0, inString = false, escape = false;
+    for(let i = start; i < len; i++){
+      const ch = text[i];
+      if(escape){ escape = false; continue; }
+      if(inString){
+        if(ch === '\\') escape = true;
+        else if(ch === '"') inString = false;
+        continue;
+      }
+      if(ch === '"'){ inString = true; continue; }
+      if(ch === '{') depth++;
+      else if(ch === '}'){
+        depth--;
+        if(depth === 0){
+          const slice = text.slice(start, i + 1);
+          if(slice.length > bestLen){
+            try {
+              const parsed = JSON.parse(slice);
+              if(parsed && typeof parsed === 'object' && !Array.isArray(parsed)){
+                bestParsed = parsed;
+                bestLen = slice.length;
+              }
+            } catch(_) {}
+          }
+          break;
+        }
+      }
+    }
+  }
+  return bestParsed;
+}
+
 async function callResearchAPI(name, company){
   const resp = await fetch(CONFIG.WEB_APP_URL, {
     method: 'POST',
@@ -3903,29 +3962,23 @@ async function callResearchAPI(name, company){
     throw new Error("Research completed but returned no text content");
   }
 
-  // Strip a wrapping ```json … ``` fence if present.
-  let raw = text;
-  const fence = raw.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
-  if(fence) raw = fence[1].trim();
+  // 1. Try direct parse (handles the happy path: pure JSON-only response).
+  try { return JSON.parse(text); } catch(_) {}
 
-  // Try straight parse first; if that fails, fall back to substring from first { to last }.
-  try {
-    return JSON.parse(raw);
-  } catch(e1) {
-    const first = raw.indexOf('{');
-    const last = raw.lastIndexOf('}');
-    if(first >= 0 && last > first){
-      const slice = raw.slice(first, last + 1);
-      try {
-        return JSON.parse(slice);
-      } catch(e2) {
-        console.error('[LeadCheck] Failed to parse JSON slice. Slice preview:', slice.slice(0, 500));
-        throw new Error("Research completed but couldn't parse results — try again");
-      }
-    }
-    console.error('[LeadCheck] No JSON object found in extracted text.');
-    throw new Error("Research completed but couldn't parse results — try again");
+  // 2. Strip a wrapping ```json … ``` fence if present, and try again.
+  const fence = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if(fence){
+    try { return JSON.parse(fence[1].trim()); } catch(_) {}
   }
+
+  // 3. Walk the text and find the largest balanced { … } object that parses.
+  // This survives any preamble/trailing prose, including prose that contains
+  // stray `{` or `}` characters (e.g. an email-format example).
+  const parsed = extractLargestJsonObject(text);
+  if(parsed) return parsed;
+
+  console.error('[LeadCheck] Failed to extract JSON. Text preview:', text.slice(0, 800));
+  throw new Error("Research completed but couldn't parse results — try again");
 }
 
 const SYNC_NICKNAMES = (() => {
