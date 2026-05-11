@@ -4068,6 +4068,37 @@ function firstNamesMatch(a, b){
   return false;
 }
 
+// Common company-name suffixes used to filter out "people" extracted by the
+// sync model that are actually organizations (e.g. "Acme Inc", "Nerdio").
+const COMPANY_NAME_SUFFIXES = new Set([
+  'inc','inc.','incorporated','corp','corp.','corporation','llc','ltd','ltd.','limited',
+  'gmbh','ag','sa','plc','co','co.','company','group','holdings','holding',
+  'software','systems','solutions','technologies','technology','tech',
+  'consulting','services','partners','associates','industries','enterprises',
+  'capital','ventures','networks','labs','foundation','trust'
+]);
+
+// True if a name returned by the sync prompt looks like an organization, not
+// a person — protects against the model echoing the company name back as a
+// "contact" (e.g. transcripts that say "discussed with Nerdio about pricing").
+function looksLikeCompanyNotPerson(name, companyName){
+  const n = normalizeForMatch(name);
+  if(!n) return true;
+  const co = normalizeForMatch(companyName);
+  if(co && n === co) return true;
+  const parts = n.split(' ').filter(Boolean);
+  // Single-word name that overlaps with any token of the company name —
+  // almost always the company itself rather than a real person.
+  if(parts.length === 1 && co){
+    const coParts = co.split(' ').filter(Boolean);
+    if(coParts.indexOf(parts[0]) !== -1) return true;
+  }
+  // Ends in a recognised corporate suffix.
+  const last = parts[parts.length - 1] || '';
+  if(COMPANY_NAME_SUFFIXES.has(last)) return true;
+  return false;
+}
+
 // Calls a backend sync action (e.g. 'syncOpportunities', 'syncPartners') for a
 // company and returns the parsed array of contact objects. Throws if the HTTP
 // call fails or the response can't be parsed. Returns [] when the action
@@ -4225,6 +4256,10 @@ async function syncOpportunityContacts(companyId, opts){
 
     for(const c of contacts){
       if(!c||!c.name) continue;
+      if(looksLikeCompanyNotPerson(c.name, companyName)){
+        console.log('[LeadCheck Sync] skipping company-shaped name:', c.name);
+        continue;
+      }
 
       const rawName=String(c.name||'');
       let extractedEmail=String(c.email||'').trim();
