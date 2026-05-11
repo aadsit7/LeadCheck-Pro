@@ -1197,15 +1197,15 @@ async function loadAllData(){
   return window.__DATA;
 }
 
-// Fetch opportunity company names from the Apps Script backend.
-// Backend action: 'listOpportunityCompanies' — reads the linked Opportunities
-// sheet and returns company names. Tolerates a few response shapes (raw array,
-// {companies}, {names}, or anthropic-style {content:[{type:'text',text:'...'}]}).
-async function fetchOpportunityCompanies(){
+// Fetch company names from a list-style backend action ('listOpportunityCompanies'
+// reads the Opportunities sheet, 'listPartnerCompanies' reads the Partners
+// sheet). Tolerates a few response shapes (raw array, {companies}, {names}, or
+// anthropic-style {content:[{type:'text',text:'...'}]}).
+async function fetchCompanyNamesFromAction(action){
   try {
     const resp = await fetch(CONFIG.WEB_APP_URL, {
       method: 'POST',
-      body: JSON.stringify({ action: 'listOpportunityCompanies' })
+      body: JSON.stringify({ action })
     });
     if(!resp.ok) throw new Error('HTTP ' + resp.status);
     const rawBody = await resp.text();
@@ -1253,9 +1253,31 @@ async function fetchOpportunityCompanies(){
     }
     return out;
   } catch(err){
-    console.error('[LeadCheck] listOpportunityCompanies failed', err);
+    console.error('[LeadCheck] '+action+' failed', err);
     return [];
   }
+}
+
+function fetchOpportunityCompanies(){ return fetchCompanyNamesFromAction('listOpportunityCompanies'); }
+function fetchPartnerCompanies(){ return fetchCompanyNamesFromAction('listPartnerCompanies'); }
+
+// Merge multiple lists of company names, case-insensitive dedupe, keeping the
+// first-seen casing.
+function mergeCompanyNameLists(lists){
+  const out = [];
+  const seen = new Set();
+  for(const list of (lists||[])){
+    if(!Array.isArray(list)) continue;
+    for(const raw of list){
+      const t = String(raw||'').trim();
+      if(!t) continue;
+      const k = t.toLowerCase();
+      if(seen.has(k)) continue;
+      seen.add(k);
+      out.push(t);
+    }
+  }
+  return out;
 }
 
 function opportunityPlaceholderId(name){
@@ -1510,7 +1532,7 @@ function renderList(){
       const co=(IDX.companyById&&IDX.companyById[cid])||{};
       const isOpp=!!co._opportunity;
       const subtitle=isOpp
-        ? 'From opportunities · not yet in database'
+        ? 'From opportunities or partners · not yet in database'
         : [co.industry,co.hq].filter(Boolean).join(' · ');
       const firstLetter=((g.name||'?').trim()[0]||'?').toUpperCase();
       const countLabel=isOpp ? 'Lead' : (g.contacts.length===1?'1 contact':`${g.contacts.length} contacts`);
@@ -1588,8 +1610,8 @@ function renderCompanyExpanded(companyId){
     return `<div class="section">
         <div class="section__head"><span class="section__title">${escapeHtml(co.name||'')}</span></div>
         <div class="section__body">
-          <p class="prose">This company appears in your opportunities sheet but isn't in your contact database yet.</p>
-          <p class="prose" style="color:var(--ink-3);font-size:13px;margin-top:8px">Add a contact at this company (use the new-contact form and pick "+ Create new company") to enable opportunity sync.</p>
+          <p class="prose">This company appears in your opportunities or partners sheet but isn't in your contact database yet.</p>
+          <p class="prose" style="color:var(--ink-3);font-size:13px;margin-top:8px">Add a contact at this company (use the new-contact form and pick "+ Create new company") to enable opportunity & partner sync.</p>
         </div>
       </div>`;
   }
@@ -4046,6 +4068,112 @@ function firstNamesMatch(a, b){
   return false;
 }
 
+// Calls a backend sync action (e.g. 'syncOpportunities', 'syncPartners') for a
+// company and returns the parsed array of contact objects. Throws if the HTTP
+// call fails or the response can't be parsed. Returns [] when the action
+// completes but the source has no notes for this company.
+async function fetchSyncedContactsFromSource(action, companyName){
+  const resp = await fetch(CONFIG.WEB_APP_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action, companyName })
+  });
+  if(!resp.ok){
+    const errText = await resp.text().catch(()=>'');
+    throw new Error('API '+resp.status+' ('+action+'): '+errText.slice(0,200));
+  }
+  const rawBody = await resp.text();
+  console.log('[LeadCheck Sync]', action, 'raw response length:', rawBody.length);
+
+  let data;
+  try{ data = JSON.parse(rawBody); }
+  catch(e){ throw new Error('Server returned non-JSON response ('+action+')'); }
+
+  for(let i=0;i<4&&data&&typeof data==='object'&&!Array.isArray(data.content);i++){
+    const next = data.data ?? data.response ?? data.result ?? data.body ?? data.payload;
+    if(next == null) break;
+    data = (typeof next === 'string')
+      ? (()=>{ try{ return JSON.parse(next); }catch(e){ return next; } })()
+      : next;
+  }
+  if(typeof data === 'string'){ try{ data = JSON.parse(data); }catch(e){} }
+
+  const blocks = (data && Array.isArray(data.content)) ? data.content : [];
+  const textBlocks = blocks.filter(b => b && b.type === 'text');
+  const text = textBlocks.map(b => b.text || '').join('\n').trim();
+
+  console.log('[LeadCheck Sync]', action, 'content blocks:', blocks.length,
+    '| text blocks:', textBlocks.length,
+    '| extracted text preview:', text.slice(0,500));
+
+  if(!text) return [];
+
+  let raw = text;
+  const fence = raw.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+  if(fence) raw = fence[1].trim();
+
+  let contacts;
+  try{ contacts = JSON.parse(raw); }
+  catch(e1){
+    const first = raw.indexOf('[');
+    const last = raw.lastIndexOf(']');
+    if(first >= 0 && last > first){
+      try{ contacts = JSON.parse(raw.slice(first, last+1)); }
+      catch(e2){ throw new Error("Couldn't parse results from "+action); }
+    } else {
+      throw new Error("Couldn't parse results from "+action);
+    }
+  }
+
+  if(!Array.isArray(contacts)) contacts = [contacts];
+  return contacts;
+}
+
+// Merge contact objects coming from multiple sync sources (e.g. opportunities
+// and partners). When the same person appears in both, we concatenate the
+// context notes and fill in any blank fields from the second mention so the
+// downstream matching/insert logic sees the richest version.
+function mergeSyncedContactsFromSources(sources){
+  const byKey = new Map();
+  const SCALAR_FIELDS = ['email','title','linkedin_url','role_in_deal','reports_to','sentiment'];
+  for(const list of (sources||[])){
+    if(!Array.isArray(list)) continue;
+    for(const c of list){
+      if(!c || !c.name) continue;
+      const nameNorm = normalizeForMatch(c.name);
+      const emailNorm = String(c.email||'').toLowerCase().trim();
+      const key = emailNorm ? ('email:'+emailNorm) : ('name:'+nameNorm);
+      if(!key || key === 'email:' || key === 'name:') continue;
+      const existing = byKey.get(key);
+      if(!existing){
+        byKey.set(key, Object.assign({}, c, {
+          priorities: Array.isArray(c.priorities) ? c.priorities.slice() : []
+        }));
+        continue;
+      }
+      const newCtx = String(c.context||'').trim();
+      const exCtx = String(existing.context||'').trim();
+      if(newCtx && newCtx !== exCtx){
+        existing.context = exCtx ? (exCtx + '\n\n' + newCtx) : newCtx;
+      }
+      SCALAR_FIELDS.forEach(field => {
+        if(!String(existing[field]||'').trim() && String(c[field]||'').trim()){
+          existing[field] = c[field];
+        }
+      });
+      if(Array.isArray(c.priorities) && c.priorities.length){
+        const ex = Array.isArray(existing.priorities) ? existing.priorities : [];
+        const seen = new Set(ex.map(p => String(p).toLowerCase()));
+        c.priorities.forEach(p => {
+          const lp = String(p).toLowerCase();
+          if(!seen.has(lp)){ ex.push(p); seen.add(lp); }
+        });
+        existing.priorities = ex;
+      }
+    }
+  }
+  return Array.from(byKey.values());
+}
+
 async function syncOpportunityContacts(companyId, opts){
   const silent = !!(opts && opts.silent);
   const skipReload = !!(opts && opts.skipReload);
@@ -4061,60 +4189,34 @@ async function syncOpportunityContacts(companyId, opts){
   const origHTML=btn?btn.innerHTML:'';
   if(btn){
     btn.disabled=true;
-    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2.5 11.5a10 10 0 0 1 18.17-4.5M21.5 12.5a10 10 0 0 1-18.17 4.5"/></svg> Scanning opportunity notes for '+escapeHtml(companyName)+'…';
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2.5 11.5a10 10 0 0 1 18.17-4.5M21.5 12.5a10 10 0 0 1-18.17 4.5"/></svg> Scanning opportunity & partner notes for '+escapeHtml(companyName)+'…';
   }
 
   try {
-    const resp=await fetch(CONFIG.WEB_APP_URL,{
-      method:'POST',
-      body:JSON.stringify({action:'syncOpportunities',companyName})
-    });
-    if(!resp.ok){
-      const errText=await resp.text().catch(()=>'');
-      throw new Error('API '+resp.status+': '+errText.slice(0,200));
-    }
-    const rawBody=await resp.text();
-    console.log('[LeadCheck Sync] Raw response length:', rawBody.length);
+    const SYNC_SOURCES = ['syncOpportunities', 'syncPartners'];
+    const settled = await Promise.allSettled(
+      SYNC_SOURCES.map(action => fetchSyncedContactsFromSource(action, companyName))
+    );
 
-    let data;
-    try{data=JSON.parse(rawBody);}
-    catch(e){throw new Error('Server returned non-JSON response');}
-
-    for(let i=0;i<4&&data&&typeof data==='object'&&!Array.isArray(data.content);i++){
-      const next=data.data??data.response??data.result??data.body??data.payload;
-      if(next==null)break;
-      data=(typeof next==='string')?(()=>{try{return JSON.parse(next);}catch(e){return next;}})():next;
-    }
-    if(typeof data==='string'){try{data=JSON.parse(data);}catch(e){}}
-
-    const blocks=(data&&Array.isArray(data.content))?data.content:[];
-    const textBlocks=blocks.filter(b=>b&&b.type==='text');
-    const text=textBlocks.map(b=>b.text||'').join('\n').trim();
-
-    console.log('[LeadCheck Sync] Content blocks:', blocks.length,
-      '| text blocks:', textBlocks.length,
-      '| extracted text preview:', text.slice(0,500));
-
-    if(!text) throw new Error('Sync completed but returned no text content');
-
-    let raw=text;
-    const fence=raw.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
-    if(fence) raw=fence[1].trim();
-
-    let contacts;
-    try{contacts=JSON.parse(raw);}
-    catch(e1){
-      const first=raw.indexOf('[');
-      const last=raw.lastIndexOf(']');
-      if(first>=0&&last>first){
-        try{contacts=JSON.parse(raw.slice(first,last+1));}
-        catch(e2){throw new Error("Sync completed but couldn't parse results");}
+    const sourceLists = [];
+    const sourceErrors = [];
+    settled.forEach((r, i) => {
+      const action = SYNC_SOURCES[i];
+      if(r.status === 'fulfilled'){
+        console.log('[LeadCheck Sync]', action, 'returned', (r.value||[]).length, 'contacts');
+        sourceLists.push(r.value || []);
       } else {
-        throw new Error("Sync completed but couldn't parse results");
+        console.warn('[LeadCheck Sync]', action, 'failed:', r.reason);
+        sourceErrors.push({ action, error: r.reason });
       }
+    });
+
+    if(!sourceLists.length){
+      const first = sourceErrors[0];
+      throw new Error(first ? (first.error && first.error.message || String(first.error)) : 'Sync failed');
     }
 
-    if(!Array.isArray(contacts)) contacts=[contacts];
+    const contacts = mergeSyncedContactsFromSources(sourceLists);
 
     const existingContacts=D.contacts||[];
     const newContacts=[];
@@ -4326,7 +4428,7 @@ async function syncOpportunityContacts(companyId, opts){
     const parts=[];
     if(newContacts.length) parts.push(newContacts.length+' new contact'+(newContacts.length===1?'':'s')+' added');
     if(alreadyExists.length) parts.push(alreadyExists.length+' already in database');
-    if(!silent) showToast('Synced: '+parts.join(', '));
+    if(!silent) showToast(parts.length ? ('Synced: '+parts.join(', ')) : 'Sync complete · no new contacts found');
 
     if(!skipReload){
       setTimeout(()=>{
@@ -4370,9 +4472,10 @@ function hideAutoSyncStatus(){
   if(el) el.remove();
 }
 
-// Sequentially run syncOpportunityContacts for each opportunity company that
-// already has a real Companies row. Placeholders are listed but not synced
-// (they have no real company_id to attach contacts to).
+// Sequentially run syncOpportunityContacts for each company sourced from the
+// Opportunities or Partners sheets that already has a real Companies row.
+// Placeholders are listed but not synced (they have no real company_id to
+// attach contacts to).
 async function autoSyncOpportunityCompanies(companyIds){
   if(__autoSyncRunning) return;
   const ids = (companyIds||[]).filter(Boolean);
@@ -4384,7 +4487,7 @@ async function autoSyncOpportunityCompanies(companyIds){
       const cid = ids[i];
       const co = (window.__INDEX && window.__INDEX.companyById && window.__INDEX.companyById[cid]) || null;
       const name = co ? (co.name||'') : '';
-      showAutoSyncStatus('Syncing opportunities '+(i+1)+' of '+total+(name ? ' · '+name : '')+'…');
+      showAutoSyncStatus('Syncing opportunities & partners '+(i+1)+' of '+total+(name ? ' · '+name : '')+'…');
       try {
         await syncOpportunityContacts(cid, { silent: true, skipReload: true });
       } catch(err){
@@ -5043,10 +5146,11 @@ document.querySelectorAll('.app-nav__tab').forEach(tab=>{
 /* ========== End Company Search ========== */
 
 // Bootstrap: fetch live data, then render. On every page open we also pull
-// the list of opportunity company names from the Apps Script backend, surface
-// any that aren't yet in the Companies tab as placeholder cards in the Lead
-// Check section, and kick off a background syncOpportunities pass for each
-// real company that appears in opportunities.
+// the list of opportunity and partner company names from the Apps Script
+// backend, surface any that aren't yet in the Companies tab as placeholder
+// cards in the Lead Check section, and kick off a background sync pass
+// (opportunities + partner notes) for each real company that appears in
+// either source.
 showDataLoading();
 loadAllData()
   .then(async ()=>{
@@ -5056,15 +5160,20 @@ loadAllData()
     renderList();
     handleHash();
 
-    showAutoSyncStatus('Loading opportunity companies…');
+    showAutoSyncStatus('Loading opportunity & partner companies…');
     let allOpportunityIds = [];
     try {
-      const names = await fetchOpportunityCompanies();
-      console.log('[LeadCheck] Opportunity companies:', names.length);
+      const [oppNames, partnerNames] = await Promise.all([
+        fetchOpportunityCompanies(),
+        fetchPartnerCompanies()
+      ]);
+      console.log('[LeadCheck] Opportunity companies:', oppNames.length,
+        '| Partner companies:', partnerNames.length);
+      const names = mergeCompanyNameLists([oppNames, partnerNames]);
       const applied = applyOpportunityPlaceholders(names);
       // Promote any placeholders to real Companies rows before render so every
-      // opportunity company gets the full company experience (Sync Contacts
-      // button, expanded view, contact list, etc.) on first page open.
+      // opportunity or partner company gets the full company experience (Sync
+      // Contacts button, expanded view, contact list, etc.) on first page open.
       let promotedIds = [];
       if(applied.placeholders.length){
         promotedIds = await promoteOpportunityPlaceholders(applied.placeholders);
@@ -5074,7 +5183,7 @@ loadAllData()
       renderList();
       allOpportunityIds = applied.realIds.concat(promotedIds);
     } catch(err){
-      console.error('[LeadCheck] opportunity bootstrap failed', err);
+      console.error('[LeadCheck] opportunity/partner bootstrap failed', err);
     }
 
     if(allOpportunityIds.length){
