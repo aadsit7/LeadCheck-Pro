@@ -120,6 +120,13 @@ main{flex:1;padding-bottom:var(--s-9)}
 .contact-list{display:flex;flex-direction:column;gap:2px}
 .contact-item{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3);border-radius:var(--r-md);cursor:pointer;transition:background var(--t-fast) var(--ease);text-align:left;width:100%}
 .contact-item:hover{background:var(--bg-tint)}
+.contact-item--row:focus{outline:2px solid var(--primary);outline-offset:2px}
+.contact-item__actions{display:flex;gap:2px;flex-shrink:0;opacity:0;transition:opacity var(--t-fast) var(--ease)}
+.contact-item--row:hover .contact-item__actions,
+.contact-item--row:focus-within .contact-item__actions{opacity:1}
+.contact-item__action{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;color:var(--ink-3);background:transparent;transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
+.contact-item__action:hover{background:#fff;color:var(--ink)}
+.contact-item__action--danger:hover{background:#fee2e2;color:#b91c1c}
 
 .avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:var(--r-sm);font-weight:700;flex-shrink:0;letter-spacing:-.02em;font-feature-settings:'tnum'}
 .avatar--sm{width:28px;height:28px;font-size:11px}
@@ -2101,10 +2108,12 @@ function renderNodeSideGroups(node){
 }
 
 function itemHTML(c){
-  return`<button class="contact-item" data-route="contact" data-id="${escapeHtml(c.id)}">
+  const safeId=escapeHtml(c.id);
+  const safeName=escapeHtml(c.name);
+  return`<div class="contact-item contact-item--row" data-route="contact" data-id="${safeId}" role="button" tabindex="0" aria-label="Open ${safeName}">
     <div class="avatar avatar--md ${avatarClass(c)}">${escapeHtml(c.initials)}</div>
     <div class="contact-item__body">
-      <div class="contact-item__name">${escapeHtml(c.name)}</div>
+      <div class="contact-item__name">${safeName}</div>
       <div class="contact-item__sub">${escapeHtml(c.title)} · <b>${escapeHtml(c.company)}</b></div>
     </div>
     <div class="contact-item__meta">
@@ -2114,7 +2123,12 @@ function itemHTML(c){
         <span class="conf__num">${escapeHtml(c.conf)}</span>
       </div>
     </div>
-  </button>`;
+    <div class="contact-item__actions" role="group" aria-label="Contact actions">
+      <button class="contact-item__action" type="button" data-contact-action="edit" data-contact-id="${safeId}" aria-label="Edit ${safeName}" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="contact-item__action" type="button" data-contact-action="move" data-contact-id="${safeId}" aria-label="Move ${safeName} to another company" title="Move to another company"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
+      <button class="contact-item__action contact-item__action--danger" type="button" data-contact-action="delete" data-contact-id="${safeId}" aria-label="Delete ${safeName}" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></button>
+    </div>
+  </div>`;
 }
 
 const SVG_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
@@ -3177,9 +3191,55 @@ document.addEventListener('click',e=>{
     }
     return;
   }
+  const actionBtn=e.target.closest('[data-contact-action]');
+  if(actionBtn){
+    e.preventDefault();
+    e.stopPropagation();
+    handleContactAction(actionBtn.getAttribute('data-contact-action'), actionBtn.getAttribute('data-contact-id'));
+    return;
+  }
   const t=e.target.closest('[data-route]');
   if(t){e.preventDefault();navigate(t.dataset.route,t.dataset.id);}
 });
+
+// Keyboard support for contact rows (role="button" divs)
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter' && e.key!==' ') return;
+  const row=e.target.closest('.contact-item--row[data-route]');
+  if(!row) return;
+  if(e.target.closest('[data-contact-action]')) return; // let action buttons handle their own key events
+  e.preventDefault();
+  navigate(row.dataset.route, row.dataset.id);
+});
+
+async function handleContactAction(action, contactId){
+  if(!action || !contactId) return;
+  const IDX=window.__INDEX||{contactById:{}};
+  const raw=IDX.contactById[contactId];
+  if(!raw){ showToast('Contact not found'); return; }
+  const name=raw.full_name||raw.short_name||raw.email||'this contact';
+
+  if(action==='edit' || action==='move'){
+    openModal('edit', {id: contactId});
+    if(action==='move'){
+      setTimeout(()=>{
+        const sel=document.getElementById('f-company');
+        if(sel){ sel.focus(); }
+      }, 100);
+    }
+    return;
+  }
+
+  if(action==='delete'){
+    if(!confirm('Delete '+name+'?\n\nThis permanently removes them from the Contacts sheet and cannot be undone.')) return;
+    try {
+      await performContactDelete(contactId, name);
+    } catch(err){
+      console.error('[LeadCheck] inline delete failed', err);
+      showToast('Delete failed: '+(err.message||err));
+    }
+  }
+}
 
 document.querySelectorAll('.tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
@@ -4617,9 +4677,26 @@ async function autoSyncOpportunityCompanies(companyIds){
   if(!ids.length){ hideAutoSyncStatus(); return; }
   __autoSyncRunning = true;
   try {
-    const total = ids.length;
+    // Skip companies that already have at least one saved contact — those
+    // were synced on a prior page load and the contacts persist in the
+    // Contacts sheet. Users can still click "Sync Contacts" on a card to
+    // re-run the AI extraction manually (e.g. after adding a new transcript).
+    const D = window.__DATA || {};
+    const contactsByCompany = new Set(
+      (D.contacts || [])
+        .filter(c => c && c.contact_id && c.company_id)
+        .map(c => c.company_id)
+    );
+    const idsToSync = ids.filter(cid => !contactsByCompany.has(cid));
+    const skipped = ids.length - idsToSync.length;
+    if(skipped){
+      console.log('[LeadCheck Auto-Sync] skipping', skipped, 'companies that already have contacts');
+    }
+    if(!idsToSync.length){ hideAutoSyncStatus(); return; }
+
+    const total = idsToSync.length;
     for(let i=0;i<total;i++){
-      const cid = ids[i];
+      const cid = idsToSync[i];
       const co = (window.__INDEX && window.__INDEX.companyById && window.__INDEX.companyById[cid]) || null;
       const name = co ? (co.name||'') : '';
       showAutoSyncStatus('Syncing opportunities & partners '+(i+1)+' of '+total+(name ? ' · '+name : '')+'…');
