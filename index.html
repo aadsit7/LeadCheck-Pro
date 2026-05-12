@@ -84,6 +84,15 @@ main{flex:1;padding-bottom:var(--s-9)}
 .chip{padding:5px 10px;font-size:12px;font-weight:600;color:var(--ink-2);background:transparent;border-radius:100px;transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
 .chip:hover{background:var(--bg-tint)}
 .chip.active{background:var(--ink);color:#fff}
+.acct-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin:0 0 var(--s-3);overflow-x:auto;scrollbar-width:none}
+.acct-tabs::-webkit-scrollbar{display:none}
+.acct-tab{position:relative;padding:10px 14px 12px;font-size:13px;font-weight:500;color:var(--ink-3);white-space:nowrap;background:transparent;transition:color var(--t-fast) var(--ease);display:inline-flex;align-items:center;gap:6px}
+.acct-tab::after{content:'';position:absolute;left:12px;right:12px;bottom:-1px;height:2px;background:transparent;border-radius:2px 2px 0 0;transition:background var(--t-fast) var(--ease)}
+.acct-tab:hover{color:var(--ink)}
+.acct-tab.active{color:var(--ink);font-weight:600}
+.acct-tab.active::after{background:var(--primary)}
+.acct-tab__count{font-size:11px;font-weight:600;color:var(--ink-3);background:var(--bg-tint);padding:1px 7px;border-radius:100px;min-width:18px;text-align:center}
+.acct-tab.active .acct-tab__count{background:var(--primary-100);color:var(--primary)}
 .chip__count{font-size:11px;margin-left:4px;opacity:.7;font-variant-numeric:tabular-nums}
 .sort{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3)}
 .sort select{background:transparent;border:0;font-weight:600;color:var(--ink);padding:4px 18px 4px 4px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2315151F' stroke-width='2.5'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 2px center}
@@ -534,6 +543,10 @@ main{flex:1;padding-bottom:var(--s-9)}
         </select>
       </div>
     </div>
+    <nav class="acct-tabs" id="acct-tabs" role="tablist" aria-label="Account type">
+      <button class="acct-tab active" type="button" data-acct-tab="customer" role="tab" aria-selected="true">Customer / Opportunity Accounts<span class="acct-tab__count" id="acct-count-customer">0</span></button>
+      <button class="acct-tab" type="button" data-acct-tab="partner" role="tab" aria-selected="false">Partner Accounts<span class="acct-tab__count" id="acct-count-partner">0</span></button>
+    </nav>
   </div>
 </header>
 
@@ -1261,50 +1274,66 @@ async function fetchCompanyNamesFromAction(action){
 function fetchOpportunityCompanies(){ return fetchCompanyNamesFromAction('listOpportunityCompanies'); }
 function fetchPartnerCompanies(){ return fetchCompanyNamesFromAction('listPartnerCompanies'); }
 
-// Merge multiple lists of company names, case-insensitive dedupe, keeping the
-// first-seen casing.
-function mergeCompanyNameLists(lists){
-  const out = [];
-  const seen = new Set();
-  for(const list of (lists||[])){
-    if(!Array.isArray(list)) continue;
-    for(const raw of list){
-      const t = String(raw||'').trim();
-      if(!t) continue;
-      const k = t.toLowerCase();
-      if(seen.has(k)) continue;
-      seen.add(k);
-      out.push(t);
-    }
-  }
-  return out;
-}
-
 function opportunityPlaceholderId(name){
   const slug = String(name||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
   return 'OPP-' + (slug || 'unknown');
 }
 
-// Add in-memory placeholder rows to D.companies for opportunity company names
-// that don't already exist in the Companies tab. Returns the real company_ids
-// of opportunity companies that *already* exist in Companies (eligible for
-// auto-sync) plus the placeholder rows that were added.
-function applyOpportunityPlaceholders(names){
+// Tag existing DB rows with which source sheet they came from (Opportunities,
+// Partners, or both) and add in-memory placeholder rows for any names from
+// either sheet that aren't yet in Companies. Both kinds of rows carry
+// _sources so the sub-tab filter and the "From X..." subtitle stay correct
+// even after a placeholder gets promoted to a real DB row. _placeholder marks
+// the in-memory rows that have no real Companies entry yet.
+function applyAccountPlaceholders(opts){
+  const opportunityNames = (opts && opts.opportunityNames) || [];
+  const partnerNames = (opts && opts.partnerNames) || [];
   const D = window.__DATA || {};
   const existing = D.companies || [];
   const byNameLower = new Map();
   existing.forEach(co => {
     if(co && co.name) byNameLower.set(String(co.name).trim().toLowerCase(), co);
   });
+  const lowerSet = list => new Set(
+    list.map(n => String(n||'').trim().toLowerCase()).filter(Boolean)
+  );
+  const oppSet = lowerSet(opportunityNames);
+  const partnerSet = lowerSet(partnerNames);
+
+  // Re-tag every existing row so a name removed from either sheet drops its
+  // source flag on the next bootstrap.
+  existing.forEach(co => {
+    if(!co || !co.name) return;
+    const key = String(co.name).trim().toLowerCase();
+    const opp = oppSet.has(key);
+    const partner = partnerSet.has(key);
+    if(opp || partner){
+      co._sources = { opportunity: opp, partner: partner };
+    } else if(co._sources){
+      delete co._sources;
+    }
+  });
+
+  const allNames = [];
+  const seen = new Set();
+  for(const raw of opportunityNames.concat(partnerNames)){
+    const t = String(raw||'').trim();
+    if(!t) continue;
+    const k = t.toLowerCase();
+    if(seen.has(k)) continue;
+    seen.add(k);
+    allNames.push(t);
+  }
+
   const placeholders = [];
   const realIds = [];
-  for(const rawName of (names||[])){
-    const name = String(rawName||'').trim();
-    if(!name) continue;
+  for(const name of allNames){
     const key = name.toLowerCase();
     const existingCo = byNameLower.get(key);
     if(existingCo){
-      if(existingCo.company_id && !existingCo._opportunity) realIds.push(existingCo.company_id);
+      // Placeholders carry _placeholder; skip them so they don't queue for
+      // auto-sync before they're promoted to real Companies rows.
+      if(existingCo.company_id && !existingCo._placeholder) realIds.push(existingCo.company_id);
       continue;
     }
     const placeholder = {
@@ -1312,7 +1341,8 @@ function applyOpportunityPlaceholders(names){
       name,
       partners: [],
       badges: [],
-      _opportunity: true
+      _placeholder: true,
+      _sources: { opportunity: oppSet.has(key), partner: partnerSet.has(key) }
     };
     placeholders.push(placeholder);
     byNameLower.set(key, placeholder);
@@ -1320,7 +1350,10 @@ function applyOpportunityPlaceholders(names){
   if(placeholders.length){
     D.companies = existing.concat(placeholders);
   }
-  window.__OPPORTUNITY_NAMES = (names||[]).slice();
+  window.__ACCOUNT_NAMES = {
+    opportunityNames: opportunityNames.slice(),
+    partnerNames: partnerNames.slice()
+  };
   return { placeholders, realIds };
 }
 
@@ -1343,7 +1376,11 @@ async function promoteOpportunityPlaceholders(placeholders){
     try {
       const fields = { company_id: realId, name: name, date_added: today };
       await postToSheet({ action: 'append', tab: 'Companies', data: fields });
-      const realRow = Object.assign({}, fields, { partners: [], badges: [] });
+      const realRow = Object.assign({}, fields, {
+        partners: [],
+        badges: [],
+        _sources: ph._sources ? { opportunity: !!ph._sources.opportunity, partner: !!ph._sources.partner } : undefined
+      });
       const idx = (D.companies || []).indexOf(ph);
       if(idx >= 0) D.companies[idx] = realRow;
       else (D.companies || (D.companies = [])).push(realRow);
@@ -1450,7 +1487,7 @@ function escapeHtml(v){
 
 /* ========== End Data Layer ========== */
 
-let activeFilter='company',activeSort='recent',activeSearch='',editingId=null,expandedCompanyId=null;
+let activeFilter='company',activeSort='recent',activeSearch='',editingId=null,expandedCompanyId=null,activeAccountType='customer';
 
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
@@ -1458,7 +1495,14 @@ function showView(name){
   document.getElementById('filter-row').style.display=isHome?'':'none';
   document.querySelector('.search-wrap').style.display=isHome?'':'none';
   document.querySelectorAll('.app-nav__tab').forEach(t=>t.classList.toggle('active',t.dataset.nav===name));
+  updateAccountTabsVisibility();
   window.scrollTo({top:0,behavior:'smooth'});
+}
+function updateAccountTabsVisibility(){
+  const el=document.getElementById('acct-tabs');
+  if(!el) return;
+  const isHome=document.getElementById('view-home').classList.contains('active');
+  el.style.display=(isHome && activeFilter==='company') ? '' : 'none';
 }
 function navigate(route,id){
   if(route==='home')location.hash='#/';
@@ -1485,6 +1529,12 @@ function updateChipCounts(all){
   const highChip=document.querySelector('.chip[data-filter="high"] .chip__count');
   if(allChip) allChip.textContent=all.length;
   if(highChip) highChip.textContent=all.filter(c=>c.tier==='high').length;
+}
+function updateAccountTabCounts(customer, partner){
+  const cEl=document.getElementById('acct-count-customer');
+  const pEl=document.getElementById('acct-count-partner');
+  if(cEl) cEl.textContent=customer;
+  if(pEl) pEl.textContent=partner;
 }
 
 function renderList(){
@@ -1521,24 +1571,55 @@ function renderList(){
         }
       }
     });
-    if(Object.keys(groups).length===0){mount.innerHTML='';empty.style.display='block';return;}
+
+    // Partition each company into Customer/Opportunity vs Partner based on
+    // _sources. Dual-source companies (in both sheets) live in Customer only
+    // so they don't appear twice. Plain DB companies with no source tag also
+    // live in Customer.
+    const isPartnerOnly=co=>!!(co && co._sources && co._sources.partner && !co._sources.opportunity);
+    const customerIds=[];
+    const partnerIds=[];
+    Object.keys(groups).forEach(cid=>{
+      const co=(IDX.companyById&&IDX.companyById[cid])||{};
+      if(isPartnerOnly(co)) partnerIds.push(cid); else customerIds.push(cid);
+    });
+    updateAccountTabCounts(customerIds.length, partnerIds.length);
+    const visibleIds = activeAccountType==='partner' ? partnerIds : customerIds;
+
+    if(visibleIds.length===0){
+      mount.innerHTML='';
+      empty.innerHTML=activeAccountType==='partner'
+        ? '<b>No partner accounts</b>Partner accounts come from your Partners sheet.'
+        : '<b>No matches</b>Try a different name, company, or email.';
+      empty.style.display='block';
+      return;
+    }
     empty.style.display='none';
-    const order=Object.keys(groups).sort((a,b)=>groups[a].name.localeCompare(groups[b].name));
+    const order=visibleIds.sort((a,b)=>groups[a].name.localeCompare(groups[b].name));
     const openId=(expandedCompanyId && groups[expandedCompanyId])?expandedCompanyId:null;
     mount.innerHTML=order.map(cid=>{
       const g=groups[cid];
       const isOpen=cid===openId;
       const safeCid=escapeHtml(cid);
       const co=(IDX.companyById&&IDX.companyById[cid])||{};
-      const isOpp=!!co._opportunity;
-      const subtitle=isOpp
-        ? 'From opportunities or partners · not yet in database'
-        : [co.industry,co.hq].filter(Boolean).join(' · ');
+      const isPh=!!co._placeholder;
+      const src=co._sources||{};
+      const cardClass = isPh
+        ? (src.partner && !src.opportunity ? ' company-card--partner' : ' company-card--opportunity')
+        : '';
+      let subtitle;
+      if(isPh){
+        if(src.opportunity && src.partner) subtitle='From Opportunities & Partners · not yet in database';
+        else if(src.partner) subtitle='From Partners · not yet in database';
+        else subtitle='From Opportunities · not yet in database';
+      } else {
+        subtitle=[co.industry,co.hq].filter(Boolean).join(' · ');
+      }
       const firstLetter=((g.name||'?').trim()[0]||'?').toUpperCase();
-      const countLabel=isOpp ? 'Lead' : (g.contacts.length===1?'1 contact':`${g.contacts.length} contacts`);
+      const countLabel=isPh ? 'Lead' : (g.contacts.length===1?'1 contact':`${g.contacts.length} contacts`);
       const detailHtml=isOpen?renderCompanyExpanded(cid):'';
       return `<div class="list-section" data-company-section="${safeCid}">
-        <button class="contact-item company-card${isOpp?' company-card--opportunity':''}" type="button" data-company-toggle="${safeCid}" aria-expanded="${isOpen?'true':'false'}">
+        <button class="contact-item company-card${cardClass}" type="button" data-company-toggle="${safeCid}" aria-expanded="${isOpen?'true':'false'}">
           <div class="avatar avatar--md avatar--ink">${escapeHtml(firstLetter)}</div>
           <div class="contact-item__body">
             <div class="company-card__name">${escapeHtml(g.name)}</div>
@@ -1606,11 +1687,16 @@ function renderCompanyExpanded(companyId){
   const IDX=window.__INDEX||{};
   const co=(IDX.companyById&&IDX.companyById[companyId])||null;
   if(!co) return '<div class="empty" style="padding:var(--s-5)"><b>Company not found</b></div>';
-  if(co._opportunity){
+  if(co._placeholder){
+    const src=co._sources||{};
+    let sourceLabel;
+    if(src.opportunity && src.partner) sourceLabel='Opportunities and Partners sheets';
+    else if(src.partner) sourceLabel='Partners sheet';
+    else sourceLabel='Opportunities sheet';
     return `<div class="section">
         <div class="section__head"><span class="section__title">${escapeHtml(co.name||'')}</span></div>
         <div class="section__body">
-          <p class="prose">This company appears in your opportunities or partners sheet but isn't in your contact database yet.</p>
+          <p class="prose">This company appears in your ${escapeHtml(sourceLabel)} but isn't in your contact database yet.</p>
           <p class="prose" style="color:var(--ink-3);font-size:13px;margin-top:8px">Add a contact at this company (use the new-contact form and pick "+ Create new company") to enable opportunity & partner sync.</p>
         </div>
       </div>`;
@@ -3012,6 +3098,20 @@ document.querySelectorAll('.chip').forEach(chip=>{
   chip.addEventListener('click',()=>{
     document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c===chip));
     activeFilter=chip.dataset.filter;
+    updateAccountTabsVisibility();
+    renderList();
+  });
+});
+document.querySelectorAll('.acct-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    if(activeAccountType===tab.dataset.acctTab) return;
+    activeAccountType=tab.dataset.acctTab;
+    document.querySelectorAll('.acct-tab').forEach(t=>{
+      const on=t===tab;
+      t.classList.toggle('active',on);
+      t.setAttribute('aria-selected',on?'true':'false');
+    });
+    expandedCompanyId=null;
     renderList();
   });
 });
@@ -4212,7 +4312,7 @@ async function syncOpportunityContacts(companyId, opts){
   const D=window.__DATA||{};
   const co=(IDX.companyById&&IDX.companyById[companyId])||null;
   if(!co){ if(!silent) showToast('Company not found'); return; }
-  if(co._opportunity){ if(!silent) showToast('Add this company to the database first'); return; }
+  if(co._placeholder){ if(!silent) showToast('Add this company to the database first'); return; }
   const companyName=co.name||'';
   if(!companyName){ if(!silent) showToast('Company has no name'); return; }
 
@@ -4469,7 +4569,7 @@ async function syncOpportunityContacts(companyId, opts){
       setTimeout(()=>{
         loadAllData()
           .then(()=>{
-            if(window.__OPPORTUNITY_NAMES) applyOpportunityPlaceholders(window.__OPPORTUNITY_NAMES);
+            if(window.__ACCOUNT_NAMES) applyAccountPlaceholders(window.__ACCOUNT_NAMES);
             buildIndexes();populateCompanySelect();renderList();
             const v=(location.hash.split('/')[2])||'';if(v) renderContactDetail(v);
           })
@@ -4533,7 +4633,7 @@ async function autoSyncOpportunityCompanies(companyIds){
     showAutoSyncStatus('Refreshing data…');
     try {
       await loadAllData();
-      if(window.__OPPORTUNITY_NAMES) applyOpportunityPlaceholders(window.__OPPORTUNITY_NAMES);
+      if(window.__ACCOUNT_NAMES) applyAccountPlaceholders(window.__ACCOUNT_NAMES);
       buildIndexes();
       if(typeof populateCompanySelect === 'function') populateCompanySelect();
       renderList();
@@ -5204,8 +5304,7 @@ loadAllData()
       ]);
       console.log('[LeadCheck] Opportunity companies:', oppNames.length,
         '| Partner companies:', partnerNames.length);
-      const names = mergeCompanyNameLists([oppNames, partnerNames]);
-      const applied = applyOpportunityPlaceholders(names);
+      const applied = applyAccountPlaceholders({ opportunityNames: oppNames, partnerNames });
       // Promote any placeholders to real Companies rows before render so every
       // opportunity or partner company gets the full company experience (Sync
       // Contacts button, expanded view, contact list, etc.) on first page open.
