@@ -100,6 +100,8 @@ main{flex:1;padding-bottom:var(--s-9)}
 .refresh-btn:hover{color:var(--ink);background:var(--bg-tint)}
 .refresh-btn svg{width:14px;height:14px}
 .refresh-btn.spinning svg{animation:spin .7s linear infinite}
+.refresh-stamp{font-size:11px;color:var(--ink-3);margin-right:4px}
+.refresh-stamp:empty{display:none}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 .list-section{padding:var(--s-4) 0}
@@ -539,7 +541,8 @@ main{flex:1;padding-bottom:var(--s-9)}
         <button class="chip" data-filter="high">High Confidence<span class="chip__count">3</span></button>
       </div>
       <div class="sort">
-        <button class="refresh-btn" id="refresh-contacts-btn" type="button" aria-label="Refresh" title="Refresh contacts">
+        <span class="refresh-stamp" id="refresh-stamp"></span>
+        <button class="refresh-btn" id="refresh-contacts-btn" type="button" aria-label="Refresh from Opportunities & Partners" title="Re-sync Opportunities & Partners (updates Google Sheets)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.09"/></svg>
         </button>
         <span>Sort:</span>
@@ -1194,6 +1197,25 @@ function groupBy(arr,key){
   return m;
 }
 
+// Persisted classification of a Companies row. The `account_type` column on
+// the Companies sheet is the single source of truth for whether a company
+// belongs in the Customer/Opportunity tab vs the Partner tab — so page open
+// can decide tab membership from the sheet alone, without any backend call.
+function accountTypeToSources(v){
+  const s=String(v||'').trim().toLowerCase();
+  if(s==='opportunity') return { opportunity:true, partner:false };
+  if(s==='partner')     return { opportunity:false, partner:true };
+  if(s==='both')        return { opportunity:true, partner:true };
+  return null;
+}
+function sourcesToAccountType(src){
+  if(!src) return '';
+  if(src.opportunity && src.partner) return 'both';
+  if(src.opportunity) return 'opportunity';
+  if(src.partner)     return 'partner';
+  return '';
+}
+
 async function loadAllData(){
   window.__DATA = {};
   for(const k of Object.values(TAB_KEY)) window.__DATA[k] = [];
@@ -1210,7 +1232,12 @@ async function loadAllData(){
     if(key==='contacts'){
       rows.forEach(r=>{ r.certifications=splitPipe(r.certifications); r.themes=splitPipe(r.themes); });
     } else if(key==='companies'){
-      rows.forEach(r=>{ r.partners=splitPipe(r.partners); r.badges=splitPipe(r.badges); });
+      rows.forEach(r=>{
+        r.partners=splitPipe(r.partners);
+        r.badges=splitPipe(r.badges);
+        const src=accountTypeToSources(r.account_type);
+        if(src) r._sources=src;
+      });
     }
     window.__DATA[key] = rows;
   });
@@ -1382,6 +1409,8 @@ async function promoteOpportunityPlaceholders(placeholders){
     showAutoSyncStatus('Adding ' + name + ' to Companies…');
     try {
       const fields = { company_id: realId, name: name, date_added: today };
+      const acctType = sourcesToAccountType(ph._sources);
+      if(acctType) fields.account_type = acctType;
       await postToSheet({ action: 'append', tab: 'Companies', data: fields });
       const realRow = Object.assign({}, fields, {
         partners: [],
@@ -3130,19 +3159,123 @@ document.querySelectorAll('.acct-tab').forEach(tab=>{
   });
 });
 document.getElementById('sort-select').addEventListener('change',e=>{activeSort=e.target.value;renderList();});
+// Track when we last completed a full Opportunities/Partners refresh, so the
+// "Synced HH:MM" stamp next to the button reflects the latest sync. The plain
+// loadAllData() on bootstrap also touches this (it's a sheet read), but we
+// only show the timestamp once a real refresh has completed in this session.
+let __lastSyncedAt = null;
+
+function updateLastSyncedStamp(){
+  const el = document.getElementById('refresh-stamp');
+  if(!el) return;
+  if(!__lastSyncedAt){ el.textContent=''; return; }
+  const d = new Date(__lastSyncedAt);
+  const h = d.getHours(), m = d.getMinutes();
+  const hh = ((h+11)%12+1), mm = m<10 ? '0'+m : m, ap = h<12 ? 'AM' : 'PM';
+  el.textContent = 'Synced '+hh+':'+mm+' '+ap;
+}
+
+// Push any account_type changes back to the Companies sheet so the
+// classification persists and next page open can read it without calling
+// the backend. Conservative: only writes when the new classification adds a
+// flag the saved row didn't have — we never clear a flag automatically.
+async function persistAccountTypeUpdates(opportunityNames, partnerNames){
+  const D = window.__DATA || {};
+  const oppSet = new Set((opportunityNames||[]).map(n=>String(n||'').trim().toLowerCase()).filter(Boolean));
+  const partnerSet = new Set((partnerNames||[]).map(n=>String(n||'').trim().toLowerCase()).filter(Boolean));
+  const rows = (D.companies||[]).filter(co => co && co.company_id && !co._placeholder && co.name);
+  let updated = 0;
+  for(const co of rows){
+    const key = String(co.name).trim().toLowerCase();
+    const inOpp = oppSet.has(key);
+    const inPartner = partnerSet.has(key);
+    if(!inOpp && !inPartner) continue;
+    const merged = {
+      opportunity: inOpp || !!(co._sources && co._sources.opportunity),
+      partner:     inPartner || !!(co._sources && co._sources.partner)
+    };
+    const newType = sourcesToAccountType(merged);
+    const oldType = String(co.account_type||'').trim().toLowerCase();
+    if(!newType || newType === oldType) continue;
+    try {
+      await postToSheet({
+        action:'update', tab:'Companies',
+        idColumn:'company_id', idValue: co.company_id,
+        data:{ account_type: newType }
+      });
+      co.account_type = newType;
+      co._sources = merged;
+      updated++;
+    } catch(err){
+      console.error('[LeadCheck] account_type update failed for', co.name, err);
+    }
+    await new Promise(r => setTimeout(r, 150));
+  }
+  return updated;
+}
+
 document.getElementById('refresh-contacts-btn').addEventListener('click',async()=>{
   const btn=document.getElementById('refresh-contacts-btn');
-  if(btn) btn.classList.add('spinning');
+  if(__autoSyncRunning || (btn && btn.disabled)){ showToast('Refresh already in progress'); return; }
+  if(btn){ btn.disabled=true; btn.classList.add('spinning'); }
   try{
+    // 1. Pull the freshest snapshot from Sheets so we diff against current state.
+    showAutoSyncStatus('Loading latest from Google Sheets…');
+    await loadAllData();
+    buildIndexes();
+
+    // 2. Ask the backend which companies appear in the Opportunities and
+    //    Partners sheets. These are name-only lists — cheap compared to the
+    //    per-company Anthropic extraction in step 4.
+    showAutoSyncStatus('Checking Opportunities & Partners…');
+    const [oppNames, partnerNames] = await Promise.all([
+      fetchOpportunityCompanies(),
+      fetchPartnerCompanies()
+    ]);
+
+    // 3. Tag existing Companies rows with their source(s); promote any name
+    //    that isn't in the Companies sheet yet to a real row (this also
+    //    writes account_type so the classification persists).
+    const applied = applyAccountPlaceholders({ opportunityNames: oppNames, partnerNames });
+    let promotedIds = [];
+    if(applied.placeholders.length){
+      promotedIds = await promoteOpportunityPlaceholders(applied.placeholders);
+    }
+    // Backfill account_type for rows that already existed but were never
+    // tagged in the sheet (or whose tag changed).
+    await persistAccountTypeUpdates(oppNames, partnerNames);
+    buildIndexes();
+    populateCompanySelect();
+    renderList();
+
+    // 4. Extract contacts for every opportunity/partner company that doesn't
+    //    have any saved contacts yet. autoSyncOpportunityCompanies already
+    //    skips companies that already have contacts and runs Anthropic for
+    //    the rest, writing new Contacts rows back to the sheet.
+    const allIds = applied.realIds.concat(promotedIds);
+    if(allIds.length){
+      await autoSyncOpportunityCompanies(allIds);
+    } else {
+      hideAutoSyncStatus();
+    }
+
+    // 5. Final reload so the UI reflects everything written above.
     await loadAllData();
     buildIndexes();
     populateCompanySelect();
     renderList();
+    const v=(location.hash.split('/')[2])||'';
+    if(v) renderContactDetail(v);
+
+    __lastSyncedAt = Date.now();
+    updateLastSyncedStamp();
+    showToast('Refresh complete');
   }catch(err){
     console.error('[LeadCheck] Refresh failed',err);
-    showToast('Refresh failed');
+    showToast('Refresh failed: '+(err.message||err));
+    hideAutoSyncStatus();
   }finally{
-    if(btn) btn.classList.remove('spinning');
+    if(btn){ btn.disabled=false; btn.classList.remove('spinning'); }
   }
 });
 
@@ -5357,51 +5490,22 @@ document.querySelectorAll('.app-nav__tab').forEach(tab=>{
 
 /* ========== End Company Search ========== */
 
-// Bootstrap: fetch live data, then render. On every page open we also pull
-// the list of opportunity and partner company names from the Apps Script
-// backend, surface any that aren't yet in the Companies tab as placeholder
-// cards in the Lead Check section, and kick off a background sync pass
-// (opportunities + partner notes) for each real company that appears in
-// either source.
+// Bootstrap: pure read from Google Sheets, then render. Customer/Opportunity
+// vs Partner classification comes from each Companies row's `account_type`
+// column (hydrated into _sources by loadAllData). The slower passes that
+// call the Apps Script backend (listing opportunity/partner companies) and
+// Anthropic (extracting contacts from opportunity/partner transcripts) only
+// run when the user clicks the refresh button — see the refresh-contacts-btn
+// handler above.
 showDataLoading();
 loadAllData()
-  .then(async ()=>{
+  .then(()=>{
     buildIndexes();
     console.log('[LeadCheck] Data loaded:', window.__DATA, window.__INDEX);
     populateCompanySelect();
     renderList();
     handleHash();
-
-    showAutoSyncStatus('Loading opportunity & partner companies…');
-    let allOpportunityIds = [];
-    try {
-      const [oppNames, partnerNames] = await Promise.all([
-        fetchOpportunityCompanies(),
-        fetchPartnerCompanies()
-      ]);
-      console.log('[LeadCheck] Opportunity companies:', oppNames.length,
-        '| Partner companies:', partnerNames.length);
-      const applied = applyAccountPlaceholders({ opportunityNames: oppNames, partnerNames });
-      // Promote any placeholders to real Companies rows before render so every
-      // opportunity or partner company gets the full company experience (Sync
-      // Contacts button, expanded view, contact list, etc.) on first page open.
-      let promotedIds = [];
-      if(applied.placeholders.length){
-        promotedIds = await promoteOpportunityPlaceholders(applied.placeholders);
-      }
-      buildIndexes();
-      populateCompanySelect();
-      renderList();
-      allOpportunityIds = applied.realIds.concat(promotedIds);
-    } catch(err){
-      console.error('[LeadCheck] opportunity/partner bootstrap failed', err);
-    }
-
-    if(allOpportunityIds.length){
-      autoSyncOpportunityCompanies(allOpportunityIds);
-    } else {
-      hideAutoSyncStatus();
-    }
+    updateLastSyncedStamp();
   })
   .catch(err=>{
     console.error('[LeadCheck] loadAllData failed', err);
