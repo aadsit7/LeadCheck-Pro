@@ -4373,7 +4373,12 @@ function cleanSyncName(raw){
 }
 
 function normalizeForMatch(name){
-  return String(name||'').toLowerCase().replace(/\./g,' ').replace(/\s+/g,' ').trim();
+  return String(name||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase()
+    .replace(/[.\-_]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
 }
 
 function firstNamesMatch(a, b){
@@ -4382,6 +4387,72 @@ function firstNamesMatch(a, b){
   const aliases = SYNC_NICKNAMES[a];
   if(aliases && aliases.has(b)) return true;
   return false;
+}
+
+// Merge fields from `source` into `target` in place. Concatenates context
+// (only when the snippet isn't already present), fills blank scalar fields,
+// prefers the more complete name, and unions priorities.
+function mergeSyncContactInto(target, source){
+  const SCALAR_FIELDS = ['email','title','linkedin_url','role_in_deal','reports_to','sentiment'];
+  const newCtx = String(source.context||'').trim();
+  const exCtx = String(target.context||'').trim();
+  if(newCtx && newCtx !== exCtx && !exCtx.includes(newCtx)){
+    target.context = exCtx ? (exCtx + '\n\n' + newCtx) : newCtx;
+  }
+  SCALAR_FIELDS.forEach(field => {
+    if(!String(target[field]||'').trim() && String(source[field]||'').trim()){
+      target[field] = source[field];
+    }
+  });
+  const tParts = normalizeForMatch(target.name||'').split(' ').filter(Boolean);
+  const sParts = normalizeForMatch(source.name||'').split(' ').filter(Boolean);
+  if(sParts.length > tParts.length && source.name){
+    target.name = source.name;
+  }
+  if(Array.isArray(source.priorities) && source.priorities.length){
+    const ex = Array.isArray(target.priorities) ? target.priorities : [];
+    const seen = new Set(ex.map(p => String(p).toLowerCase()));
+    source.priorities.forEach(p => {
+      const lp = String(p).toLowerCase();
+      if(!seen.has(lp)){ ex.push(p); seen.add(lp); }
+    });
+    target.priorities = ex;
+  }
+}
+
+// True when `context` likely refers to `fullName` — looks for the person's
+// first or last name (or a known nickname alias) as a whole word in the
+// text. Used to avoid attaching unrelated CRM excerpts to a contact's
+// profile when the model returns context that doesn't actually name them.
+function contextLikelyAboutPerson(context, fullName){
+  const ctx = normalizeForMatch(context);
+  if(!ctx) return false;
+  const parts = normalizeForMatch(fullName).split(' ').filter(Boolean);
+  if(!parts.length) return false;
+  const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for(const p of parts){
+    if(p.length < 2) continue;
+    const re = new RegExp('\\b'+escape(p)+'\\b','i');
+    if(re.test(ctx)) return true;
+  }
+  const aliases = parts[0] ? SYNC_NICKNAMES[parts[0]] : null;
+  if(aliases){
+    for(const a of aliases){
+      const re = new RegExp('\\b'+escape(a)+'\\b','i');
+      if(re.test(ctx)) return true;
+    }
+  }
+  return false;
+}
+
+// True when the existing background text already contains this CRM snippet,
+// so we don't append the same paragraph each time the user re-runs sync.
+function backgroundAlreadyContains(existing, snippet){
+  const norm = s => String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const ex = norm(existing);
+  const nv = norm(snippet);
+  if(!ex || !nv) return false;
+  return ex.includes(nv);
 }
 
 // Common company-name suffixes used to filter out "people" extracted by the
@@ -4481,7 +4552,6 @@ async function fetchSyncedContactsFromSource(action, companyName){
 // downstream matching/insert logic sees the richest version.
 function mergeSyncedContactsFromSources(sources){
   const byKey = new Map();
-  const SCALAR_FIELDS = ['email','title','linkedin_url','role_in_deal','reports_to','sentiment'];
   for(const list of (sources||[])){
     if(!Array.isArray(list)) continue;
     for(const c of list){
@@ -4497,28 +4567,48 @@ function mergeSyncedContactsFromSources(sources){
         }));
         continue;
       }
-      const newCtx = String(c.context||'').trim();
-      const exCtx = String(existing.context||'').trim();
-      if(newCtx && newCtx !== exCtx){
-        existing.context = exCtx ? (exCtx + '\n\n' + newCtx) : newCtx;
-      }
-      SCALAR_FIELDS.forEach(field => {
-        if(!String(existing[field]||'').trim() && String(c[field]||'').trim()){
-          existing[field] = c[field];
-        }
-      });
-      if(Array.isArray(c.priorities) && c.priorities.length){
-        const ex = Array.isArray(existing.priorities) ? existing.priorities : [];
-        const seen = new Set(ex.map(p => String(p).toLowerCase()));
-        c.priorities.forEach(p => {
-          const lp = String(p).toLowerCase();
-          if(!seen.has(lp)){ ex.push(p); seen.add(lp); }
-        });
-        existing.priorities = ex;
-      }
+      mergeSyncContactInto(existing, c);
     }
   }
-  return Array.from(byKey.values());
+  const merged = Array.from(byKey.values());
+
+  // Second pass: fold first-name-only entries into a full-name entry when
+  // the batch has exactly one full-name candidate sharing that first name
+  // (or a known nickname alias). Different sync sources can refer to the
+  // same person by different names — e.g. partner notes say "Matias" while
+  // opportunity notes say "Matias Adan" — and we don't want them to land
+  // in the contacts list as two separate people.
+  const fullNameByFirst = new Map();
+  const registerFirst = (first, entry) => {
+    if(!first) return;
+    let list = fullNameByFirst.get(first);
+    if(!list){ list = []; fullNameByFirst.set(first, list); }
+    if(!list.includes(entry)) list.push(entry);
+  };
+  for(const entry of merged){
+    const parts = normalizeForMatch(entry.name||'').split(' ').filter(Boolean);
+    if(parts.length >= 2){
+      registerFirst(parts[0], entry);
+      const aliases = SYNC_NICKNAMES[parts[0]];
+      if(aliases) aliases.forEach(a => registerFirst(a, entry));
+    }
+  }
+  const result = [];
+  for(const entry of merged){
+    const parts = normalizeForMatch(entry.name||'').split(' ').filter(Boolean);
+    if(parts.length === 1 && parts[0]){
+      const candidates = fullNameByFirst.get(parts[0]) || [];
+      if(candidates.length === 1){
+        mergeSyncContactInto(candidates[0], entry);
+        continue;
+      }
+      // Zero or multiple full-name candidates — keep this entry so the
+      // downstream loop can decide whether it matches the existing
+      // contacts DB or should be skipped as ambiguous.
+    }
+    result.push(entry);
+  }
+  return result;
 }
 
 async function syncOpportunityContacts(companyId, opts){
@@ -4595,7 +4685,7 @@ async function syncOpportunityContacts(companyId, opts){
       const cLast=cParts.length>1?cParts[cParts.length-1]:'';
 
       const cLinkedin=String(c.linkedin_url||'').trim().toLowerCase().replace(/\/$/,'');
-      const match=existingContacts.find(ex=>{
+      let match=existingContacts.find(ex=>{
         // Tier 1: exact email — strongest signal
         const exEmail=(ex.email||'').toLowerCase().trim();
         if(cEmailLower && cEmailLower.includes('@') && exEmail && exEmail===cEmailLower) return true;
@@ -4626,17 +4716,60 @@ async function syncOpportunityContacts(companyId, opts){
         return false;
       });
 
+      // Tier 6: company-scoped first-name match when one side is first-name-
+      // only. E.g. an existing "Matias Adan" at Green Shield with the sync
+      // returning just "Matias" is almost certainly the same person, but the
+      // earlier tiers all require either a full name or matching last name.
+      // If more than one existing contact at the company shares this first
+      // name we can't disambiguate, so we skip rather than create a vague
+      // "Matias" duplicate.
+      let ambiguousFirstName = false;
+      if(!match && cFirst && companyId){
+        const candidates = existingContacts.filter(ex => {
+          if(ex.company_id !== companyId) return false;
+          const exNorm = normalizeForMatch(ex.full_name||'');
+          const exParts = exNorm.split(' ').filter(Boolean);
+          const exFirst = exParts[0] || '';
+          if(!exFirst) return false;
+          if(!(cFirst === exFirst || firstNamesMatch(cFirst, exFirst))) return false;
+          // require at least one side to be first-name-only
+          return cParts.length === 1 || exParts.length === 1;
+        });
+        if(candidates.length === 1){
+          match = candidates[0];
+        } else if(candidates.length > 1){
+          ambiguousFirstName = true;
+        }
+      }
+
+      if(ambiguousFirstName){
+        console.warn('[LeadCheck Sync] Skipping ambiguous first-name reference', cleanedName, 'at', companyName, '— multiple existing contacts share that first name.');
+        continue;
+      }
+
       const enriched=Object.assign({},c,{
         _cleanedName:cleanedName,
         _email:extractedEmail
       });
 
+      // Only attach the CRM context to a contact when it actually names them
+      // (first or last name, including nickname variants). Prevents loose
+      // transcript excerpts from being misfiled under the wrong person.
+      const rawCtx = String(c.context||'').trim();
+      const attributionName = match ? (match.full_name||cleanedName) : cleanedName;
+      const ctxIsAboutPerson = rawCtx && contextLikelyAboutPerson(rawCtx, attributionName);
+      const safeCtx = ctxIsAboutPerson ? rawCtx : '';
+      if(rawCtx && !ctxIsAboutPerson){
+        console.log('[LeadCheck Sync] dropping context that does not mention', attributionName);
+      }
+
       if(match){
         const data={};
-        const newCtx=String(c.context||'').trim();
-        if(newCtx){
+        if(safeCtx){
           const existingBg=String(match.background||'').trim();
-          data.background = existingBg ? (existingBg+'\n\n'+newCtx) : newCtx;
+          if(!backgroundAlreadyContains(existingBg, safeCtx)){
+            data.background = existingBg ? (existingBg+'\n\n'+safeCtx) : safeCtx;
+          }
         }
         if(!String(match.title||'').trim() && c.title){
           data.title=String(c.title).trim();
@@ -4644,11 +4777,21 @@ async function syncOpportunityContacts(companyId, opts){
         if(!String(match.email||'').trim() && extractedEmail){
           data.email=extractedEmail;
         }
+        // Upgrade a first-name-only existing record to the fuller name the
+        // sync returned (e.g. existing "Matias" → "Matias Adan").
+        if(cParts.length >= 2){
+          const exParts = normalizeForMatch(match.full_name||'').split(' ').filter(Boolean);
+          if(exParts.length < cParts.length){
+            data.full_name = cleanedName;
+            data.initials = deriveInitials(cleanedName);
+          }
+        }
         if(Object.keys(data).length && match.contact_id){
           updates.push({row:match, data});
         }
         alreadyExists.push(enriched);
       } else {
+        enriched._safeContext = safeCtx;
         newContacts.push(enriched);
       }
     }
@@ -4677,7 +4820,7 @@ async function syncOpportunityContacts(companyId, opts){
       const sentiment=String(c.sentiment||'').trim();
       const outreachAngle=sentiment ? ('Based on meeting interactions: '+sentiment) : '';
       const themesStr=Array.isArray(c.priorities) ? c.priorities.filter(Boolean).join('|') : '';
-      const background=String(c.context||'').trim();
+      const background=String(c._safeContext||'').trim();
       const fields={
         contact_id:contactId,
         full_name:fullName,
