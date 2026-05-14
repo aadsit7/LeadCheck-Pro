@@ -570,6 +570,7 @@ main{flex:1;padding-bottom:var(--s-9)}
 .tr-tier__swatch--exec{background:var(--primary)}
 .tr-tier__swatch--mgmt{background:#3742C4}
 .tr-tier__swatch--ops{background:#5B68DC}
+.tr-tier__swatch--unknown{background:var(--ink-4);border:1px dashed var(--border-strong)}
 .tr-tier__label{font-size:12px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.05em}
 .tr-tier__count{font-size:11px;font-weight:600;color:var(--ink-3);background:var(--bg-tint);padding:1px 7px;border-radius:100px;margin-left:auto}
 .tr-tier__hint{font-size:11px;color:var(--ink-4)}
@@ -1063,7 +1064,7 @@ Aaron</div>
           <nav class="acct-tabs" id="tr-acct-tabs" role="tablist" aria-label="Account type">
             <button class="acct-tab active" type="button" data-tr-tab="opportunity" role="tab" aria-selected="true">Opportunity<span class="acct-tab__count" id="tr-count-opportunity">0</span></button>
             <button class="acct-tab" type="button" data-tr-tab="partner" role="tab" aria-selected="false">Partner<span class="acct-tab__count" id="tr-count-partner">0</span></button>
-            <button class="acct-tab" type="button" data-tr-tab="both" role="tab" aria-selected="false">Both<span class="acct-tab__count" id="tr-count-both">0</span></button>
+            <button class="acct-tab" type="button" data-tr-tab="all" role="tab" aria-selected="false">All accounts<span class="acct-tab__count" id="tr-count-all">0</span></button>
           </nav>
           <div class="filter-row">
             <div class="filter-chips" id="tr-chips">
@@ -1617,10 +1618,11 @@ function showDataLoading(){
 }
 
 /* ========== Titles & Roles: bucketing ==========
-   Map free-text titles into three engagement tiers:
-     exec  — C-suite, President, EVP-level approvers
-     mgmt  — VP / Director / Manager (the people who own budgets & make calls)
-     ops   — admins, ICs, specialists (champions and influencers usually live here)
+   Map free-text titles into engagement tiers:
+     exec     — C-suite, President, EVP-level approvers
+     mgmt     — VP / Director / Manager (the people who own budgets & make calls)
+     ops      — admins, ICs, specialists (champions and influencers usually live here)
+     unknown  — empty title or no pattern match (surfaced separately, never silently bucketed)
    The fn (function) buckets are kept for future slicing — not surfaced in v1. */
 const TR_SENIORITY_PATTERNS=[
   {key:'exec',rx:/\b(c[eiotfsmh]o|chief\s+[a-z]+\s+officer|chairman|president|founder|owner|partner)\b/i},
@@ -1639,24 +1641,30 @@ const TR_FUNCTION_PATTERNS=[
   {key:'hr',label:'HR',rx:/\b(hr|human\s*resources|people|talent)\b/i},
   {key:'sales',label:'Sales/GTM',rx:/\b(sales|revenue|account\s*executive|gtm|marketing)\b/i}
 ];
+const TR_TIER_LABEL={exec:'Executive',mgmt:'Management',ops:'Influencers / Admins',unknown:'Unclassified'};
 function bucketTitle(title){
   const s=String(title||'').trim();
-  if(!s) return {tier:'ops',tierLabel:'Influencers / Admins',fn:'unknown',fnLabel:'',raw:'',matched:false};
+  if(!s) return {tier:'unknown',tierLabel:TR_TIER_LABEL.unknown,fn:'unknown',fnLabel:'',raw:'',matched:false};
   const sen=TR_SENIORITY_PATTERNS.find(p=>p.rx.test(s));
   const fn=TR_FUNCTION_PATTERNS.find(p=>p.rx.test(s));
-  const tier=sen?sen.key:'ops';
+  const tier=sen?sen.key:'unknown';
   return {
     tier,
-    tierLabel:tier==='exec'?'Executive':tier==='mgmt'?'Management':'Influencers / Admins',
+    tierLabel:TR_TIER_LABEL[tier]||TR_TIER_LABEL.unknown,
     fn:fn?fn.key:'unknown',
     fnLabel:fn?fn.label:'',
     raw:s,
     matched:!!sen
   };
 }
+// Champion = explicit "champion" mention in decision_role, with a basic guard against negations.
+// Engagement signal lives separately in _engaged (derived from org_chart Target marker).
 function isChampion(c){
   const dr=String((c&&c.decision_role)||'').toLowerCase();
-  return /\bchampion\b/.test(dr) || /\binfluenc/.test(dr);
+  if(!dr) return false;
+  // Negation guard: skip "not a champion", "no champion", "isn't a champion", "not the champion"
+  if(/\b(not|no|never|isn'?t|wasn'?t|aren'?t)\b[^.]{0,20}\bchampion\b/.test(dr)) return false;
+  return /\bchampion\b/.test(dr);
 }
 /* ========== End Titles & Roles: bucketing ========== */
 
@@ -5802,8 +5810,8 @@ document.querySelectorAll('.app-nav__tab').forEach(tab=>{
    in-scope accounts. Re-renders fully on every filter change. */
 function trGetScope(){
   const D=window.__DATA||{};
-  const wantOpp=trAccountScope==='opportunity'||trAccountScope==='both';
-  const wantPar=trAccountScope==='partner'||trAccountScope==='both';
+  const wantOpp=trAccountScope==='opportunity'||trAccountScope==='all';
+  const wantPar=trAccountScope==='partner'||trAccountScope==='all';
   const companies=(D.companies||[]).filter(co=>{
     if(!co || !co.company_id) return false;
     const s=co._sources;
@@ -5811,11 +5819,22 @@ function trGetScope(){
     return (wantOpp && s.opportunity) || (wantPar && s.partner);
   });
   const companyIds=new Set(companies.map(c=>c.company_id));
+  // Map of contact_id -> true if they appear in org_chart as the Target (the person
+  // we're actively working). This is the strongest "engagement" signal the app has —
+  // a title alone doesn't tell you whether someone's been outreached or just identified.
+  const engagedIds=new Set();
+  (D.org_chart||[]).forEach(r=>{
+    if(r && r.contact_id && String(r.role_type||'').toLowerCase()==='target') engagedIds.add(r.contact_id);
+  });
+  // Build a company lookup once instead of .find() inside .map().
+  const companyById={};
+  companies.forEach(co=>{ companyById[co.company_id]=co; });
   const contacts=(D.contacts||[]).filter(c=>c.contact_id && companyIds.has(c.company_id))
     .map(c=>{
-      const co=companies.find(co=>co.company_id===c.company_id);
+      const co=companyById[c.company_id];
       return Object.assign({},c,{
         _bucket:bucketTitle(c.title),
+        _engaged:engagedIds.has(c.contact_id),
         _champion:isChampion(c),
         _companyName:co?(co.name||''):''
       });
@@ -5826,7 +5845,7 @@ function trGetScope(){
 function trUpdateCounts(){
   const D=window.__DATA||{};
   const cos=D.companies||[];
-  let opp=0,par=0,both=0;
+  let opp=0,par=0,all=0;
   cos.forEach(co=>{
     if(!co || !co.company_id) return;
     const s=co._sources;
@@ -5834,30 +5853,33 @@ function trUpdateCounts(){
     const isPar=s?!!s.partner:false;
     if(isOpp) opp++;
     if(isPar) par++;
-    if(isOpp||isPar) both++;
+    if(isOpp||isPar) all++;
   });
   const set=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
   set('tr-count-opportunity',opp);
   set('tr-count-partner',par);
-  set('tr-count-both',both);
+  set('tr-count-all',all);
 }
 
 function trRenderOverallPyramid(scope){
-  const tiers={exec:0,mgmt:0,ops:0};
-  const champCounts={exec:0,mgmt:0,ops:0};
+  const tiers={exec:0,mgmt:0,ops:0,unknown:0};
+  const champCounts={exec:0,mgmt:0,ops:0,unknown:0};
+  let engaged=0;
   scope.contacts.forEach(c=>{
     tiers[c._bucket.tier]=(tiers[c._bucket.tier]||0)+1;
     if(c._champion) champCounts[c._bucket.tier]++;
+    if(c._engaged) engaged++;
   });
-  const total=tiers.exec+tiers.mgmt+tiers.ops;
+  const classifiedTotal=tiers.exec+tiers.mgmt+tiers.ops;
+  const totalAll=classifiedTotal+tiers.unknown;
   const rows=[
     {key:'exec',label:'Executive',sub:'C-Suite · President · EVP'},
     {key:'mgmt',label:'Management',sub:'VP · Director · Manager'},
-    {key:'ops',label:'Influencers · Admins',sub:'Champions · ICs · Specialists'}
+    {key:'ops',label:'Influencers · Admins',sub:'ICs · Specialists · Administrators'}
   ];
   const html=rows.map(r=>{
     const n=tiers[r.key]||0;
-    const pct=total?Math.round(100*n/total):0;
+    const pct=classifiedTotal?Math.round(100*n/classifiedTotal):0;
     const champ=champCounts[r.key];
     const champNote=champ?` · <span class="pyramid__row-sub">${champ} champion${champ===1?'':'s'}</span>`:'';
     const empty=n===0;
@@ -5865,20 +5887,28 @@ function trRenderOverallPyramid(scope){
       <div class="pyramid__row-inner">
         <span class="pyramid__row-label">${escapeHtml(r.label)}</span>
         <span class="pyramid__row-count">${n}</span>
-        ${total?`<span class="pyramid__row-sub">${pct}%</span>`:''}
+        ${classifiedTotal?`<span class="pyramid__row-sub">${pct}%</span>`:''}
         ${champNote}
       </div>
     </div>`;
   }).join('');
-  const meta=total?`${total} contact${total===1?'':'s'} across ${scope.companies.length} account${scope.companies.length===1?'':'s'}`:'No contacts in scope yet';
+  const metaBits=[];
+  if(totalAll){
+    metaBits.push(`${totalAll} contact${totalAll===1?'':'s'} across ${scope.companies.length} account${scope.companies.length===1?'':'s'}`);
+    metaBits.push(`${engaged} engaged`);
+    if(tiers.unknown) metaBits.push(`${tiers.unknown} unclassified`);
+  } else {
+    metaBits.push('No contacts in scope yet');
+  }
   return `<div class="section">
-    <div class="section__head"><span class="section__title">Engagement Pyramid</span><span class="section__meta">${escapeHtml(meta)}</span></div>
+    <div class="section__head"><span class="section__title">Engagement Pyramid</span><span class="section__meta">${escapeHtml(metaBits.join(' · '))}</span></div>
     <div class="section__body">
       <div class="pyramid">${html}</div>
       <div class="pyramid__legend">
         <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:var(--primary)"></span>Executive</span>
         <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:#3742C4"></span>Management</span>
         <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:#5B68DC"></span>Influencers / Admins</span>
+        <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:var(--green)"></span>Engaged = active Target in the org chart</span>
       </div>
     </div>
   </div>`;
@@ -5888,24 +5918,28 @@ function trRenderAccountGrid(scope){
   if(!scope.companies.length) return '';
   const byCo={};
   scope.contacts.forEach(c=>{
-    const m=byCo[c.company_id]||(byCo[c.company_id]={exec:0,mgmt:0,ops:0,total:0,champion:0});
+    const m=byCo[c.company_id]||(byCo[c.company_id]={exec:0,mgmt:0,ops:0,unknown:0,total:0,champion:0,engaged:0});
     m[c._bucket.tier]++;
     m.total++;
     if(c._champion) m.champion++;
+    if(c._engaged) m.engaged++;
   });
-  // sort: empty/thinnest first so gaps surface
+  // sort: empty/thinnest first so gaps surface; ties broken by engaged-count ascending (less engagement = higher up)
   const rows=scope.companies.map(co=>{
-    const m=byCo[co.company_id]||{exec:0,mgmt:0,ops:0,total:0,champion:0};
+    const m=byCo[co.company_id]||{exec:0,mgmt:0,ops:0,unknown:0,total:0,champion:0,engaged:0};
     const filled=(m.exec?1:0)+(m.mgmt?1:0)+(m.ops?1:0);
     return {co,m,filled};
-  }).sort((a,b)=> a.filled-b.filled || a.m.total-b.m.total || (a.co.name||'').localeCompare(b.co.name||''));
+  }).sort((a,b)=> a.filled-b.filled || a.m.engaged-b.m.engaged || a.m.total-b.m.total || (a.co.name||'').localeCompare(b.co.name||''));
   const cardHtml=rows.map(r=>{
     const fc=t=>r.m[t]?'tr-card__row--filled':'';
-    const coverage=r.filled===3?'<span class="tr-card__coverage--full">Full coverage</span>':r.filled===0?'<span class="tr-card__coverage--gap">No contacts yet</span>':`<span class="tr-card__coverage--gap">${3-r.filled} tier${3-r.filled===1?'':'s'} missing</span>`;
-    const champLine=r.m.champion?` · ${r.m.champion} champion${r.m.champion===1?'':'s'}`:'';
+    const coverage=r.filled===3?'<span class="tr-card__coverage--full">Full coverage</span>':r.filled===0?'<span class="tr-card__coverage--gap">No classified contacts yet</span>':`<span class="tr-card__coverage--gap">${3-r.filled} tier${3-r.filled===1?'':'s'} missing</span>`;
+    const metaBits=[`${r.m.total} contact${r.m.total===1?'':'s'}`];
+    if(r.m.engaged) metaBits.push(`${r.m.engaged} engaged`);
+    if(r.m.champion) metaBits.push(`${r.m.champion} champion${r.m.champion===1?'':'s'}`);
+    if(r.m.unknown) metaBits.push(`${r.m.unknown} unclassified`);
     return `<button class="tr-card" type="button" data-tr-company="${escapeHtml(r.co.company_id)}">
       <div class="tr-card__name">${escapeHtml(r.co.name||'—')}</div>
-      <div class="tr-card__meta">${r.m.total} contact${r.m.total===1?'':'s'}${champLine}</div>
+      <div class="tr-card__meta">${escapeHtml(metaBits.join(' · '))}</div>
       <div class="tr-card__pyr">
         <div class="tr-card__row tr-card__row--exec ${fc('exec')}">${r.m.exec||''}</div>
         <div class="tr-card__row tr-card__row--mgmt ${fc('mgmt')}">${r.m.mgmt||''}</div>
@@ -5924,7 +5958,8 @@ function trRenderTierRoster(scope){
   const tiers=[
     {key:'exec',label:'Executive',hint:'Final approval authority',swatch:'exec'},
     {key:'mgmt',label:'Management',hint:'Budget owners & decision makers',swatch:'mgmt'},
-    {key:'ops',label:'Influencers · Admins',hint:'Daily users, technical champions, administrators',swatch:'ops'}
+    {key:'ops',label:'Influencers · Admins',hint:'Daily users, technical champions, administrators',swatch:'ops'},
+    {key:'unknown',label:'Unclassified',hint:'Title didn’t match any pattern — review and extend the regex tables',swatch:'unknown'}
   ];
   const filterFn=(c)=>{
     if(trTierFilter==='all') return true;
@@ -5932,29 +5967,34 @@ function trRenderTierRoster(scope){
     return c._bucket.tier===trTierFilter;
   };
   const filtered=scope.contacts.filter(filterFn);
+  const renderRow=(c)=>{
+    const pills=[];
+    if(c._engaged) pills.push('<span class="pill pill--green">Engaged</span>');
+    if(c._champion) pills.push('<span class="pill pill--green">Champion</span>');
+    if(c._bucket.fnLabel) pills.push(`<span class="pill pill--amber">${escapeHtml(c._bucket.fnLabel)}</span>`);
+    const conf=String(c.email_confidence||'').toUpperCase();
+    if(conf==='HIGH') pills.push('<span class="pill pill--green">Verified</span>');
+    else if(conf==='LOW') pills.push('<span class="pill pill--red">Low conf.</span>');
+    const sub=[c.title||'(no title)',c._companyName].filter(Boolean).join(' · ');
+    return `<button class="tr-row" type="button" data-tr-contact="${escapeHtml(c.contact_id)}">
+      <div class="tr-row__body">
+        <div class="tr-row__name">${escapeHtml(c.full_name||'(no name)')}</div>
+        <div class="tr-row__sub">${escapeHtml(sub)}</div>
+      </div>
+      <div class="tr-row__pills">${pills.join('')}</div>
+    </button>`;
+  };
   const tiersHtml=tiers.map(t=>{
+    // Hide the Unclassified group entirely when there's nothing to show — it's an honesty signal, not a section to advertise.
     const rows=filtered.filter(c=>c._bucket.tier===t.key)
-      .sort((a,b)=>(a.full_name||'').localeCompare(b.full_name||''));
+      .sort((a,b)=>(b._engaged?1:0)-(a._engaged?1:0) || (a.full_name||'').localeCompare(b.full_name||''));
+    if(t.key==='unknown' && !rows.length) return '';
     let body;
     if(!rows.length){
-      body=`<div class="tr-tier--empty">${trTierFilter==='champion'?'No champions identified in this tier.':'No contacts in this tier yet — engagement gap.'}</div>`;
+      const msg=trTierFilter==='champion'?'No champions identified in this tier.':'No contacts in this tier yet — engagement gap.';
+      body=`<div class="tr-tier--empty">${msg}</div>`;
     } else {
-      body=`<div class="tr-tier__list">${rows.map(c=>{
-        const pills=[];
-        if(c._champion) pills.push('<span class="pill pill--green">Champion</span>');
-        if(c._bucket.fnLabel) pills.push(`<span class="pill pill--amber">${escapeHtml(c._bucket.fnLabel)}</span>`);
-        const conf=String(c.email_confidence||'').toUpperCase();
-        if(conf==='HIGH') pills.push('<span class="pill pill--green">Verified</span>');
-        else if(conf==='LOW') pills.push('<span class="pill pill--red">Low conf.</span>');
-        const sub=[c.title||'—',c._companyName].filter(Boolean).join(' · ');
-        return `<button class="tr-row" type="button" data-tr-contact="${escapeHtml(c.contact_id)}">
-          <div class="tr-row__body">
-            <div class="tr-row__name">${escapeHtml(c.full_name||'(no name)')}</div>
-            <div class="tr-row__sub">${escapeHtml(sub)}</div>
-          </div>
-          <div class="tr-row__pills">${pills.join('')}</div>
-        </button>`;
-      }).join('')}</div>`;
+      body=`<div class="tr-tier__list">${rows.map(renderRow).join('')}</div>`;
     }
     return `<div class="tr-tier">
       <div class="tr-tier__head">
