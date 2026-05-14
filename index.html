@@ -518,6 +518,70 @@ main{flex:1;padding-bottom:var(--s-9)}
 .co-search__status{margin-bottom:var(--s-4);border-left:3px solid var(--primary);border-radius:0 var(--r-md) var(--r-md) 0}
 .co-result{margin-top:var(--s-4)}
 .co-result__actions{display:flex;gap:8px;margin-top:var(--s-4);flex-wrap:wrap}
+
+/* Titles & Roles Dashboard */
+.tr-view{padding:var(--s-5) 0}
+.tr-head{margin-bottom:var(--s-4)}
+.tr-head__title{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.tr-head__desc{font-size:13px;color:var(--ink-3)}
+.tr-controls{display:flex;flex-direction:column;gap:var(--s-3);margin-bottom:var(--s-4)}
+.tr-controls .acct-tabs{margin:0}
+.tr-empty{padding:var(--s-6);text-align:center;color:var(--ink-3);font-size:13px;background:var(--bg-tint);border-radius:var(--r-md)}
+
+/* The big pyramid (overall view) */
+.pyramid{display:flex;flex-direction:column;align-items:center;gap:6px;padding:var(--s-4) 0}
+.pyramid__row{display:flex;align-items:center;justify-content:center;border-radius:var(--r-md);color:#fff;font-weight:700;padding:14px var(--s-4);min-height:56px;box-shadow:var(--elev-1);transition:transform var(--t-fast) var(--ease)}
+.pyramid__row:hover{transform:translateY(-1px)}
+.pyramid__row--exec{width:38%;background:var(--primary);min-width:140px}
+.pyramid__row--mgmt{width:62%;background:#3742C4;min-width:200px}
+.pyramid__row--ops{width:88%;background:#5B68DC;min-width:240px}
+.pyramid__row--empty{background:var(--bg-tint);color:var(--ink-4);box-shadow:none;border:1px dashed var(--border-strong)}
+.pyramid__row-inner{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;justify-content:center}
+.pyramid__row-label{font-size:13px;letter-spacing:.02em;text-transform:uppercase}
+.pyramid__row-count{font-family:var(--mono);font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.pyramid__row-sub{font-size:11px;font-weight:600;opacity:.85}
+.pyramid__legend{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--s-3);margin-top:var(--s-3);font-size:11px;color:var(--ink-3)}
+.pyramid__legend-item{display:inline-flex;align-items:center;gap:6px}
+.pyramid__legend-swatch{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+/* Per-account mini pyramids */
+.tr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:var(--s-3)}
+.tr-card{padding:var(--s-3);border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg);cursor:pointer;transition:border-color var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease);text-align:left;width:100%}
+.tr-card:hover{border-color:var(--border-strong);box-shadow:var(--elev-1)}
+.tr-card__name{font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.tr-card__meta{font-size:11px;color:var(--ink-3);margin-bottom:8px}
+.tr-card__pyr{display:flex;flex-direction:column;align-items:center;gap:3px}
+.tr-card__row{height:8px;border-radius:3px;background:var(--bg-tint);position:relative;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:transparent}
+.tr-card__row--exec{width:42%}
+.tr-card__row--mgmt{width:66%}
+.tr-card__row--ops{width:90%}
+.tr-card__row--filled{color:#fff}
+.tr-card__row--exec.tr-card__row--filled{background:var(--primary)}
+.tr-card__row--mgmt.tr-card__row--filled{background:#3742C4}
+.tr-card__row--ops.tr-card__row--filled{background:#5B68DC}
+.tr-card__coverage{margin-top:8px;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.tr-card__coverage--gap{color:var(--red)}
+.tr-card__coverage--full{color:var(--green)}
+
+/* Tier roster */
+.tr-tier{margin-bottom:var(--s-4)}
+.tr-tier__head{display:flex;align-items:center;gap:var(--s-3);padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:var(--s-2)}
+.tr-tier__swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.tr-tier__swatch--exec{background:var(--primary)}
+.tr-tier__swatch--mgmt{background:#3742C4}
+.tr-tier__swatch--ops{background:#5B68DC}
+.tr-tier__label{font-size:12px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.05em}
+.tr-tier__count{font-size:11px;font-weight:600;color:var(--ink-3);background:var(--bg-tint);padding:1px 7px;border-radius:100px;margin-left:auto}
+.tr-tier__hint{font-size:11px;color:var(--ink-4)}
+.tr-tier__list{display:flex;flex-direction:column}
+.tr-row{display:flex;align-items:center;gap:var(--s-3);padding:8px 4px;border-bottom:1px solid var(--border);cursor:pointer;transition:background var(--t-fast) var(--ease);border-radius:var(--r-sm);width:100%;text-align:left}
+.tr-row:hover{background:var(--bg-tint)}
+.tr-row:last-child{border-bottom:0}
+.tr-row__body{flex:1;min-width:0}
+.tr-row__name{font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-row__sub{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.tr-row__pills{display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.tr-tier--empty{padding:var(--s-3) 0;color:var(--ink-4);font-size:12px;font-style:italic}
 </style>
 </head>
 <body>
@@ -534,6 +598,7 @@ main{flex:1;padding-bottom:var(--s-9)}
       <nav class="app-nav" id="app-nav">
         <button class="app-nav__tab active" data-nav="home" type="button">Contacts</button>
         <button class="app-nav__tab" data-nav="company-search" type="button">Company Search</button>
+        <button class="app-nav__tab" data-nav="titles-roles" type="button">Titles &amp; Roles</button>
       </nav>
     </div>
     <div class="search-wrap">
@@ -983,6 +1048,34 @@ Aaron</div>
           </div>
         </div>
         <div id="co-search-result" class="co-result" style="display:none"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-titles-roles">
+    <div class="container">
+      <div class="tr-view">
+        <div class="tr-head">
+          <h2 class="tr-head__title">Titles &amp; Roles</h2>
+          <p class="tr-head__desc">Engagement pyramid across the opportunities and partners you're working. Where are we strong, where are we thin?</p>
+        </div>
+        <div class="tr-controls">
+          <nav class="acct-tabs" id="tr-acct-tabs" role="tablist" aria-label="Account type">
+            <button class="acct-tab active" type="button" data-tr-tab="opportunity" role="tab" aria-selected="true">Opportunity<span class="acct-tab__count" id="tr-count-opportunity">0</span></button>
+            <button class="acct-tab" type="button" data-tr-tab="partner" role="tab" aria-selected="false">Partner<span class="acct-tab__count" id="tr-count-partner">0</span></button>
+            <button class="acct-tab" type="button" data-tr-tab="both" role="tab" aria-selected="false">Both<span class="acct-tab__count" id="tr-count-both">0</span></button>
+          </nav>
+          <div class="filter-row">
+            <div class="filter-chips" id="tr-chips">
+              <button class="chip active" data-tr-chip="all" type="button">All tiers</button>
+              <button class="chip" data-tr-chip="exec" type="button">Executive</button>
+              <button class="chip" data-tr-chip="mgmt" type="button">Management</button>
+              <button class="chip" data-tr-chip="ops" type="button">Influencers / Admins</button>
+              <button class="chip" data-tr-chip="champion" type="button">Champions</button>
+            </div>
+          </div>
+        </div>
+        <div id="tr-mount"></div>
       </div>
     </div>
   </section>
@@ -1523,6 +1616,50 @@ function showDataLoading(){
   if(mount) mount.innerHTML='<div class="list-section"><div class="list-section__head">Loading live data…</div></div>';
 }
 
+/* ========== Titles & Roles: bucketing ==========
+   Map free-text titles into three engagement tiers:
+     exec  — C-suite, President, EVP-level approvers
+     mgmt  — VP / Director / Manager (the people who own budgets & make calls)
+     ops   — admins, ICs, specialists (champions and influencers usually live here)
+   The fn (function) buckets are kept for future slicing — not surfaced in v1. */
+const TR_SENIORITY_PATTERNS=[
+  {key:'exec',rx:/\b(c[eiotfsmh]o|chief\s+[a-z]+\s+officer|chairman|president|founder|owner|partner)\b/i},
+  {key:'exec',rx:/\b(evp|executive\s+vice\s+president)\b/i},
+  {key:'mgmt',rx:/\b(svp|avp|vp|vice\s*president)\b/i},
+  {key:'mgmt',rx:/\b(director|head\s+of|principal)\b/i},
+  {key:'mgmt',rx:/\b(manager|supervisor)\b/i},
+  {key:'ops',rx:/\b(lead|engineer|analyst|specialist|administrator|admin|architect|consultant|developer|technician|coordinator|associate|operator)\b/i}
+];
+const TR_FUNCTION_PATTERNS=[
+  {key:'it',label:'IT',rx:/\b(it|information\s*technology|euc|end[-\s]user|infrastructure|systems?|cloud|devops|workplace|network)\b/i},
+  {key:'security',label:'Security',rx:/\b(security|infosec|ciso|cyber|grc)\b/i},
+  {key:'eng',label:'Engineering',rx:/\b(engineering|software|sre|platform|developer)\b/i},
+  {key:'ops',label:'Operations',rx:/\b(operations?|ops|service\s*desk|support)\b/i},
+  {key:'finance',label:'Finance',rx:/\b(finance|cfo|controller|accounting|procurement)\b/i},
+  {key:'hr',label:'HR',rx:/\b(hr|human\s*resources|people|talent)\b/i},
+  {key:'sales',label:'Sales/GTM',rx:/\b(sales|revenue|account\s*executive|gtm|marketing)\b/i}
+];
+function bucketTitle(title){
+  const s=String(title||'').trim();
+  if(!s) return {tier:'ops',tierLabel:'Influencers / Admins',fn:'unknown',fnLabel:'',raw:'',matched:false};
+  const sen=TR_SENIORITY_PATTERNS.find(p=>p.rx.test(s));
+  const fn=TR_FUNCTION_PATTERNS.find(p=>p.rx.test(s));
+  const tier=sen?sen.key:'ops';
+  return {
+    tier,
+    tierLabel:tier==='exec'?'Executive':tier==='mgmt'?'Management':'Influencers / Admins',
+    fn:fn?fn.key:'unknown',
+    fnLabel:fn?fn.label:'',
+    raw:s,
+    matched:!!sen
+  };
+}
+function isChampion(c){
+  const dr=String((c&&c.decision_role)||'').toLowerCase();
+  return /\bchampion\b/.test(dr) || /\binfluenc/.test(dr);
+}
+/* ========== End Titles & Roles: bucketing ========== */
+
 function escapeHtml(v){
   if(v==null) return '';
   return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1531,6 +1668,7 @@ function escapeHtml(v){
 /* ========== End Data Layer ========== */
 
 let activeFilter='company',activeSort='recent',activeSearch='',editingId=null,expandedCompanyId=null,activeAccountType='customer';
+let trAccountScope='opportunity',trTierFilter='all';
 
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
@@ -1551,12 +1689,14 @@ function navigate(route,id){
   if(route==='home')location.hash='#/';
   else if(route==='contact')location.hash='#/contact/'+(id||'C001');
   else if(route==='company-search')location.hash='#/company-search';
+  else if(route==='titles-roles')location.hash='#/titles-roles';
 }
 function handleHash(){
   const hash=location.hash||'#/';
   const parts=hash.replace(/^#\//,'').split('/');
   if(parts[0]==='contact'){renderContactDetail(parts[1]||'C001');showView('contact');}
   else if(parts[0]==='company-search'){showView('company-search');}
+  else if(parts[0]==='titles-roles'){showView('titles-roles');renderTitlesRoles();}
   else showView('home');
 }
 window.addEventListener('hashchange',handleHash);
@@ -5655,6 +5795,238 @@ document.querySelectorAll('.app-nav__tab').forEach(tab=>{
 });
 
 /* ========== End Company Search ========== */
+
+/* ========== Titles & Roles Dashboard ==========
+   Read-only dashboard rendering a three-tier engagement pyramid
+   (Executive / Management / Influencers-Admins) across the user's
+   in-scope accounts. Re-renders fully on every filter change. */
+function trGetScope(){
+  const D=window.__DATA||{};
+  const wantOpp=trAccountScope==='opportunity'||trAccountScope==='both';
+  const wantPar=trAccountScope==='partner'||trAccountScope==='both';
+  const companies=(D.companies||[]).filter(co=>{
+    if(!co || !co.company_id) return false;
+    const s=co._sources;
+    if(!s) return wantOpp; // unclassified defaults to opportunity, matching home view
+    return (wantOpp && s.opportunity) || (wantPar && s.partner);
+  });
+  const companyIds=new Set(companies.map(c=>c.company_id));
+  const contacts=(D.contacts||[]).filter(c=>c.contact_id && companyIds.has(c.company_id))
+    .map(c=>{
+      const co=companies.find(co=>co.company_id===c.company_id);
+      return Object.assign({},c,{
+        _bucket:bucketTitle(c.title),
+        _champion:isChampion(c),
+        _companyName:co?(co.name||''):''
+      });
+    });
+  return {companies,contacts};
+}
+
+function trUpdateCounts(){
+  const D=window.__DATA||{};
+  const cos=D.companies||[];
+  let opp=0,par=0,both=0;
+  cos.forEach(co=>{
+    if(!co || !co.company_id) return;
+    const s=co._sources;
+    const isOpp=s?!!s.opportunity:true; // unclassified → opportunity
+    const isPar=s?!!s.partner:false;
+    if(isOpp) opp++;
+    if(isPar) par++;
+    if(isOpp||isPar) both++;
+  });
+  const set=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
+  set('tr-count-opportunity',opp);
+  set('tr-count-partner',par);
+  set('tr-count-both',both);
+}
+
+function trRenderOverallPyramid(scope){
+  const tiers={exec:0,mgmt:0,ops:0};
+  const champCounts={exec:0,mgmt:0,ops:0};
+  scope.contacts.forEach(c=>{
+    tiers[c._bucket.tier]=(tiers[c._bucket.tier]||0)+1;
+    if(c._champion) champCounts[c._bucket.tier]++;
+  });
+  const total=tiers.exec+tiers.mgmt+tiers.ops;
+  const rows=[
+    {key:'exec',label:'Executive',sub:'C-Suite · President · EVP'},
+    {key:'mgmt',label:'Management',sub:'VP · Director · Manager'},
+    {key:'ops',label:'Influencers · Admins',sub:'Champions · ICs · Specialists'}
+  ];
+  const html=rows.map(r=>{
+    const n=tiers[r.key]||0;
+    const pct=total?Math.round(100*n/total):0;
+    const champ=champCounts[r.key];
+    const champNote=champ?` · <span class="pyramid__row-sub">${champ} champion${champ===1?'':'s'}</span>`:'';
+    const empty=n===0;
+    return `<div class="pyramid__row pyramid__row--${r.key}${empty?' pyramid__row--empty':''}" title="${escapeHtml(r.sub)}">
+      <div class="pyramid__row-inner">
+        <span class="pyramid__row-label">${escapeHtml(r.label)}</span>
+        <span class="pyramid__row-count">${n}</span>
+        ${total?`<span class="pyramid__row-sub">${pct}%</span>`:''}
+        ${champNote}
+      </div>
+    </div>`;
+  }).join('');
+  const meta=total?`${total} contact${total===1?'':'s'} across ${scope.companies.length} account${scope.companies.length===1?'':'s'}`:'No contacts in scope yet';
+  return `<div class="section">
+    <div class="section__head"><span class="section__title">Engagement Pyramid</span><span class="section__meta">${escapeHtml(meta)}</span></div>
+    <div class="section__body">
+      <div class="pyramid">${html}</div>
+      <div class="pyramid__legend">
+        <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:var(--primary)"></span>Executive</span>
+        <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:#3742C4"></span>Management</span>
+        <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:#5B68DC"></span>Influencers / Admins</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function trRenderAccountGrid(scope){
+  if(!scope.companies.length) return '';
+  const byCo={};
+  scope.contacts.forEach(c=>{
+    const m=byCo[c.company_id]||(byCo[c.company_id]={exec:0,mgmt:0,ops:0,total:0,champion:0});
+    m[c._bucket.tier]++;
+    m.total++;
+    if(c._champion) m.champion++;
+  });
+  // sort: empty/thinnest first so gaps surface
+  const rows=scope.companies.map(co=>{
+    const m=byCo[co.company_id]||{exec:0,mgmt:0,ops:0,total:0,champion:0};
+    const filled=(m.exec?1:0)+(m.mgmt?1:0)+(m.ops?1:0);
+    return {co,m,filled};
+  }).sort((a,b)=> a.filled-b.filled || a.m.total-b.m.total || (a.co.name||'').localeCompare(b.co.name||''));
+  const cardHtml=rows.map(r=>{
+    const fc=t=>r.m[t]?'tr-card__row--filled':'';
+    const coverage=r.filled===3?'<span class="tr-card__coverage--full">Full coverage</span>':r.filled===0?'<span class="tr-card__coverage--gap">No contacts yet</span>':`<span class="tr-card__coverage--gap">${3-r.filled} tier${3-r.filled===1?'':'s'} missing</span>`;
+    const champLine=r.m.champion?` · ${r.m.champion} champion${r.m.champion===1?'':'s'}`:'';
+    return `<button class="tr-card" type="button" data-tr-company="${escapeHtml(r.co.company_id)}">
+      <div class="tr-card__name">${escapeHtml(r.co.name||'—')}</div>
+      <div class="tr-card__meta">${r.m.total} contact${r.m.total===1?'':'s'}${champLine}</div>
+      <div class="tr-card__pyr">
+        <div class="tr-card__row tr-card__row--exec ${fc('exec')}">${r.m.exec||''}</div>
+        <div class="tr-card__row tr-card__row--mgmt ${fc('mgmt')}">${r.m.mgmt||''}</div>
+        <div class="tr-card__row tr-card__row--ops ${fc('ops')}">${r.m.ops||''}</div>
+      </div>
+      <div class="tr-card__coverage">${coverage}</div>
+    </button>`;
+  }).join('');
+  return `<div class="section">
+    <div class="section__head"><span class="section__title">By Account</span><span class="section__meta">Sorted by coverage gaps first</span></div>
+    <div class="section__body"><div class="tr-grid">${cardHtml}</div></div>
+  </div>`;
+}
+
+function trRenderTierRoster(scope){
+  const tiers=[
+    {key:'exec',label:'Executive',hint:'Final approval authority',swatch:'exec'},
+    {key:'mgmt',label:'Management',hint:'Budget owners & decision makers',swatch:'mgmt'},
+    {key:'ops',label:'Influencers · Admins',hint:'Daily users, technical champions, administrators',swatch:'ops'}
+  ];
+  const filterFn=(c)=>{
+    if(trTierFilter==='all') return true;
+    if(trTierFilter==='champion') return c._champion;
+    return c._bucket.tier===trTierFilter;
+  };
+  const filtered=scope.contacts.filter(filterFn);
+  const tiersHtml=tiers.map(t=>{
+    const rows=filtered.filter(c=>c._bucket.tier===t.key)
+      .sort((a,b)=>(a.full_name||'').localeCompare(b.full_name||''));
+    let body;
+    if(!rows.length){
+      body=`<div class="tr-tier--empty">${trTierFilter==='champion'?'No champions identified in this tier.':'No contacts in this tier yet — engagement gap.'}</div>`;
+    } else {
+      body=`<div class="tr-tier__list">${rows.map(c=>{
+        const pills=[];
+        if(c._champion) pills.push('<span class="pill pill--green">Champion</span>');
+        if(c._bucket.fnLabel) pills.push(`<span class="pill pill--amber">${escapeHtml(c._bucket.fnLabel)}</span>`);
+        const conf=String(c.email_confidence||'').toUpperCase();
+        if(conf==='HIGH') pills.push('<span class="pill pill--green">Verified</span>');
+        else if(conf==='LOW') pills.push('<span class="pill pill--red">Low conf.</span>');
+        const sub=[c.title||'—',c._companyName].filter(Boolean).join(' · ');
+        return `<button class="tr-row" type="button" data-tr-contact="${escapeHtml(c.contact_id)}">
+          <div class="tr-row__body">
+            <div class="tr-row__name">${escapeHtml(c.full_name||'(no name)')}</div>
+            <div class="tr-row__sub">${escapeHtml(sub)}</div>
+          </div>
+          <div class="tr-row__pills">${pills.join('')}</div>
+        </button>`;
+      }).join('')}</div>`;
+    }
+    return `<div class="tr-tier">
+      <div class="tr-tier__head">
+        <span class="tr-tier__swatch tr-tier__swatch--${t.swatch}"></span>
+        <span class="tr-tier__label">${escapeHtml(t.label)}</span>
+        <span class="tr-tier__hint">${escapeHtml(t.hint)}</span>
+        <span class="tr-tier__count">${rows.length}</span>
+      </div>
+      ${body}
+    </div>`;
+  }).join('');
+  return `<div class="section">
+    <div class="section__head"><span class="section__title">Roster by Tier</span><span class="section__meta">Click a contact to open</span></div>
+    <div class="section__body">${tiersHtml}</div>
+  </div>`;
+}
+
+function renderTitlesRoles(){
+  const mount=document.getElementById('tr-mount');
+  if(!mount) return;
+  trUpdateCounts();
+  // sync acct-tabs & chip active states with current state vars
+  document.querySelectorAll('#tr-acct-tabs .acct-tab').forEach(t=>{
+    const on=t.dataset.trTab===trAccountScope;
+    t.classList.toggle('active',on);
+    t.setAttribute('aria-selected',on?'true':'false');
+  });
+  document.querySelectorAll('#tr-chips .chip').forEach(c=>{
+    c.classList.toggle('active',c.dataset.trChip===trTierFilter);
+  });
+  const D=window.__DATA;
+  if(!D || !Array.isArray(D.contacts)){
+    mount.innerHTML='<div class="tr-empty">Loading live data…</div>';
+    return;
+  }
+  const scope=trGetScope();
+  if(!scope.companies.length){
+    mount.innerHTML='<div class="tr-empty"><b>No accounts in scope.</b><br>Try a different tab above, or sync contacts from the home view.</div>';
+    return;
+  }
+  mount.innerHTML=[
+    trRenderOverallPyramid(scope),
+    trRenderAccountGrid(scope),
+    trRenderTierRoster(scope)
+  ].join('');
+}
+
+// Filter wiring — bound once on script load. Re-render uses live state vars.
+document.querySelectorAll('#tr-acct-tabs .acct-tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    trAccountScope=t.dataset.trTab||'opportunity';
+    renderTitlesRoles();
+  });
+});
+document.querySelectorAll('#tr-chips .chip').forEach(c=>{
+  c.addEventListener('click',()=>{
+    trTierFilter=c.dataset.trChip||'all';
+    renderTitlesRoles();
+  });
+});
+// Delegated click-through: account card → home (jump to contacts tab), contact row → contact detail
+const trMountEl=document.getElementById('tr-mount');
+if(trMountEl){
+  trMountEl.addEventListener('click',e=>{
+    const contactBtn=e.target.closest('[data-tr-contact]');
+    if(contactBtn){ navigate('contact',contactBtn.dataset.trContact); return; }
+    const coBtn=e.target.closest('[data-tr-company]');
+    if(coBtn){ navigate('home'); return; }
+  });
+}
+
+/* ========== End Titles & Roles Dashboard ========== */
 
 // Bootstrap: pure read from Google Sheets, then render. Customer/Opportunity
 // vs Partner classification comes from each Companies row's `account_type`
