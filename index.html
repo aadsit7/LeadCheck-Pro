@@ -609,18 +609,59 @@ main{flex:1;padding-bottom:var(--s-9)}
 .tr-acct__pill--both{background:var(--green-bg);color:var(--green)}
 .tr-acct__meta{font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
 .tr-acct__meta-item{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}
-.tr-acct__avatars{display:flex;align-items:center;gap:-4px}
+.tr-acct__meta-item--engaged{color:var(--green);font-weight:700}
+.tr-acct__meta-item--gap{color:var(--red)}
+.tr-acct__meta-item--stale{color:var(--ink-4)}
+.tr-acct__avatars{display:flex;align-items:center}
 .tr-acct__avatars .avatar{width:24px;height:24px;font-size:10px;margin-left:-6px;border:2px solid var(--bg)}
 .tr-acct__avatars .avatar:first-child{margin-left:0}
 .tr-acct__coverage{display:flex;gap:3px;flex-shrink:0;margin-left:auto}
 .tr-acct__cov-dot{width:8px;height:8px;border-radius:50%;background:var(--border-strong);transition:background var(--t-fast) var(--ease)}
 .tr-acct__cov-dot--filled{background:var(--green)}
 .tr-acct__cov-dot--exec.tr-acct__cov-dot--filled{background:var(--primary)}
+.tr-acct__cov-dot--exec:not(.tr-acct__cov-dot--filled){background:var(--red);opacity:.5}
 .tr-acct__chevron{width:18px;height:18px;color:var(--ink-4);flex-shrink:0;transition:transform var(--t-med) var(--ease)}
 .tr-acct--open .tr-acct__chevron{transform:rotate(180deg);color:var(--ink-3)}
-.tr-acct__detail{display:none;padding:var(--s-4);background:var(--bg-tint);animation:fadeIn var(--t-med) var(--ease)}
-.tr-acct--open .tr-acct__detail{display:block}
+/* Smooth open/close — max-height grows to a generous ceiling; the real height comes from content. */
+.tr-acct__detail{max-height:0;overflow:hidden;opacity:0;padding:0 var(--s-4);transition:max-height var(--t-med) var(--ease),opacity var(--t-med) var(--ease),padding var(--t-med) var(--ease);background:var(--bg-tint)}
+.tr-acct--open .tr-acct__detail{max-height:4000px;opacity:1;padding:var(--s-4)}
 .tr-acct__detail .section{background:var(--bg)}
+
+/* Mobile: stack the head elements so they don't crash into each other on iPhone-class widths. */
+@media(max-width:540px){
+  .tr-acct__head{flex-wrap:wrap;padding:var(--s-3)}
+  .tr-acct__body{flex:1 1 auto;min-width:0}
+  .tr-acct__avatars{order:5;width:100%;margin:var(--s-2) 0 0;justify-content:flex-start}
+  .tr-acct__coverage{order:4;margin-left:auto}
+  .tr-acct__chevron{order:3}
+  .tr-acct__detail{padding:0 var(--s-3)}
+  .tr-acct--open .tr-acct__detail{padding:var(--s-3)}
+}
+
+/* Search clear button (X) */
+.tr-search-clear{position:absolute;right:8px;top:8px;width:28px;height:28px;border-radius:var(--r-sm);background:transparent;color:var(--ink-3);display:none;align-items:center;justify-content:center;cursor:pointer;transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
+.tr-search-clear:hover{background:var(--border);color:var(--ink)}
+.tr-search-clear svg{width:14px;height:14px}
+.tr-search:not(:placeholder-shown) + .tr-search-clear{display:inline-flex}
+/* Keyboard hint chip inside the search bar */
+.tr-search-hint{position:absolute;right:44px;top:13px;font-size:10px;color:var(--ink-4);font-weight:600;padding:2px 6px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--bg);pointer-events:none}
+.tr-search:focus ~ .tr-search-hint,
+.tr-search:not(:placeholder-shown) ~ .tr-search-hint{display:none}
+
+/* Pyramid: when exec/mgmt bands are empty, signal urgency by hue instead of just "empty". */
+.pyramid__row--exec.pyramid__row--empty{background:var(--red-bg);color:var(--red);border:1px dashed var(--red)}
+.pyramid__row--mgmt.pyramid__row--empty{background:var(--amber-bg);color:var(--amber);border:1px dashed var(--amber)}
+.pyramid__row--ops.pyramid__row--empty{background:var(--bg-tint);color:var(--ink-4);border:1px dashed var(--border-strong)}
+
+/* Empty state card with CTA */
+.tr-empty-card{padding:var(--s-8) var(--s-5);text-align:center;background:var(--bg);border:1px dashed var(--border-strong);border-radius:var(--r-md)}
+.tr-empty-card__title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.tr-empty-card__desc{font-size:12px;color:var(--ink-3);margin-bottom:var(--s-4)}
+.tr-empty-card .btn--primary{justify-content:center}
+
+/* Drag source marker — applied to the live node so we can clean it up by class
+   instead of holding a stale DOM ref. */
+.co-drag-source{opacity:.5;transition:opacity var(--t-fast) var(--ease)}
 
 /* Inline contact-add form (lives at the bottom of a company's org chart) */
 .org-add-trigger{display:inline-flex;align-items:center;gap:6px;margin-top:var(--s-3);padding:8px 12px;border:1px dashed var(--border-strong);border-radius:var(--r-md);background:transparent;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer;transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
@@ -1129,6 +1170,10 @@ Aaron</div>
           <div class="tr-search-wrap">
             <svg class="tr-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="search" class="tr-search" id="tr-search" placeholder="Find a person, title, or company…" autocomplete="off" spellcheck="false" aria-label="Search">
+            <button class="tr-search-clear" id="tr-search-clear" type="button" aria-label="Clear search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <span class="tr-search-hint" aria-hidden="true">⌘K</span>
           </div>
           <div class="filter-row">
             <div class="filter-chips" id="tr-chips">
@@ -1726,9 +1771,19 @@ function bucketTitle(title){
 function isChampion(c){
   const dr=String((c&&c.decision_role)||'').toLowerCase();
   if(!dr) return false;
-  // Negation guard: skip "not a champion", "no champion", "isn't a champion", "not the champion"
-  if(/\b(not|no|never|isn'?t|wasn'?t|aren'?t)\b[^.]{0,20}\bchampion\b/.test(dr)) return false;
+  // Negation guard: skip phrasings like "not a champion", "no champion identified",
+  // "hardly the champion", "won't be a champion". Window widened to 60 chars and
+  // bounded by sentence-ish breaks (. ; — !) so we don't cross unrelated clauses.
+  if(/\b(not|no|never|isn'?t|wasn'?t|aren'?t|won'?t|wouldn'?t|hardly|nobody)\b[^.;—!]{0,60}\bchampion\b/.test(dr)) return false;
   return /\bchampion\b/.test(dr);
+}
+// Short ID generator that's robust against same-ms collisions (e.g. two rapid
+// add-contact submits). Reuses the existing prefixed-timestamp convention but
+// appends 6 chars of randomness so org_id/contact_id stay unique even under burst.
+function genId(prefix){
+  const ts=Date.now().toString(36);
+  const rnd=Math.random().toString(36).slice(2,8);
+  return (prefix||'')+ts+rnd;
 }
 /* ========== End Titles & Roles: bucketing ========== */
 
@@ -3355,7 +3410,7 @@ async function coOrgReparent(companyId, movedContactId, parentContactId){
       await postToSheet({action:'update', tab:'Org_Chart', idColumn:'org_id', idValue:existing.org_id, data});
       Object.assign(existing, data);
     } else {
-      const org_id='OC'+Date.now();
+      const org_id=genId('OC');
       const data={
         org_id, contact_id: parentContactId,
         role_type: 'directReport',
@@ -3390,19 +3445,33 @@ function coOrgRefreshExpanded(companyId){
 }
 
 // Delegated drag handlers on document — works for any expanded company.
+// We DON'T store the DOM node in the payload: the org chart re-renders mid-drop
+// (between drop and dragend) so any node ref becomes detached. Track the
+// dragging contact via a class on the live element and a CSS rule instead.
 document.addEventListener('dragstart', (e)=>{
   const src=e.target.closest('[data-co-drag][data-co-contact]');
   if(!src) return;
   coOrgDragPayload={
     companyId: src.dataset.coDrag,
-    contactId: src.dataset.coContact,
-    nodeEl: src
+    contactId: src.dataset.coContact
   };
   try { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', src.dataset.coContact); } catch(_){}
-  src.style.opacity='.5';
+  // Build a faint cloned ghost so the user sees what they're dragging — the
+  // default browser drag image is the bare button which looks broken.
+  try {
+    const ghost=src.cloneNode(true);
+    ghost.style.cssText='position:absolute;top:-1000px;left:-1000px;opacity:.85;box-shadow:var(--elev-2);background:var(--bg);pointer-events:none';
+    ghost.classList.add('co-drag-ghost');
+    document.body.appendChild(ghost);
+    e.dataTransfer.setDragImage(ghost, 12, 12);
+    setTimeout(()=>{ if(ghost.parentNode) ghost.parentNode.removeChild(ghost); }, 0);
+  } catch(_){}
+  src.classList.add('co-drag-source');
 });
 document.addEventListener('dragend', ()=>{
-  if(coOrgDragPayload && coOrgDragPayload.nodeEl){ coOrgDragPayload.nodeEl.style.opacity=''; }
+  // Re-query the live DOM rather than relying on a captured ref, which may have
+  // been re-rendered away by the async drop handler.
+  document.querySelectorAll('.co-drag-source').forEach(el=>el.classList.remove('co-drag-source'));
   coOrgDragPayload=null;
   coOrgClearHover();
 });
@@ -3470,7 +3539,7 @@ function coBuildAddForm(companyId){
 
 async function coOrgAddContact(companyId, name, title, reportsToContactId){
   const D=window.__DATA||{};
-  const contact_id='C'+Date.now();
+  const contact_id=genId('C');
   const initials=(typeof deriveInitials==='function'?deriveInitials(name):'');
   const contactRow={
     contact_id, full_name:name, title:title||'',
@@ -3483,7 +3552,7 @@ async function coOrgAddContact(companyId, name, title, reportsToContactId){
   (D.contacts || (D.contacts=[])).push(contactRow);
   if(reportsToContactId){
     const parent=(D.contacts||[]).find(c=>c.contact_id===reportsToContactId);
-    const org_id='OC'+Date.now();
+    const org_id=genId('OC');
     const orgRow={
       org_id, contact_id:reportsToContactId,
       role_type:'directReport', name, title:title||'',
@@ -6289,23 +6358,36 @@ function trRenderAccounts(scope){
   const initial=(name)=>(String(name||'?').trim()[0]||'?').toUpperCase();
   const cardHtml=rows.map(r=>{
     const isOpen=trExpandedCoId===r.co.company_id;
+    const safeCid=escapeHtml(r.co.company_id);
+    // Max last_updated across contacts at the company → freshest engagement signal.
+    let lastTs=0;
+    r.m.contacts.forEach(c=>{ const t=Date.parse(c.last_updated||'')||0; if(t>lastTs) lastTs=t; });
+    const lastStr=lastTs?formatStale(new Date(lastTs).toISOString()):'';
+    const isStale=lastTs && (Date.now()-lastTs)>1000*60*60*24*60; // >60 days
     const avatarStrip=r.m.contacts.slice(0,5).map(c=>{
-      const ac=(typeof avatarClass==='function')?'avatar--blue':'avatar--blue';
       const init=(c.initials && String(c.initials).trim())||(typeof deriveInitials==='function'?deriveInitials(c.full_name||''):initial(c.full_name));
-      return `<span class="avatar ${ac}" title="${escapeHtml(c.full_name||'')}" aria-hidden="true">${escapeHtml(init)}</span>`;
+      const verified=String(c.verified||'').toUpperCase()==='TRUE';
+      const cls=c._engaged?'avatar--blue':(verified?'avatar--blue':'avatar--amber');
+      return `<span class="avatar ${cls}" title="${escapeHtml(c.full_name||'')}" aria-hidden="true">${escapeHtml(init)}</span>`;
     }).join('');
-    const extra=r.m.contacts.length>5?`<span class="avatar avatar--gray" aria-hidden="true">+${r.m.contacts.length-5}</span>`:'';
+    const extra=r.m.contacts.length>5?`<span class="avatar avatar--gray" aria-hidden="true" title="+${r.m.contacts.length-5} more">+${r.m.contacts.length-5}</span>`:'';
     const dots=['exec','mgmt','ops'].map(t=>{
       const cls=`tr-acct__cov-dot tr-acct__cov-dot--${t}${r.m[t]?' tr-acct__cov-dot--filled':''}`;
       return `<span class="${cls}" title="${t==='exec'?'Executive':t==='mgmt'?'Management':'Influencers / Admins'}: ${r.m[t]||0}"></span>`;
     }).join('');
-    const metaItems=[`<span class="tr-acct__meta-item">${r.m.total} contact${r.m.total===1?'':'s'}</span>`];
-    if(r.m.engaged) metaItems.push(`<span class="tr-acct__meta-item" style="color:var(--green);font-weight:600">${r.m.engaged} engaged</span>`);
+    const metaItems=[];
+    metaItems.push(`<span class="tr-acct__meta-item">${r.m.total} contact${r.m.total===1?'':'s'}</span>`);
+    if(r.m.engaged){
+      metaItems.push(`<span class="tr-acct__meta-item tr-acct__meta-item--engaged">${r.m.engaged} engaged</span>`);
+    } else if(r.m.total){
+      metaItems.push(`<span class="tr-acct__meta-item tr-acct__meta-item--gap">No one engaged</span>`);
+    }
     if(r.m.champion) metaItems.push(`<span class="tr-acct__meta-item">${r.m.champion} champion${r.m.champion===1?'':'s'}</span>`);
-    if(r.m.unknown) metaItems.push(`<span class="tr-acct__meta-item" style="color:var(--ink-4)">${r.m.unknown} unclassified</span>`);
-    const detail=isOpen?`<div class="tr-acct__detail">${renderCompanyExpanded(r.co.company_id)}</div>`:'';
-    return `<div class="tr-acct${isOpen?' tr-acct--open':''}" data-tr-acct="${escapeHtml(r.co.company_id)}">
-      <button class="tr-acct__head" type="button" data-tr-acct-toggle="${escapeHtml(r.co.company_id)}" aria-expanded="${isOpen?'true':'false'}">
+    if(lastStr) metaItems.push(`<span class="tr-acct__meta-item${isStale?' tr-acct__meta-item--stale':''}">Last updated ${escapeHtml(lastStr)}</span>`);
+    if(r.m.unknown) metaItems.push(`<span class="tr-acct__meta-item tr-acct__meta-item--stale">${r.m.unknown} unclassified</span>`);
+    const detail=isOpen?`<div class="tr-acct__detail" id="tr-acct-detail-${safeCid}">${renderCompanyExpanded(r.co.company_id)}</div>`:`<div class="tr-acct__detail" id="tr-acct-detail-${safeCid}"></div>`;
+    return `<div class="tr-acct${isOpen?' tr-acct--open':''}" data-tr-acct="${safeCid}">
+      <button class="tr-acct__head" type="button" data-tr-acct-toggle="${safeCid}" aria-expanded="${isOpen?'true':'false'}" aria-controls="tr-acct-detail-${safeCid}">
         <div class="tr-acct__avatar">${escapeHtml(initial(r.co.name))}</div>
         <div class="tr-acct__body">
           <div class="tr-acct__name-row">
@@ -6315,7 +6397,7 @@ function trRenderAccounts(scope){
           <div class="tr-acct__meta">${metaItems.join('')}</div>
         </div>
         <div class="tr-acct__avatars" aria-hidden="true">${avatarStrip}${extra}</div>
-        <div class="tr-acct__coverage" title="Coverage: executive · management · ops">${dots}</div>
+        <div class="tr-acct__coverage" title="Coverage: executive · management · ops" aria-hidden="true">${dots}</div>
         <svg class="tr-acct__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       ${detail}
@@ -6350,7 +6432,13 @@ function renderTitlesRoles(){
   }
   const scope=trGetScope();
   if(!scope.companies.length){
-    mount.innerHTML='<div class="tr-empty"><b>No accounts in scope.</b><br>Try a different tab above, or sync contacts from the home view.</div>';
+    mount.innerHTML=`<div class="tr-empty-card">
+      <div class="tr-empty-card__title">No accounts in this scope yet</div>
+      <div class="tr-empty-card__desc">Switch the tab above, or open Contacts to sync from your Opportunities &amp; Partners sheets.</div>
+      <button type="button" class="btn btn--primary" data-tr-empty-cta>Go to Contacts</button>
+    </div>`;
+    const cta=mount.querySelector('[data-tr-empty-cta]');
+    if(cta) cta.addEventListener('click', ()=>navigate('home'));
     return;
   }
   mount.innerHTML=[
@@ -6370,6 +6458,7 @@ document.querySelectorAll('#tr-acct-tabs .acct-tab').forEach(t=>{
 document.querySelectorAll('#tr-chips .chip').forEach(c=>{
   c.addEventListener('click',()=>{
     trTierFilter=c.dataset.trChip||'all';
+    trExpandedCoId=null; // expanded company may no longer be in the filtered set
     renderTitlesRoles();
   });
 });
@@ -6380,11 +6469,37 @@ if(trSearchInput){
   trSearchInput.addEventListener('input', ()=>{
     clearTimeout(trSearchDebounce);
     trSearchDebounce=setTimeout(()=>{
-      trSearchTerm=trSearchInput.value||'';
-      renderTitlesRoles();
+      const next=trSearchInput.value||'';
+      if(next!==trSearchTerm){
+        trSearchTerm=next;
+        trExpandedCoId=null; // search may hide the currently-expanded card; let it surface fresh
+        renderTitlesRoles();
+      }
     }, 140);
   });
 }
+// Search clear (X) button — wipes term, refocuses input.
+const trSearchClear=document.getElementById('tr-search-clear');
+if(trSearchClear && trSearchInput){
+  trSearchClear.addEventListener('click', ()=>{
+    trSearchInput.value='';
+    trSearchTerm='';
+    trExpandedCoId=null;
+    renderTitlesRoles();
+    trSearchInput.focus();
+  });
+}
+// ⌘K / Ctrl-K opens the search from anywhere on the page when Titles & Roles is active.
+document.addEventListener('keydown', (e)=>{
+  if((e.metaKey || e.ctrlKey) && (e.key==='k' || e.key==='K')){
+    const trActive=document.getElementById('view-titles-roles');
+    if(trActive && trActive.classList.contains('active') && trSearchInput){
+      e.preventDefault();
+      trSearchInput.focus();
+      trSearchInput.select();
+    }
+  }
+});
 // Delegated click-through: account card head toggles expansion; contact rows inside an
 // expanded card open contact detail; org-chart buttons keep their own data-route hooks.
 const trMountEl=document.getElementById('tr-mount');
