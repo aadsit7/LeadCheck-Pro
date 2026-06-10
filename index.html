@@ -570,6 +570,7 @@ main{flex:1;padding-bottom:var(--s-9)}
 .tr-tier__swatch--exec{background:var(--primary)}
 .tr-tier__swatch--mgmt{background:#3742C4}
 .tr-tier__swatch--ops{background:#5B68DC}
+.tr-tier__swatch--unknown{background:var(--ink-4);border:1px dashed var(--border-strong)}
 .tr-tier__label{font-size:12px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.05em}
 .tr-tier__count{font-size:11px;font-weight:600;color:var(--ink-3);background:var(--bg-tint);padding:1px 7px;border-radius:100px;margin-left:auto}
 .tr-tier__hint{font-size:11px;color:var(--ink-4)}
@@ -582,6 +583,66 @@ main{flex:1;padding-bottom:var(--s-9)}
 .tr-row__sub{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .tr-row__pills{display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
 .tr-tier--empty{padding:var(--s-3) 0;color:var(--ink-4);font-size:12px;font-style:italic}
+
+/* Redesigned account cards (Titles & Roles) — bigger, scannable, expandable inline */
+.tr-search-wrap{position:relative;margin-bottom:var(--s-4)}
+.tr-search{width:100%;padding:12px 14px 12px 40px;background:var(--bg-tint);border:1px solid transparent;border-radius:var(--r-md);font-size:14px;color:var(--ink);transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
+.tr-search::placeholder{color:var(--ink-4)}
+.tr-search:hover{background:var(--border)}
+.tr-search:focus{outline:none;background:var(--bg);border-color:var(--primary)}
+.tr-search-icon{position:absolute;left:14px;top:14px;width:16px;height:16px;color:var(--ink-4);pointer-events:none}
+
+.tr-accounts{display:flex;flex-direction:column;gap:var(--s-3)}
+.tr-acct{border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg);overflow:hidden;transition:border-color var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease)}
+.tr-acct:hover{border-color:var(--border-strong)}
+.tr-acct--open{border-color:var(--primary);box-shadow:var(--elev-2)}
+.tr-acct__head{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) var(--s-4);width:100%;text-align:left;background:transparent;cursor:pointer;transition:background var(--t-fast) var(--ease)}
+.tr-acct__head:hover{background:var(--bg-tint)}
+.tr-acct--open .tr-acct__head{background:var(--bg-tint);border-bottom:1px solid var(--border)}
+.tr-acct__avatar{width:40px;height:40px;border-radius:var(--r-md);background:var(--primary);color:#fff;font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.tr-acct__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.tr-acct__name-row{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap}
+.tr-acct__name{font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-acct__pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em}
+.tr-acct__pill--opp{background:var(--primary-100);color:var(--primary)}
+.tr-acct__pill--par{background:var(--amber-bg);color:var(--amber)}
+.tr-acct__pill--both{background:var(--green-bg);color:var(--green)}
+.tr-acct__meta{font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.tr-acct__meta-item{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}
+.tr-acct__avatars{display:flex;align-items:center;gap:-4px}
+.tr-acct__avatars .avatar{width:24px;height:24px;font-size:10px;margin-left:-6px;border:2px solid var(--bg)}
+.tr-acct__avatars .avatar:first-child{margin-left:0}
+.tr-acct__coverage{display:flex;gap:3px;flex-shrink:0;margin-left:auto}
+.tr-acct__cov-dot{width:8px;height:8px;border-radius:50%;background:var(--border-strong);transition:background var(--t-fast) var(--ease)}
+.tr-acct__cov-dot--filled{background:var(--green)}
+.tr-acct__cov-dot--exec.tr-acct__cov-dot--filled{background:var(--primary)}
+.tr-acct__chevron{width:18px;height:18px;color:var(--ink-4);flex-shrink:0;transition:transform var(--t-med) var(--ease)}
+.tr-acct--open .tr-acct__chevron{transform:rotate(180deg);color:var(--ink-3)}
+.tr-acct__detail{display:none;padding:var(--s-4);background:var(--bg-tint);animation:fadeIn var(--t-med) var(--ease)}
+.tr-acct--open .tr-acct__detail{display:block}
+.tr-acct__detail .section{background:var(--bg)}
+
+/* Inline contact-add form (lives at the bottom of a company's org chart) */
+.org-add-trigger{display:inline-flex;align-items:center;gap:6px;margin-top:var(--s-3);padding:8px 12px;border:1px dashed var(--border-strong);border-radius:var(--r-md);background:transparent;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer;transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
+.org-add-trigger:hover{background:var(--primary-50);border-color:var(--primary)}
+.org-add-trigger svg{width:14px;height:14px}
+.org-add-form{margin-top:var(--s-3);padding:var(--s-3);border:1px solid var(--primary);border-radius:var(--r-md);background:var(--bg);display:flex;flex-direction:column;gap:var(--s-3);animation:fadeIn var(--t-med) var(--ease)}
+.org-add-form__title{font-size:12px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.org-add-form__row{display:flex;flex-direction:column;gap:6px}
+.org-add-form__row label{font-size:11px;font-weight:600;color:var(--ink-3)}
+.org-add-form__input,.org-add-form__select{padding:8px 10px;background:var(--bg-tint);border:1px solid transparent;border-radius:var(--r-sm);font-size:13px;color:var(--ink);transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
+.org-add-form__input:focus,.org-add-form__select:focus{outline:none;background:var(--bg);border-color:var(--primary)}
+.org-add-form__select{cursor:pointer}
+.org-add-form__actions{display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-2)}
+.org-add-form__error{color:var(--red);font-size:11px;margin-top:4px;display:none}
+.org-add-form__error--show{display:block}
+.org-add-form__busy{display:inline-flex;align-items:center;gap:6px}
+.org-add-form__busy::before{content:'';display:inline-block;width:12px;height:12px;border:2px solid var(--bg-tint);border-top-color:var(--primary);border-radius:50%;animation:spin 0.7s linear infinite}
+
+/* Org chart drag in combined view — reuse existing org-drop-hover/flash */
+.org-tree .org-node[data-co-drag]{cursor:grab}
+.org-tree .org-node[data-co-drag]:active{cursor:grabbing}
+.org-tree .org-node[data-co-drag]:hover::after{content:'⋮⋮';position:absolute;top:6px;right:6px;font-size:9px;color:var(--ink-4);letter-spacing:-1px;pointer-events:none}
 </style>
 </head>
 <body>
@@ -1063,8 +1124,12 @@ Aaron</div>
           <nav class="acct-tabs" id="tr-acct-tabs" role="tablist" aria-label="Account type">
             <button class="acct-tab active" type="button" data-tr-tab="opportunity" role="tab" aria-selected="true">Opportunity<span class="acct-tab__count" id="tr-count-opportunity">0</span></button>
             <button class="acct-tab" type="button" data-tr-tab="partner" role="tab" aria-selected="false">Partner<span class="acct-tab__count" id="tr-count-partner">0</span></button>
-            <button class="acct-tab" type="button" data-tr-tab="both" role="tab" aria-selected="false">Both<span class="acct-tab__count" id="tr-count-both">0</span></button>
+            <button class="acct-tab" type="button" data-tr-tab="all" role="tab" aria-selected="false">All accounts<span class="acct-tab__count" id="tr-count-all">0</span></button>
           </nav>
+          <div class="tr-search-wrap">
+            <svg class="tr-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" class="tr-search" id="tr-search" placeholder="Find a person, title, or company…" autocomplete="off" spellcheck="false" aria-label="Search">
+          </div>
           <div class="filter-row">
             <div class="filter-chips" id="tr-chips">
               <button class="chip active" data-tr-chip="all" type="button">All tiers</button>
@@ -1617,10 +1682,11 @@ function showDataLoading(){
 }
 
 /* ========== Titles & Roles: bucketing ==========
-   Map free-text titles into three engagement tiers:
-     exec  — C-suite, President, EVP-level approvers
-     mgmt  — VP / Director / Manager (the people who own budgets & make calls)
-     ops   — admins, ICs, specialists (champions and influencers usually live here)
+   Map free-text titles into engagement tiers:
+     exec     — C-suite, President, EVP-level approvers
+     mgmt     — VP / Director / Manager (the people who own budgets & make calls)
+     ops      — admins, ICs, specialists (champions and influencers usually live here)
+     unknown  — empty title or no pattern match (surfaced separately, never silently bucketed)
    The fn (function) buckets are kept for future slicing — not surfaced in v1. */
 const TR_SENIORITY_PATTERNS=[
   {key:'exec',rx:/\b(c[eiotfsmh]o|chief\s+[a-z]+\s+officer|chairman|president|founder|owner|partner)\b/i},
@@ -1639,24 +1705,30 @@ const TR_FUNCTION_PATTERNS=[
   {key:'hr',label:'HR',rx:/\b(hr|human\s*resources|people|talent)\b/i},
   {key:'sales',label:'Sales/GTM',rx:/\b(sales|revenue|account\s*executive|gtm|marketing)\b/i}
 ];
+const TR_TIER_LABEL={exec:'Executive',mgmt:'Management',ops:'Influencers / Admins',unknown:'Unclassified'};
 function bucketTitle(title){
   const s=String(title||'').trim();
-  if(!s) return {tier:'ops',tierLabel:'Influencers / Admins',fn:'unknown',fnLabel:'',raw:'',matched:false};
+  if(!s) return {tier:'unknown',tierLabel:TR_TIER_LABEL.unknown,fn:'unknown',fnLabel:'',raw:'',matched:false};
   const sen=TR_SENIORITY_PATTERNS.find(p=>p.rx.test(s));
   const fn=TR_FUNCTION_PATTERNS.find(p=>p.rx.test(s));
-  const tier=sen?sen.key:'ops';
+  const tier=sen?sen.key:'unknown';
   return {
     tier,
-    tierLabel:tier==='exec'?'Executive':tier==='mgmt'?'Management':'Influencers / Admins',
+    tierLabel:TR_TIER_LABEL[tier]||TR_TIER_LABEL.unknown,
     fn:fn?fn.key:'unknown',
     fnLabel:fn?fn.label:'',
     raw:s,
     matched:!!sen
   };
 }
+// Champion = explicit "champion" mention in decision_role, with a basic guard against negations.
+// Engagement signal lives separately in _engaged (derived from org_chart Target marker).
 function isChampion(c){
   const dr=String((c&&c.decision_role)||'').toLowerCase();
-  return /\bchampion\b/.test(dr) || /\binfluenc/.test(dr);
+  if(!dr) return false;
+  // Negation guard: skip "not a champion", "no champion", "isn't a champion", "not the champion"
+  if(/\b(not|no|never|isn'?t|wasn'?t|aren'?t)\b[^.]{0,20}\bchampion\b/.test(dr)) return false;
+  return /\bchampion\b/.test(dr);
 }
 /* ========== End Titles & Roles: bucketing ========== */
 
@@ -1668,7 +1740,7 @@ function escapeHtml(v){
 /* ========== End Data Layer ========== */
 
 let activeFilter='company',activeSort='recent',activeSearch='',editingId=null,expandedCompanyId=null,activeAccountType='customer';
-let trAccountScope='opportunity',trTierFilter='all';
+let trAccountScope='opportunity',trTierFilter='all',trExpandedCoId=null,trSearchTerm='';
 
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
@@ -2182,7 +2254,7 @@ function renderCompanyExpanded(companyId){
         } else {
           for(const sn of sparseRun){
             if(parts.length) parts.push('<div class="org-connector"></div>');
-            parts.push(orgNodeHtmlCombined(sn));
+            parts.push(orgNodeHtmlCombined(sn, companyId));
           }
         }
         sparseRun=[];
@@ -2197,7 +2269,7 @@ function renderCompanyExpanded(companyId){
         } else {
           flushSparse();
           if(parts.length) parts.push('<div class="org-connector"></div>');
-          parts.push(orgNodeHtmlCombined(cur));
+          parts.push(orgNodeHtmlCombined(cur, companyId));
           if(cur.dbContactId && cur.reports.length){
             parts.push(renderNodeSideGroups(cur));
           }
@@ -2231,16 +2303,24 @@ function renderCompanyExpanded(companyId){
     }
   }
 
+  const orgAddHtml=`<div class="org-add-zone" data-co-add="${escapeHtml(companyId)}">
+    <button class="org-add-trigger" type="button" data-co-add-trigger="${escapeHtml(companyId)}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add contact
+    </button>
+    <div class="org-add-form-slot"></div>
+  </div>`;
+  const orgHintHtml=`<p class="prose" style="color:var(--ink-3);font-size:11px;margin-top:var(--s-3)">Drag a contact onto another to set "reports to". Adds save to your sheet.</p>`;
   const orgHtml=`
     <div class="section">
       <div class="section__head"><span class="section__title">Combined Org Chart</span></div>
-      <div class="section__body">${gapBannerHtml}${orgBodyHtml}</div>
+      <div class="section__body" data-co-org="${escapeHtml(companyId)}">${gapBannerHtml}${orgBodyHtml}${orgAddHtml}${orgHintHtml}</div>
     </div>`;
 
   return `<div class="company-detail">${summaryHtml}${contactsHtml}${orgHtml}</div>`;
 }
 
-function orgNodeHtmlCombined(node){
+function orgNodeHtmlCombined(node, companyId){
   const effectiveSrc=node.dbContactId?'DATABASE':(node.source||'RESEARCHED');
   let cls='',chipText='';
   if(effectiveSrc==='DATABASE'){
@@ -2251,9 +2331,12 @@ function orgNodeHtmlCombined(node){
     cls='org-node--source-researched'; chipText='From research';
   }
   const attrs=node.dbContactId?` data-route="contact" data-id="${escapeHtml(node.dbContactId)}"`:'';
+  // Database contacts are draggable for reparenting in the combined company org chart.
+  // The drop handler reads data-co-drag (company scope) + data-co-contact (the contact being moved).
+  const dragAttrs=(node.dbContactId && companyId)?` draggable="true" data-co-drag="${escapeHtml(companyId)}" data-co-contact="${escapeHtml(node.dbContactId)}"`:'';
   const tag=node.dbContactId?'button':'div';
   const typeAttr=node.dbContactId?' type="button"':'';
-  return `<${tag} class="org-node ${cls}"${attrs}${typeAttr}>
+  return `<${tag} class="org-node ${cls}"${attrs}${typeAttr}${dragAttrs}>
     <div class="org-node__name">${escapeHtml(displayOrgName(node.name))}</div>
     <div class="org-node__title">${escapeHtml(node.title)}</div>
     <span class="org-node__chip">${escapeHtml(chipText)}</span>
@@ -3216,6 +3299,254 @@ document.addEventListener('change',e=>{
   sel.value='';
 });
 /* ========== End Org Chart Drag & Drop ========== */
+
+/* ========== Company-Level Org Chart: drag-drop + inline contact add ==========
+   Sits on top of the combined org chart inside renderCompanyExpanded. Reuses
+   the per-contact CSS visuals (.org-drop-hover, .org-drop-flash) and the
+   postToSheet write path. Lives in delegated event handlers attached to
+   document so it works for any expanded company in either Home or Titles & Roles. */
+
+let coOrgDragPayload=null; // { companyId, contactId, nodeEl }
+
+function coOrgClearHover(){
+  document.querySelectorAll('.org-tree .org-drop-hover').forEach(el=>{
+    el.classList.remove('org-drop-hover');
+    el.removeAttribute('data-drop-label');
+  });
+}
+
+// Find the org_chart row that represents `movedContactId` within `parentContactId`'s
+// chart. Returns the existing row if found (so we update it), otherwise null
+// (so we append a new directReport row). Matched by linked_contact_id first,
+// then by canonical name as a fallback.
+function coFindOrgRowForRelation(parentContactId, movedContactId){
+  const D=window.__DATA||{};
+  const movedContact=(D.contacts||[]).find(c=>c.contact_id===movedContactId);
+  const movedName=String((movedContact&&movedContact.full_name)||'').toLowerCase().trim();
+  const rows=(D.org_chart||[]).filter(r=>r.contact_id===parentContactId);
+  let row=rows.find(r=>r.linked_contact_id===movedContactId);
+  if(row) return row;
+  if(movedName){
+    row=rows.find(r=>String(r.name||'').toLowerCase().trim()===movedName);
+    if(row) return row;
+  }
+  return null;
+}
+
+async function coOrgReparent(companyId, movedContactId, parentContactId){
+  if(movedContactId===parentContactId) return; // can't report to self
+  const D=window.__DATA||{};
+  const moved=(D.contacts||[]).find(c=>c.contact_id===movedContactId);
+  const parent=(D.contacts||[]).find(c=>c.contact_id===parentContactId);
+  if(!moved || !parent) return;
+  // Upsert: update existing row representing this relation, otherwise append.
+  const existing=coFindOrgRowForRelation(parentContactId, movedContactId);
+  try {
+    if(existing){
+      const data={
+        contact_id: parentContactId,
+        role_type: 'directReport',
+        name: moved.full_name||existing.name||'',
+        title: moved.title||existing.title||'',
+        linked_contact_id: movedContactId,
+        display_order: existing.display_order||0,
+        source: 'DATABASE'
+      };
+      await postToSheet({action:'update', tab:'Org_Chart', idColumn:'org_id', idValue:existing.org_id, data});
+      Object.assign(existing, data);
+    } else {
+      const org_id='OC'+Date.now();
+      const data={
+        org_id, contact_id: parentContactId,
+        role_type: 'directReport',
+        name: moved.full_name||'',
+        title: moved.title||'',
+        linked_contact_id: movedContactId,
+        display_order: 0,
+        confidence: '', source_url: '', note: '',
+        source: 'DATABASE'
+      };
+      await postToSheet({action:'append', tab:'Org_Chart', data});
+      (D.org_chart || (D.org_chart=[])).push(data);
+    }
+    if(typeof buildIndexes==='function') buildIndexes();
+    coOrgRefreshExpanded(companyId);
+    if(typeof showToast==='function') showToast(`${moved.full_name||'Contact'} now reports to ${parent.full_name||'this person'}`);
+  } catch(err){
+    console.error('[LeadCheck] coOrgReparent failed', err);
+    if(typeof showToast==='function') showToast('Couldn’t save — '+(err.message||'unknown error'));
+  }
+}
+
+// Refresh whichever view currently shows the expanded company. Both Home and
+// Titles & Roles render renderCompanyExpanded(cid) so we can just re-render
+// whichever one is active.
+function coOrgRefreshExpanded(companyId){
+  const homeSlot=document.querySelector(`#view-home .list-section[data-company-section="${CSS.escape(companyId)}"] .company-detail-slot`);
+  if(homeSlot){ homeSlot.innerHTML=renderCompanyExpanded(companyId); }
+  if(typeof renderTitlesRoles==='function' && document.getElementById('view-titles-roles')?.classList.contains('active')){
+    renderTitlesRoles();
+  }
+}
+
+// Delegated drag handlers on document — works for any expanded company.
+document.addEventListener('dragstart', (e)=>{
+  const src=e.target.closest('[data-co-drag][data-co-contact]');
+  if(!src) return;
+  coOrgDragPayload={
+    companyId: src.dataset.coDrag,
+    contactId: src.dataset.coContact,
+    nodeEl: src
+  };
+  try { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', src.dataset.coContact); } catch(_){}
+  src.style.opacity='.5';
+});
+document.addEventListener('dragend', ()=>{
+  if(coOrgDragPayload && coOrgDragPayload.nodeEl){ coOrgDragPayload.nodeEl.style.opacity=''; }
+  coOrgDragPayload=null;
+  coOrgClearHover();
+});
+document.addEventListener('dragover', (e)=>{
+  if(!coOrgDragPayload) return;
+  const tgt=e.target.closest('[data-co-drag][data-co-contact]');
+  if(!tgt) return;
+  if(tgt.dataset.coDrag!==coOrgDragPayload.companyId) return;
+  if(tgt.dataset.coContact===coOrgDragPayload.contactId) return;
+  e.preventDefault();
+  try { e.dataTransfer.dropEffect='move'; } catch(_){}
+  if(!tgt.classList.contains('org-drop-hover')){
+    coOrgClearHover();
+    const D=window.__DATA||{};
+    const parent=(D.contacts||[]).find(c=>c.contact_id===tgt.dataset.coContact);
+    const label=parent?`Reports to ${parent.full_name||''}`:'Reports to';
+    tgt.setAttribute('data-drop-label', label);
+    tgt.classList.add('org-drop-hover');
+  }
+});
+document.addEventListener('drop', (e)=>{
+  if(!coOrgDragPayload) return;
+  const tgt=e.target.closest('[data-co-drag][data-co-contact]');
+  coOrgClearHover();
+  if(!tgt){ coOrgDragPayload=null; return; }
+  if(tgt.dataset.coDrag!==coOrgDragPayload.companyId){ coOrgDragPayload=null; return; }
+  if(tgt.dataset.coContact===coOrgDragPayload.contactId){ coOrgDragPayload=null; return; }
+  e.preventDefault();
+  const payload=coOrgDragPayload;
+  coOrgDragPayload=null;
+  tgt.classList.add('org-drop-flash');
+  setTimeout(()=>tgt.classList.remove('org-drop-flash'), 900);
+  coOrgReparent(payload.companyId, payload.contactId, tgt.dataset.coContact);
+});
+
+// Inline add-contact form — opens, saves, refreshes. Delegated on document.
+function coBuildAddForm(companyId){
+  const D=window.__DATA||{};
+  const contactsAtCo=(D.contacts||[]).filter(c=>c.contact_id && c.company_id===companyId)
+    .sort((a,b)=>(a.full_name||'').localeCompare(b.full_name||''));
+  const opts=['<option value="">(none — top of chart)</option>']
+    .concat(contactsAtCo.map(c=>`<option value="${escapeHtml(c.contact_id)}">${escapeHtml(c.full_name||'(no name)')}${c.title?' — '+escapeHtml(c.title):''}</option>`))
+    .join('');
+  return `<form class="org-add-form" data-co-add-form="${escapeHtml(companyId)}">
+    <div class="org-add-form__title">New contact</div>
+    <div class="org-add-form__row">
+      <label for="co-add-name-${escapeHtml(companyId)}">Full name</label>
+      <input class="org-add-form__input" type="text" name="name" id="co-add-name-${escapeHtml(companyId)}" placeholder="e.g. Jane Smith" required autocomplete="off">
+    </div>
+    <div class="org-add-form__row">
+      <label for="co-add-title-${escapeHtml(companyId)}">Title</label>
+      <input class="org-add-form__input" type="text" name="title" id="co-add-title-${escapeHtml(companyId)}" placeholder="e.g. Director of EUC" autocomplete="off">
+    </div>
+    <div class="org-add-form__row">
+      <label for="co-add-reports-${escapeHtml(companyId)}">Reports to</label>
+      <select class="org-add-form__select" name="reports_to" id="co-add-reports-${escapeHtml(companyId)}">${opts}</select>
+    </div>
+    <div class="org-add-form__error" data-co-add-error></div>
+    <div class="org-add-form__actions">
+      <button type="button" class="btn btn--ghost" data-co-add-cancel>Cancel</button>
+      <button type="submit" class="btn btn--primary" data-co-add-submit>Save</button>
+    </div>
+  </form>`;
+}
+
+async function coOrgAddContact(companyId, name, title, reportsToContactId){
+  const D=window.__DATA||{};
+  const contact_id='C'+Date.now();
+  const initials=(typeof deriveInitials==='function'?deriveInitials(name):'');
+  const contactRow={
+    contact_id, full_name:name, title:title||'',
+    company_id:companyId, initials,
+    email:'', email_confidence:'', overall_confidence:'',
+    verified:'', date_added:new Date().toISOString(),
+    last_updated:new Date().toISOString()
+  };
+  await postToSheet({action:'append', tab:'Contacts', data:contactRow});
+  (D.contacts || (D.contacts=[])).push(contactRow);
+  if(reportsToContactId){
+    const parent=(D.contacts||[]).find(c=>c.contact_id===reportsToContactId);
+    const org_id='OC'+Date.now();
+    const orgRow={
+      org_id, contact_id:reportsToContactId,
+      role_type:'directReport', name, title:title||'',
+      linked_contact_id:contact_id, display_order:0,
+      confidence:'', source_url:'', note:'', source:'DATABASE'
+    };
+    await postToSheet({action:'append', tab:'Org_Chart', data:orgRow});
+    (D.org_chart || (D.org_chart=[])).push(orgRow);
+    if(parent && typeof showToast==='function') showToast(`Added ${name}, reporting to ${parent.full_name||''}`);
+  } else if(typeof showToast==='function') showToast(`Added ${name}`);
+  if(typeof buildIndexes==='function') buildIndexes();
+  coOrgRefreshExpanded(companyId);
+}
+
+document.addEventListener('click', (e)=>{
+  const trigger=e.target.closest('[data-co-add-trigger]');
+  if(trigger){
+    e.preventDefault();
+    const cid=trigger.dataset.coAddTrigger;
+    const zone=trigger.closest('[data-co-add]');
+    if(!zone) return;
+    const slot=zone.querySelector('.org-add-form-slot');
+    if(slot && !slot.innerHTML.trim()){
+      slot.innerHTML=coBuildAddForm(cid);
+      const inp=slot.querySelector('input[name="name"]');
+      if(inp) inp.focus();
+    }
+    return;
+  }
+  const cancel=e.target.closest('[data-co-add-cancel]');
+  if(cancel){
+    e.preventDefault();
+    const slot=cancel.closest('.org-add-form-slot');
+    if(slot) slot.innerHTML='';
+  }
+});
+
+document.addEventListener('submit', async (e)=>{
+  const form=e.target.closest('[data-co-add-form]');
+  if(!form) return;
+  e.preventDefault();
+  const cid=form.dataset.coAddForm;
+  const name=(form.querySelector('input[name="name"]').value||'').trim();
+  const title=(form.querySelector('input[name="title"]').value||'').trim();
+  const reportsTo=(form.querySelector('select[name="reports_to"]').value||'').trim();
+  const errEl=form.querySelector('[data-co-add-error]');
+  if(!name){
+    if(errEl){ errEl.textContent='Name is required.'; errEl.classList.add('org-add-form__error--show'); }
+    return;
+  }
+  if(errEl){ errEl.textContent=''; errEl.classList.remove('org-add-form__error--show'); }
+  const submitBtn=form.querySelector('[data-co-add-submit]');
+  if(submitBtn){ submitBtn.disabled=true; submitBtn.innerHTML='<span class="org-add-form__busy">Saving…</span>'; }
+  try {
+    await coOrgAddContact(cid, name, title, reportsTo||null);
+  } catch(err){
+    console.error('[LeadCheck] coOrgAddContact failed', err);
+    if(errEl){ errEl.textContent='Save failed — '+(err.message||'unknown error'); errEl.classList.add('org-add-form__error--show'); }
+    if(submitBtn){ submitBtn.disabled=false; submitBtn.textContent='Save'; }
+  }
+});
+
+/* ========== End Company-Level Org Chart ========== */
 
 function templateColorClass(color){
   const c=String(color||'').toLowerCase();
@@ -5802,8 +6133,8 @@ document.querySelectorAll('.app-nav__tab').forEach(tab=>{
    in-scope accounts. Re-renders fully on every filter change. */
 function trGetScope(){
   const D=window.__DATA||{};
-  const wantOpp=trAccountScope==='opportunity'||trAccountScope==='both';
-  const wantPar=trAccountScope==='partner'||trAccountScope==='both';
+  const wantOpp=trAccountScope==='opportunity'||trAccountScope==='all';
+  const wantPar=trAccountScope==='partner'||trAccountScope==='all';
   const companies=(D.companies||[]).filter(co=>{
     if(!co || !co.company_id) return false;
     const s=co._sources;
@@ -5811,11 +6142,22 @@ function trGetScope(){
     return (wantOpp && s.opportunity) || (wantPar && s.partner);
   });
   const companyIds=new Set(companies.map(c=>c.company_id));
+  // Map of contact_id -> true if they appear in org_chart as the Target (the person
+  // we're actively working). This is the strongest "engagement" signal the app has —
+  // a title alone doesn't tell you whether someone's been outreached or just identified.
+  const engagedIds=new Set();
+  (D.org_chart||[]).forEach(r=>{
+    if(r && r.contact_id && String(r.role_type||'').toLowerCase()==='target') engagedIds.add(r.contact_id);
+  });
+  // Build a company lookup once instead of .find() inside .map().
+  const companyById={};
+  companies.forEach(co=>{ companyById[co.company_id]=co; });
   const contacts=(D.contacts||[]).filter(c=>c.contact_id && companyIds.has(c.company_id))
     .map(c=>{
-      const co=companies.find(co=>co.company_id===c.company_id);
+      const co=companyById[c.company_id];
       return Object.assign({},c,{
         _bucket:bucketTitle(c.title),
+        _engaged:engagedIds.has(c.contact_id),
         _champion:isChampion(c),
         _companyName:co?(co.name||''):''
       });
@@ -5826,7 +6168,7 @@ function trGetScope(){
 function trUpdateCounts(){
   const D=window.__DATA||{};
   const cos=D.companies||[];
-  let opp=0,par=0,both=0;
+  let opp=0,par=0,all=0;
   cos.forEach(co=>{
     if(!co || !co.company_id) return;
     const s=co._sources;
@@ -5834,30 +6176,33 @@ function trUpdateCounts(){
     const isPar=s?!!s.partner:false;
     if(isOpp) opp++;
     if(isPar) par++;
-    if(isOpp||isPar) both++;
+    if(isOpp||isPar) all++;
   });
   const set=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
   set('tr-count-opportunity',opp);
   set('tr-count-partner',par);
-  set('tr-count-both',both);
+  set('tr-count-all',all);
 }
 
 function trRenderOverallPyramid(scope){
-  const tiers={exec:0,mgmt:0,ops:0};
-  const champCounts={exec:0,mgmt:0,ops:0};
+  const tiers={exec:0,mgmt:0,ops:0,unknown:0};
+  const champCounts={exec:0,mgmt:0,ops:0,unknown:0};
+  let engaged=0;
   scope.contacts.forEach(c=>{
     tiers[c._bucket.tier]=(tiers[c._bucket.tier]||0)+1;
     if(c._champion) champCounts[c._bucket.tier]++;
+    if(c._engaged) engaged++;
   });
-  const total=tiers.exec+tiers.mgmt+tiers.ops;
+  const classifiedTotal=tiers.exec+tiers.mgmt+tiers.ops;
+  const totalAll=classifiedTotal+tiers.unknown;
   const rows=[
     {key:'exec',label:'Executive',sub:'C-Suite · President · EVP'},
     {key:'mgmt',label:'Management',sub:'VP · Director · Manager'},
-    {key:'ops',label:'Influencers · Admins',sub:'Champions · ICs · Specialists'}
+    {key:'ops',label:'Influencers · Admins',sub:'ICs · Specialists · Administrators'}
   ];
   const html=rows.map(r=>{
     const n=tiers[r.key]||0;
-    const pct=total?Math.round(100*n/total):0;
+    const pct=classifiedTotal?Math.round(100*n/classifiedTotal):0;
     const champ=champCounts[r.key];
     const champNote=champ?` · <span class="pyramid__row-sub">${champ} champion${champ===1?'':'s'}</span>`:'';
     const empty=n===0;
@@ -5865,110 +6210,123 @@ function trRenderOverallPyramid(scope){
       <div class="pyramid__row-inner">
         <span class="pyramid__row-label">${escapeHtml(r.label)}</span>
         <span class="pyramid__row-count">${n}</span>
-        ${total?`<span class="pyramid__row-sub">${pct}%</span>`:''}
+        ${classifiedTotal?`<span class="pyramid__row-sub">${pct}%</span>`:''}
         ${champNote}
       </div>
     </div>`;
   }).join('');
-  const meta=total?`${total} contact${total===1?'':'s'} across ${scope.companies.length} account${scope.companies.length===1?'':'s'}`:'No contacts in scope yet';
+  const metaBits=[];
+  if(totalAll){
+    metaBits.push(`${totalAll} contact${totalAll===1?'':'s'} across ${scope.companies.length} account${scope.companies.length===1?'':'s'}`);
+    metaBits.push(`${engaged} engaged`);
+    if(tiers.unknown) metaBits.push(`${tiers.unknown} unclassified`);
+  } else {
+    metaBits.push('No contacts in scope yet');
+  }
   return `<div class="section">
-    <div class="section__head"><span class="section__title">Engagement Pyramid</span><span class="section__meta">${escapeHtml(meta)}</span></div>
+    <div class="section__head"><span class="section__title">Engagement Pyramid</span><span class="section__meta">${escapeHtml(metaBits.join(' · '))}</span></div>
     <div class="section__body">
       <div class="pyramid">${html}</div>
       <div class="pyramid__legend">
         <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:var(--primary)"></span>Executive</span>
         <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:#3742C4"></span>Management</span>
         <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:#5B68DC"></span>Influencers / Admins</span>
+        <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:var(--green)"></span>Engaged = active Target in the org chart</span>
       </div>
     </div>
   </div>`;
 }
 
-function trRenderAccountGrid(scope){
+function trRenderAccounts(scope){
   if(!scope.companies.length) return '';
   const byCo={};
   scope.contacts.forEach(c=>{
-    const m=byCo[c.company_id]||(byCo[c.company_id]={exec:0,mgmt:0,ops:0,total:0,champion:0});
+    const m=byCo[c.company_id]||(byCo[c.company_id]={exec:0,mgmt:0,ops:0,unknown:0,total:0,champion:0,engaged:0,contacts:[]});
     m[c._bucket.tier]++;
     m.total++;
     if(c._champion) m.champion++;
+    if(c._engaged) m.engaged++;
+    m.contacts.push(c);
   });
-  // sort: empty/thinnest first so gaps surface
-  const rows=scope.companies.map(co=>{
-    const m=byCo[co.company_id]||{exec:0,mgmt:0,ops:0,total:0,champion:0};
+  // Optional client-side filter on search term + tier chip. Matches any contact
+  // at the account → keeps the account visible.
+  const term=String(trSearchTerm||'').toLowerCase().trim();
+  const tierFilter=trTierFilter;
+  const tierFilterFn=(c)=>{
+    if(tierFilter==='all') return true;
+    if(tierFilter==='champion') return c._champion;
+    return c._bucket.tier===tierFilter;
+  };
+  let rows=scope.companies.map(co=>{
+    const m=byCo[co.company_id]||{exec:0,mgmt:0,ops:0,unknown:0,total:0,champion:0,engaged:0,contacts:[]};
     const filled=(m.exec?1:0)+(m.mgmt?1:0)+(m.ops?1:0);
     return {co,m,filled};
-  }).sort((a,b)=> a.filled-b.filled || a.m.total-b.m.total || (a.co.name||'').localeCompare(b.co.name||''));
-  const cardHtml=rows.map(r=>{
-    const fc=t=>r.m[t]?'tr-card__row--filled':'';
-    const coverage=r.filled===3?'<span class="tr-card__coverage--full">Full coverage</span>':r.filled===0?'<span class="tr-card__coverage--gap">No contacts yet</span>':`<span class="tr-card__coverage--gap">${3-r.filled} tier${3-r.filled===1?'':'s'} missing</span>`;
-    const champLine=r.m.champion?` · ${r.m.champion} champion${r.m.champion===1?'':'s'}`:'';
-    return `<button class="tr-card" type="button" data-tr-company="${escapeHtml(r.co.company_id)}">
-      <div class="tr-card__name">${escapeHtml(r.co.name||'—')}</div>
-      <div class="tr-card__meta">${r.m.total} contact${r.m.total===1?'':'s'}${champLine}</div>
-      <div class="tr-card__pyr">
-        <div class="tr-card__row tr-card__row--exec ${fc('exec')}">${r.m.exec||''}</div>
-        <div class="tr-card__row tr-card__row--mgmt ${fc('mgmt')}">${r.m.mgmt||''}</div>
-        <div class="tr-card__row tr-card__row--ops ${fc('ops')}">${r.m.ops||''}</div>
-      </div>
-      <div class="tr-card__coverage">${coverage}</div>
-    </button>`;
-  }).join('');
-  return `<div class="section">
-    <div class="section__head"><span class="section__title">By Account</span><span class="section__meta">Sorted by coverage gaps first</span></div>
-    <div class="section__body"><div class="tr-grid">${cardHtml}</div></div>
-  </div>`;
-}
-
-function trRenderTierRoster(scope){
-  const tiers=[
-    {key:'exec',label:'Executive',hint:'Final approval authority',swatch:'exec'},
-    {key:'mgmt',label:'Management',hint:'Budget owners & decision makers',swatch:'mgmt'},
-    {key:'ops',label:'Influencers · Admins',hint:'Daily users, technical champions, administrators',swatch:'ops'}
-  ];
-  const filterFn=(c)=>{
-    if(trTierFilter==='all') return true;
-    if(trTierFilter==='champion') return c._champion;
-    return c._bucket.tier===trTierFilter;
+  });
+  if(term){
+    rows=rows.filter(r=>{
+      if((r.co.name||'').toLowerCase().includes(term)) return true;
+      if((r.co.industry||'').toLowerCase().includes(term)) return true;
+      return r.m.contacts.some(c=>
+        (c.full_name||'').toLowerCase().includes(term) ||
+        (c.title||'').toLowerCase().includes(term) ||
+        (c.email||'').toLowerCase().includes(term)
+      );
+    });
+  }
+  if(tierFilter!=='all'){
+    rows=rows.filter(r=>r.m.contacts.some(tierFilterFn));
+  }
+  rows.sort((a,b)=> a.filled-b.filled || a.m.engaged-b.m.engaged || a.m.total-b.m.total || (a.co.name||'').localeCompare(b.co.name||''));
+  if(!rows.length){
+    return `<div class="section"><div class="section__body"><div class="tr-empty">No accounts match your filters.</div></div></div>`;
+  }
+  const pillFor=(co)=>{
+    const s=co._sources||{};
+    if(s.opportunity && s.partner) return '<span class="tr-acct__pill tr-acct__pill--both">Both</span>';
+    if(s.partner) return '<span class="tr-acct__pill tr-acct__pill--par">Partner</span>';
+    return '<span class="tr-acct__pill tr-acct__pill--opp">Opportunity</span>';
   };
-  const filtered=scope.contacts.filter(filterFn);
-  const tiersHtml=tiers.map(t=>{
-    const rows=filtered.filter(c=>c._bucket.tier===t.key)
-      .sort((a,b)=>(a.full_name||'').localeCompare(b.full_name||''));
-    let body;
-    if(!rows.length){
-      body=`<div class="tr-tier--empty">${trTierFilter==='champion'?'No champions identified in this tier.':'No contacts in this tier yet — engagement gap.'}</div>`;
-    } else {
-      body=`<div class="tr-tier__list">${rows.map(c=>{
-        const pills=[];
-        if(c._champion) pills.push('<span class="pill pill--green">Champion</span>');
-        if(c._bucket.fnLabel) pills.push(`<span class="pill pill--amber">${escapeHtml(c._bucket.fnLabel)}</span>`);
-        const conf=String(c.email_confidence||'').toUpperCase();
-        if(conf==='HIGH') pills.push('<span class="pill pill--green">Verified</span>');
-        else if(conf==='LOW') pills.push('<span class="pill pill--red">Low conf.</span>');
-        const sub=[c.title||'—',c._companyName].filter(Boolean).join(' · ');
-        return `<button class="tr-row" type="button" data-tr-contact="${escapeHtml(c.contact_id)}">
-          <div class="tr-row__body">
-            <div class="tr-row__name">${escapeHtml(c.full_name||'(no name)')}</div>
-            <div class="tr-row__sub">${escapeHtml(sub)}</div>
+  const initial=(name)=>(String(name||'?').trim()[0]||'?').toUpperCase();
+  const cardHtml=rows.map(r=>{
+    const isOpen=trExpandedCoId===r.co.company_id;
+    const avatarStrip=r.m.contacts.slice(0,5).map(c=>{
+      const ac=(typeof avatarClass==='function')?'avatar--blue':'avatar--blue';
+      const init=(c.initials && String(c.initials).trim())||(typeof deriveInitials==='function'?deriveInitials(c.full_name||''):initial(c.full_name));
+      return `<span class="avatar ${ac}" title="${escapeHtml(c.full_name||'')}" aria-hidden="true">${escapeHtml(init)}</span>`;
+    }).join('');
+    const extra=r.m.contacts.length>5?`<span class="avatar avatar--gray" aria-hidden="true">+${r.m.contacts.length-5}</span>`:'';
+    const dots=['exec','mgmt','ops'].map(t=>{
+      const cls=`tr-acct__cov-dot tr-acct__cov-dot--${t}${r.m[t]?' tr-acct__cov-dot--filled':''}`;
+      return `<span class="${cls}" title="${t==='exec'?'Executive':t==='mgmt'?'Management':'Influencers / Admins'}: ${r.m[t]||0}"></span>`;
+    }).join('');
+    const metaItems=[`<span class="tr-acct__meta-item">${r.m.total} contact${r.m.total===1?'':'s'}</span>`];
+    if(r.m.engaged) metaItems.push(`<span class="tr-acct__meta-item" style="color:var(--green);font-weight:600">${r.m.engaged} engaged</span>`);
+    if(r.m.champion) metaItems.push(`<span class="tr-acct__meta-item">${r.m.champion} champion${r.m.champion===1?'':'s'}</span>`);
+    if(r.m.unknown) metaItems.push(`<span class="tr-acct__meta-item" style="color:var(--ink-4)">${r.m.unknown} unclassified</span>`);
+    const detail=isOpen?`<div class="tr-acct__detail">${renderCompanyExpanded(r.co.company_id)}</div>`:'';
+    return `<div class="tr-acct${isOpen?' tr-acct--open':''}" data-tr-acct="${escapeHtml(r.co.company_id)}">
+      <button class="tr-acct__head" type="button" data-tr-acct-toggle="${escapeHtml(r.co.company_id)}" aria-expanded="${isOpen?'true':'false'}">
+        <div class="tr-acct__avatar">${escapeHtml(initial(r.co.name))}</div>
+        <div class="tr-acct__body">
+          <div class="tr-acct__name-row">
+            <span class="tr-acct__name">${escapeHtml(r.co.name||'—')}</span>
+            ${pillFor(r.co)}
           </div>
-          <div class="tr-row__pills">${pills.join('')}</div>
-        </button>`;
-      }).join('')}</div>`;
-    }
-    return `<div class="tr-tier">
-      <div class="tr-tier__head">
-        <span class="tr-tier__swatch tr-tier__swatch--${t.swatch}"></span>
-        <span class="tr-tier__label">${escapeHtml(t.label)}</span>
-        <span class="tr-tier__hint">${escapeHtml(t.hint)}</span>
-        <span class="tr-tier__count">${rows.length}</span>
-      </div>
-      ${body}
+          <div class="tr-acct__meta">${metaItems.join('')}</div>
+        </div>
+        <div class="tr-acct__avatars" aria-hidden="true">${avatarStrip}${extra}</div>
+        <div class="tr-acct__coverage" title="Coverage: executive · management · ops">${dots}</div>
+        <svg class="tr-acct__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      ${detail}
     </div>`;
   }).join('');
   return `<div class="section">
-    <div class="section__head"><span class="section__title">Roster by Tier</span><span class="section__meta">Click a contact to open</span></div>
-    <div class="section__body">${tiersHtml}</div>
+    <div class="section__head">
+      <span class="section__title">Accounts · ${rows.length}</span>
+      <span class="section__meta">Sorted by coverage gaps first · click to expand</span>
+    </div>
+    <div class="section__body" style="padding:var(--s-3)"><div class="tr-accounts">${cardHtml}</div></div>
   </div>`;
 }
 
@@ -5997,8 +6355,7 @@ function renderTitlesRoles(){
   }
   mount.innerHTML=[
     trRenderOverallPyramid(scope),
-    trRenderAccountGrid(scope),
-    trRenderTierRoster(scope)
+    trRenderAccounts(scope)
   ].join('');
 }
 
@@ -6006,6 +6363,7 @@ function renderTitlesRoles(){
 document.querySelectorAll('#tr-acct-tabs .acct-tab').forEach(t=>{
   t.addEventListener('click',()=>{
     trAccountScope=t.dataset.trTab||'opportunity';
+    trExpandedCoId=null;
     renderTitlesRoles();
   });
 });
@@ -6015,12 +6373,36 @@ document.querySelectorAll('#tr-chips .chip').forEach(c=>{
     renderTitlesRoles();
   });
 });
-// Delegated click-through: account card → home (jump to contacts tab), contact row → contact detail
+// Hero search — debounced so re-render isn't run per keystroke.
+let trSearchDebounce=null;
+const trSearchInput=document.getElementById('tr-search');
+if(trSearchInput){
+  trSearchInput.addEventListener('input', ()=>{
+    clearTimeout(trSearchDebounce);
+    trSearchDebounce=setTimeout(()=>{
+      trSearchTerm=trSearchInput.value||'';
+      renderTitlesRoles();
+    }, 140);
+  });
+}
+// Delegated click-through: account card head toggles expansion; contact rows inside an
+// expanded card open contact detail; org-chart buttons keep their own data-route hooks.
 const trMountEl=document.getElementById('tr-mount');
 if(trMountEl){
   trMountEl.addEventListener('click',e=>{
+    // Account-card expand/collapse takes priority. Only fire when the user actually
+    // clicked the head, not when they're interacting with the expanded detail.
+    const head=e.target.closest('[data-tr-acct-toggle]');
+    if(head && !e.target.closest('.tr-acct__detail')){
+      const cid=head.dataset.trAcctToggle;
+      trExpandedCoId=(trExpandedCoId===cid)?null:cid;
+      renderTitlesRoles();
+      return;
+    }
+    // Contact row inside expansion → open contact detail.
     const contactBtn=e.target.closest('[data-tr-contact]');
     if(contactBtn){ navigate('contact',contactBtn.dataset.trContact); return; }
+    // Legacy mini-pyramid card click (no longer rendered but kept for safety).
     const coBtn=e.target.closest('[data-tr-company]');
     if(coBtn){ navigate('home'); return; }
   });
