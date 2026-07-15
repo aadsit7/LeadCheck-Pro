@@ -382,6 +382,10 @@ main{flex:1;padding-bottom:var(--s-9)}
 .am-insights__stats{margin-left:auto;display:flex;flex-wrap:wrap;gap:10px;color:var(--ink-3)}
 .am-insights__stats b{color:var(--ink)}
 .am-insights__risk{color:var(--red);font-weight:600}
+.am-infer-bar{display:flex;align-items:center;gap:10px;padding:8px 20px;border-bottom:1px solid var(--border);background:var(--amber-bg);font-size:12px;color:var(--ink-2)}
+.am-infer-bar__ico{font-size:14px}
+.am-infer-bar__txt{flex:1}.am-infer-bar__txt b{color:var(--ink)}
+.am-infer-bar .am-btn{padding:4px 12px}
 .am-canvas{position:relative;flex:1;overflow:hidden;background:radial-gradient(circle, var(--border) 1px, transparent 1px) 0 0/22px 22px,var(--bg-tint);cursor:grab;touch-action:none}
 .am-canvas.am-panning{cursor:grabbing}
 .am-canvas.am-linking{cursor:crosshair}
@@ -390,6 +394,9 @@ main{flex:1;padding-bottom:var(--s-9)}
 .am-edge{fill:none}
 .am-edge--report{stroke:var(--ink-4);stroke-width:1.6}
 .am-edge--influence{stroke:var(--cyan);stroke-width:1.7;stroke-dasharray:5 4}
+.am-edge--infer{stroke:var(--amber);stroke-width:1.7;stroke-dasharray:6 4;opacity:.9}
+.am-edge__lblbg{fill:var(--amber-bg);stroke:var(--amber);stroke-width:.6}
+.am-edge__lbl{fill:var(--amber);font-size:9px;font-weight:700;font-family:var(--mono,monospace)}
 .am-edge-hit{stroke:rgba(0,0,0,0);stroke-width:14;fill:none;pointer-events:stroke;cursor:pointer}
 .am-node{position:absolute;width:176px;box-sizing:border-box;background:var(--bg);border:1.5px solid var(--border-strong);border-radius:var(--r-lg);box-shadow:var(--elev-1);padding:8px 10px 9px;cursor:grab;user-select:none;transition:box-shadow var(--t-fast) var(--ease)}
 .am-node:hover{box-shadow:var(--elev-2);z-index:3}
@@ -426,6 +433,7 @@ main{flex:1;padding-bottom:var(--s-9)}
 .am-legend__row{display:flex;align-items:center;gap:6px;margin-top:3px}
 .am-legend__sw{width:16px;height:0;border-top:2px solid var(--ink-4);flex-shrink:0}
 .am-legend__sw--inf{border-top:2px dashed var(--cyan)}
+.am-legend__sw--infer{border-top:2px dashed var(--amber)}
 .am-legend__dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .am-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;color:var(--ink-3);gap:14px;padding:40px}
 .am-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:24px;width:100%;max-width:1040px;margin:0 auto}
@@ -511,6 +519,34 @@ main{flex:1;padding-bottom:var(--s-9)}
 .source-list a{color:var(--primary);font-weight:500}
 .source-list a:hover{text-decoration:underline}
 
+/* Duplicate cross-referencing: badge, banner, review modal */
+.dup-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--primary);background:var(--primary-100);border:1px solid transparent;padding:2px 7px;border-radius:100px;white-space:nowrap;transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
+.dup-badge svg{width:12px;height:12px}
+.dup-badge:hover{background:#fff;border-color:var(--primary)}
+.dedup-banner{display:flex;align-items:center;gap:10px;padding:9px 14px;margin:0 0 12px;background:var(--primary-100);border:1px solid var(--primary-200,rgba(0,0,0,.06));border-radius:var(--r-md);font-size:13px;color:var(--ink-2)}
+.dedup-banner__ico{display:inline-flex;color:var(--primary)}
+.dedup-banner__ico svg{width:16px;height:16px}
+.dedup-banner__txt{flex:1}.dedup-banner__txt b{color:var(--ink)}
+.dedup-banner__btn{font-size:12px;font-weight:600;color:var(--primary);background:#fff;border:1px solid var(--primary);border-radius:var(--r-sm);padding:4px 12px;white-space:nowrap;transition:background var(--t-fast) var(--ease)}
+.dedup-banner__btn:hover{background:var(--primary);color:#fff}
+.modal--dedup{max-width:600px}
+.dedup-sec__h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4);margin:4px 0 10px}
+.dedup-sec__h:not(:first-child){margin-top:22px}
+.dedup-group{border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;margin-bottom:10px}
+.dedup-group__head{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding-bottom:8px;margin-bottom:6px;border-bottom:1px solid var(--border)}
+.dedup-group__badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--green);background:var(--green-bg);padding:2px 7px;border-radius:100px}
+.dedup-row{display:flex;align-items:center;gap:10px;padding:6px 0}
+.dedup-row+.dedup-row{border-top:1px solid var(--border)}
+.dedup-row__info{flex:1;min-width:0}
+.dedup-row__name{font-size:13px;font-weight:600;color:var(--ink)}
+.dedup-row__sub{font-size:12px;font-weight:400;color:var(--ink-3)}
+.dedup-row__why{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+.dedup-pair{display:flex;align-items:center;gap:12px}
+.dedup-pair__p{flex:1;min-width:0;background:var(--bg-tint);border-radius:var(--r-sm);padding:8px 10px}
+.dedup-pair__vs{color:var(--ink-4);font-weight:700}
+.dedup-pair__acts{display:flex;gap:8px;margin-top:10px}
+.dedup-row .btn,.dedup-pair__acts .btn{padding:5px 12px;font-size:12px}
+.dedup-empty{text-align:center;color:var(--ink-3);font-size:13px;padding:24px 0}
 .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(15,15,30,.45);z-index:100;align-items:center;justify-content:center;padding:var(--s-4);backdrop-filter:blur(4px)}
 .modal-backdrop.open{display:flex;animation:fadeIn var(--t-med) var(--ease)}
 .modal{background:var(--bg);border-radius:var(--r-lg);box-shadow:var(--elev-3);width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column}
@@ -1815,6 +1851,7 @@ function buildIndexes(){
   for(const c of (D.contacts||[])) if(c.contact_id) idx.contactById[c.contact_id]=c;
   for(const co of (D.companies||[])) if(co.company_id) idx.companyById[co.company_id]=co;
   window.__INDEX = idx;
+  invalidateDuplicateIndex();   // contact set changed → recompute duplicate clusters lazily
   return idx;
 }
 
@@ -2018,6 +2055,302 @@ function escapeHtml(v){
 
 /* ========== End Data Layer ========== */
 
+/* ========== Duplicate contact cross-referencing ==========
+   Two records can describe the same person even when the raw text differs —
+   "James Deam" on one row and a bare "James" at American National Insurance
+   Company on another. This layer reasons over every contact and collapses the
+   ones that are the same human into a single canonical record in the user's
+   view, so the list never shows a person twice.
+
+   Signals, strongest → weakest (a human-readable reason rides along so the user
+   can see WHY two rows were linked, and undo it):
+     • identical email address           — same person, even across companies
+     • identical LinkedIn profile URL     — same person
+     • identical full name (same company) — same person
+     • same last name + nickname alias    — Jim Deam ≡ James Deam
+     • same last name + first initial      — J. Deam ≡ James Deam (same company)
+     • a first-name-only row that uniquely folds into one full-name colleague
+       at the same company — "James" ≡ "James Deam" when he's the only James
+   Auto-merges are recomputed from the data every render (nothing to keep in
+   sync); only the user's manual "keep separate" / "these are the same"
+   decisions persist, in localStorage. */
+const DEDUP_OVERRIDES_KEY='leadcheck_dedup_overrides_v1';
+const DEDUP_AUTO=0.82;     // merge automatically at or above this confidence
+const DEDUP_SUGGEST=0.6;   // between this and DEDUP_AUTO → surface for review
+
+function dedupLoadOverrides(){
+  try{
+    const o=JSON.parse(localStorage.getItem(DEDUP_OVERRIDES_KEY));
+    if(o && typeof o==='object'){
+      return { separate:Array.isArray(o.separate)?o.separate:[], merge:Array.isArray(o.merge)?o.merge:[] };
+    }
+  }catch(e){}
+  return { separate:[], merge:[] };
+}
+function dedupSaveOverrides(o){
+  try{ localStorage.setItem(DEDUP_OVERRIDES_KEY, JSON.stringify({ separate:o.separate||[], merge:o.merge||[] })); }catch(e){}
+  invalidateDuplicateIndex();
+}
+function dedupPairKey(a,b){ return [String(a),String(b)].sort().join('|'); }
+function dedupAddOverride(kind, aId, bId){
+  const o=dedupLoadOverrides();
+  const key=dedupPairKey(aId,bId);
+  const other=kind==='separate'?'merge':'separate';
+  o[kind]=(o[kind]||[]).filter(k=>k!==key); o[kind].push(key);
+  o[other]=(o[other]||[]).filter(k=>k!==key);   // a decision overrides its opposite
+  dedupSaveOverrides(o);
+}
+
+// Reduce a contact row to the fields the matcher needs, plus a completeness
+// score used to pick which record survives as the canonical one.
+function dedupFeatures(c){
+  const norm=normalizeForMatch(c.full_name||'');
+  const parts=norm.split(' ').filter(Boolean);
+  let complete=0;
+  if(parts.length>=2) complete+=3;
+  ['title','email','linkedin_url','background','decision_role','themes','location'].forEach(f=>{ if(String(c[f]||'').trim()) complete++; });
+  if(String(c.verified||'').toUpperCase()==='TRUE') complete+=2;
+  complete+=(Number(c.overall_confidence)||0)/100;
+  return {
+    id:c.contact_id, row:c, norm, parts,
+    first:parts[0]||'', last:parts.length>1?parts[parts.length-1]:'',
+    email:String(c.email||'').toLowerCase().trim(),
+    linkedin:String(c.linkedin_url||'').trim().toLowerCase().replace(/\/+$/,''),
+    companyId:c.company_id||'',
+    added:Date.parse(c.date_added||'')||0,
+    complete
+  };
+}
+
+// Confidence 0..1 that two feature objects are the SAME person, with a reason.
+// Name-only heuristics are deliberately confined to a single company; the
+// first-name-only fold is resolved separately (it needs whole-company context
+// to guarantee the match is unique).
+function dedupPairScore(a,b){
+  if(a.email && b.email && a.email===b.email) return {score:0.99, reason:'Same email address'};
+  if(a.linkedin && b.linkedin && a.linkedin===b.linkedin) return {score:0.97, reason:'Same LinkedIn profile'};
+  if(!a.parts.length || !b.parts.length) return {score:0, reason:''};
+  const sameCo=a.companyId && a.companyId===b.companyId;
+  if(a.norm===b.norm){
+    return sameCo
+      ? {score:0.9, reason:'Identical name at the same company'}
+      : {score:0.45, reason:'Identical name (different companies)'};
+  }
+  if(!sameCo) return {score:0, reason:''};
+  const aFull=a.parts.length>=2, bFull=b.parts.length>=2;
+  if(aFull && bFull && a.last && a.last===b.last){
+    if(firstNamesMatch(a.first,b.first)) return {score:0.9, reason:'Same last name; “'+a.row.full_name+'” and “'+b.row.full_name+'” are nickname variants'};
+    if(a.first && b.first && a.first[0]===b.first[0]) return {score:0.72, reason:'Same last name “'+b.last+'” and first initial'};
+  }
+  if(a.parts.length===1 && b.parts.length===1 && (a.first===b.first || firstNamesMatch(a.first,b.first))){
+    return {score:0.64, reason:'Same first name at the same company'};
+  }
+  return {score:0, reason:''};
+}
+
+// Cluster all contacts into same-person groups and pick a canonical primary for
+// each. Returns lookup maps for the render layer plus a review worklist.
+function computeDuplicateIndex(){
+  const D=window.__DATA||{};
+  const feats=(D.contacts||[]).filter(c=>c.contact_id).map(dedupFeatures);
+  const byId=new Map(feats.map(f=>[f.id,f]));
+  const ov=dedupLoadOverrides();
+  const separated=new Set(ov.separate||[]);
+  const forced=new Set(ov.merge||[]);
+
+  const parent=new Map(feats.map(f=>[f.id,f.id]));
+  const find=x=>{ while(parent.get(x)!==x){ parent.set(x,parent.get(parent.get(x))); x=parent.get(x); } return x; };
+  const union=(x,y)=>{ const rx=find(x),ry=find(y); if(rx!==ry) parent.set(rx,ry); };
+  const reasonOf=new Map();     // memberId → why it linked to its cluster
+  const suggestions=[];         // medium-confidence pairs the user can confirm
+  const noteLink=(a,b,score,reason)=>{ reasonOf.set(a.id,reason); reasonOf.set(b.id,reason); void score; };
+
+  // Forced-merge overrides win outright.
+  forced.forEach(key=>{ const [x,y]=key.split('|'); if(byId.has(x)&&byId.has(y)){ union(x,y); reasonOf.set(x,'You marked these as the same person'); reasonOf.set(y,'You marked these as the same person'); } });
+
+  // Global hard-identifier passes (work across companies).
+  const linkByField=(field)=>{ const m=new Map(); feats.forEach(f=>{ const v=f[field]; if(!v) return; const arr=m.get(v)||m.set(v,[]).get(v); arr.push(f); });
+    m.forEach(arr=>{ for(let i=1;i<arr.length;i++){ const key=dedupPairKey(arr[0].id,arr[i].id); if(separated.has(key)) continue; union(arr[0].id,arr[i].id); reasonOf.set(arr[i].id, field==='email'?'Same email address':'Same LinkedIn profile'); } }); };
+  linkByField('email'); linkByField('linkedin');
+
+  // Company-scoped name reasoning. O(n²) within a company — fine at this scale.
+  const byCo=new Map();
+  feats.forEach(f=>{ const k=f.companyId||('__solo:'+f.id); const arr=byCo.get(k)||byCo.set(k,[]).get(k); arr.push(f); });
+  byCo.forEach(group=>{
+    for(let i=0;i<group.length;i++) for(let j=i+1;j<group.length;j++){
+      const a=group[i], b=group[j], key=dedupPairKey(a.id,b.id);
+      if(separated.has(key)) continue;
+      const {score,reason}=dedupPairScore(a,b);
+      if(score>=DEDUP_AUTO){ union(a.id,b.id); noteLink(a,b,score,reason); }
+      else if(score>=DEDUP_SUGGEST && find(a.id)!==find(b.id)){ suggestions.push({aId:a.id,bId:b.id,score,reason}); }
+    }
+  });
+
+  // First-name-only fold: a bare "James" attaches to the one full-name colleague
+  // at his company (by first name or nickname alias). Ambiguous when more than
+  // one full name qualifies — those become review suggestions instead.
+  byCo.forEach(group=>{
+    const fulls=group.filter(f=>f.parts.length>=2);
+    group.filter(f=>f.parts.length===1 && f.first).forEach(solo=>{
+      const cands=fulls.filter(f=>f.first===solo.first || firstNamesMatch(solo.first,f.first));
+      if(cands.length===1){
+        const key=dedupPairKey(solo.id,cands[0].id);
+        if(!separated.has(key)){ union(solo.id,cands[0].id); reasonOf.set(solo.id,'“'+solo.row.full_name+'” is the only '+(solo.row.full_name||'match')+' at this company → '+cands[0].row.full_name); }
+      } else if(cands.length>1){
+        cands.forEach(f=>{ const key=dedupPairKey(solo.id,f.id); if(!separated.has(key) && find(solo.id)!==find(f.id)) suggestions.push({aId:solo.id,bId:f.id,score:0.7,reason:'Possible match for first-name-only “'+solo.row.full_name+'”'}); });
+      }
+    });
+  });
+
+  // Materialize clusters → pick the most complete record as primary.
+  const clusters=new Map();
+  feats.forEach(f=>{ const r=find(f.id); (clusters.get(r)||clusters.set(r,[]).get(r)).push(f); });
+  const primaryOf=new Map(), membersOf=new Map(), groups=[];
+  clusters.forEach(members=>{
+    if(members.length<2) return;
+    members.sort((x,y)=> (y.complete-x.complete) || (y.row&&String(y.row.verified).toUpperCase()==='TRUE'?1:0)-(x.row&&String(x.row.verified).toUpperCase()==='TRUE'?1:0) || (x.added-y.added) || String(x.id).localeCompare(String(y.id)));
+    const primary=members[0];
+    const memberIds=members.slice(1).map(m=>m.id);
+    memberIds.forEach(id=>primaryOf.set(id, primary.id));
+    membersOf.set(primary.id, memberIds);
+    groups.push({ primaryId:primary.id, memberIds, reason:reasonOf.get(memberIds[0])||'Same person' });
+  });
+
+  // Drop suggestions already absorbed into an auto-merge cluster, and dedupe.
+  const seenSug=new Set();
+  const cleanSuggestions=suggestions.filter(s=>{
+    if(find(s.aId)===find(s.bId)) return false;
+    const k=dedupPairKey(s.aId,s.bId); if(seenSug.has(k)) return false; seenSug.add(k); return true;
+  }).sort((a,b)=>b.score-a.score);
+
+  let mergedCount=0; membersOf.forEach(m=>mergedCount+=m.length);
+  return { primaryOf, membersOf, reasonOf, groups, suggestions:cleanSuggestions, mergedCount };
+}
+
+function getDuplicateIndex(){
+  if(!window.__DEDUP) window.__DEDUP=computeDuplicateIndex();
+  return window.__DEDUP;
+}
+function invalidateDuplicateIndex(){ window.__DEDUP=null; }
+
+// Collapse a list of view-model contacts (from getContactsForList) so only the
+// canonical record of each duplicate group survives, annotated with _dup.
+function dedupCollapseViewList(items){
+  const dq=getDuplicateIndex();
+  if(!dq.mergedCount) return items;
+  const out=[];
+  for(let it of items){
+    const prim=dq.primaryOf.get(it.id);
+    if(prim && prim!==it.id) continue;            // hide merged member
+    const members=dq.membersOf.get(it.id);
+    if(members && members.length){
+      it=Object.assign({}, it, {_dup:{count:members.length, ids:members, reason:dq.reasonOf.get(members[0])||'Same person'}});
+    }
+    out.push(it);
+  }
+  return out;
+}
+
+// Slim banner shown above the contact list summarising what was cross-referenced.
+function dedupBannerHtml(dq){
+  dq=dq||getDuplicateIndex();
+  const merged=dq.mergedCount||0, sug=(dq.suggestions||[]).length;
+  if(!merged && !sug) return '';
+  const bits=[];
+  if(merged) bits.push('<b>'+merged+'</b> duplicate record'+(merged>1?'s':'')+' cross-referenced');
+  if(sug) bits.push('<b>'+sug+'</b> possible match'+(sug>1?'es':'')+' to review');
+  return `<div class="dedup-banner">
+    <span class="dedup-banner__ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
+    <span class="dedup-banner__txt">${bits.join(' · ')} so each person shows once</span>
+    <button class="dedup-banner__btn" type="button" data-dedup-open>Review</button>
+  </div>`;
+}
+
+function dedupContactLabel(id){
+  const IDX=window.__INDEX||{};
+  const c=(IDX.contactById||{})[id];
+  if(!c) return {name:'(removed)', sub:''};
+  const co=(IDX.companyById||{})[c.company_id]||{};
+  return {name:c.full_name||'(no name)', sub:[c.title, co.name].filter(Boolean).join(' · ')};
+}
+
+function dedupReviewHtml(){
+  const dq=getDuplicateIndex();
+  let body='';
+  if(dq.groups.length){
+    body+='<div class="dedup-sec__h">Cross-referenced as the same person</div>';
+    dq.groups.forEach(g=>{
+      const p=dedupContactLabel(g.primaryId);
+      const rows=g.memberIds.map(mid=>{
+        const m=dedupContactLabel(mid);
+        return `<div class="dedup-row"><div class="dedup-row__info"><div class="dedup-row__name">${escapeHtml(m.name)}${m.sub?` <span class="dedup-row__sub">· ${escapeHtml(m.sub)}</span>`:''}</div><div class="dedup-row__why">${escapeHtml(dq.reasonOf.get(mid)||g.reason||'')}</div></div><button class="btn btn--sm btn--ghost" type="button" data-dedup-separate="${escapeHtml(mid)}">Keep separate</button></div>`;
+      }).join('');
+      body+=`<div class="dedup-group"><div class="dedup-group__head"><span class="dedup-group__badge">Kept</span><span class="dedup-row__name">${escapeHtml(p.name)}</span>${p.sub?`<span class="dedup-row__sub">${escapeHtml(p.sub)}</span>`:''}</div>${rows}</div>`;
+    });
+  }
+  if(dq.suggestions.length){
+    body+='<div class="dedup-sec__h">Possible duplicates — your call</div>';
+    dq.suggestions.forEach(s=>{
+      const a=dedupContactLabel(s.aId), b=dedupContactLabel(s.bId);
+      body+=`<div class="dedup-group dedup-group--sug">
+        <div class="dedup-row__why" style="margin-bottom:8px">${escapeHtml(s.reason||'Possible match')} · ${Math.round(s.score*100)}% likely the same person</div>
+        <div class="dedup-pair"><div class="dedup-pair__p"><div class="dedup-row__name">${escapeHtml(a.name)}</div><div class="dedup-row__sub">${escapeHtml(a.sub)}</div></div><span class="dedup-pair__vs">↔</span><div class="dedup-pair__p"><div class="dedup-row__name">${escapeHtml(b.name)}</div><div class="dedup-row__sub">${escapeHtml(b.sub)}</div></div></div>
+        <div class="dedup-pair__acts"><button class="btn btn--sm btn--primary" type="button" data-dedup-merge="${escapeHtml(s.aId)}|${escapeHtml(s.bId)}">Same person — merge</button><button class="btn btn--sm btn--ghost" type="button" data-dedup-notsame="${escapeHtml(s.aId)}|${escapeHtml(s.bId)}">Not the same</button></div>
+      </div>`;
+    });
+  }
+  if(!body) body='<div class="dedup-empty">No duplicates detected — every contact looks unique.</div>';
+  return body;
+}
+
+function openDedupReview(){
+  let back=document.getElementById('dedup-backdrop');
+  if(!back){
+    back=document.createElement('div');
+    back.className='modal-backdrop'; back.id='dedup-backdrop';
+    back.innerHTML=`<div class="modal modal--dedup" role="dialog" aria-modal="true" aria-label="Review duplicate contacts">
+      <div class="modal__head"><h2 class="modal__title">Duplicate contacts</h2><button class="modal__close" type="button" data-dedup-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+      <div class="modal__body" id="dedup-body"></div>
+      <div class="modal__foot"><button class="btn btn--ghost" type="button" data-dedup-close>Done</button></div>
+    </div>`;
+    document.body.appendChild(back);
+    back.addEventListener('click',e=>{ if(e.target===back) closeDedupReview(); });
+  }
+  document.getElementById('dedup-body').innerHTML=dedupReviewHtml();
+  back.classList.add('open');
+}
+function closeDedupReview(){ const b=document.getElementById('dedup-backdrop'); if(b) b.classList.remove('open'); }
+function refreshDedupReview(){
+  const b=document.getElementById('dedup-body'); if(b) b.innerHTML=dedupReviewHtml();
+  if(typeof renderList==='function') renderList();
+}
+// Detach a member from its cluster by blocking every intra-cluster link it has,
+// so a recompute can't re-attach it through a sibling.
+function dedupKeepSeparate(memberId){
+  const dq=getDuplicateIndex();
+  const primary=dq.primaryOf.get(memberId);
+  if(!primary) return;
+  const cluster=[primary].concat(dq.membersOf.get(primary)||[]);
+  const o=dedupLoadOverrides();
+  cluster.forEach(other=>{ if(other===memberId) return; const key=dedupPairKey(memberId,other); if(!o.separate.includes(key)) o.separate.push(key); o.merge=(o.merge||[]).filter(k=>k!==key); });
+  dedupSaveOverrides(o);
+}
+
+document.addEventListener('click',e=>{
+  // The merged badge sits inside a [data-route] contact row, so swallow the
+  // event before the row's navigate handler (registered later on document) runs.
+  const stop=()=>{ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); };
+  if(e.target.closest('[data-dup-review]') || e.target.closest('[data-dedup-open]')){ stop(); openDedupReview(); return; }
+  if(e.target.closest('[data-dedup-close]')){ stop(); closeDedupReview(); return; }
+  const sep=e.target.closest('[data-dedup-separate]');
+  if(sep){ stop(); dedupKeepSeparate(sep.getAttribute('data-dedup-separate')); if(typeof showToast==='function') showToast('Kept as a separate contact'); refreshDedupReview(); return; }
+  const mrg=e.target.closest('[data-dedup-merge]');
+  if(mrg){ stop(); const [a,b]=mrg.getAttribute('data-dedup-merge').split('|'); dedupAddOverride('merge',a,b); if(typeof showToast==='function') showToast('Merged as the same person'); refreshDedupReview(); return; }
+  const ns=e.target.closest('[data-dedup-notsame]');
+  if(ns){ stop(); const [a,b]=ns.getAttribute('data-dedup-notsame').split('|'); dedupAddOverride('separate',a,b); if(typeof showToast==='function') showToast('Marked as different people'); refreshDedupReview(); return; }
+});
+/* ========== End Duplicate contact cross-referencing ========== */
+
 let activeFilter='company',activeSort='recent',activeSearch='',editingId=null,expandedCompanyId=null,activeAccountType='customer';
 let orgColorMode='source'; // 'source' | 'status' — how combined-org-chart nodes are coloured
 let trAccountScope='opportunity',trTierFilter='all',trExpandedCoId=null,trSearchTerm='';
@@ -2100,7 +2433,11 @@ function renderList(){
   else if(activeSort==='confidence')items.sort((a,b)=>b.conf-a.conf);
   else items.sort((a,b)=>b.added-a.added);
 
-  updateChipCounts(all);
+  // Cross-reference duplicates: a person only ever appears once in the list.
+  const dq=getDuplicateIndex();
+  items=dedupCollapseViewList(items);
+  const bannerHtml=dedupBannerHtml(dq);
+  updateChipCounts(dedupCollapseViewList(all));
 
   if(activeFilter==='company'){
     const IDX=window.__INDEX||{companyById:{}};
@@ -2146,7 +2483,7 @@ function renderList(){
     empty.style.display='none';
     const order=visibleIds.sort((a,b)=>groups[a].name.localeCompare(groups[b].name));
     const openId=(expandedCompanyId && groups[expandedCompanyId])?expandedCompanyId:null;
-    mount.innerHTML=order.map(cid=>{
+    mount.innerHTML=bannerHtml+order.map(cid=>{
       const g=groups[cid];
       const isOpen=cid===openId;
       const safeCid=escapeHtml(cid);
@@ -2200,7 +2537,7 @@ function renderList(){
   }else{
     if(items.length===0){mount.innerHTML='';empty.style.display='block';return;}
     empty.style.display='none';
-    mount.innerHTML=`<div class="list-section"><div class="contact-list">${items.map(itemHTML).join('')}</div></div>`;
+    mount.innerHTML=bannerHtml+`<div class="list-section"><div class="contact-list">${items.map(itemHTML).join('')}</div></div>`;
   }
 }
 function orgKey(name){return String(name||'').toLowerCase().replace(/\./g,' ').replace(/\s+/g,' ').trim();}
@@ -2296,7 +2633,7 @@ function renderCompanyExpanded(companyId){
       </div>
     </div>`;
 
-  const listItems=getContactsForList().filter(c=>c.companyId===companyId);
+  const listItems=dedupCollapseViewList(getContactsForList().filter(c=>c.companyId===companyId));
   const syncBtn=`<button class="btn btn--sm btn--ghost" onclick="syncOpportunityContacts('${companyId}')" id="sync-btn-${companyId}" style="font-size:12px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2.5 11.5a10 10 0 0 1 18.17-4.5M21.5 12.5a10 10 0 0 1-18.17 4.5"/></svg>
           Sync Contacts
@@ -2751,6 +3088,7 @@ function itemHTML(c){
       <div class="contact-item__sub">${escapeHtml(c.title)} · <b>${escapeHtml(c.company)}</b></div>
     </div>
     <div class="contact-item__meta">
+      ${c._dup?`<button class="dup-badge" type="button" data-dup-review="${safeId}" title="${escapeHtml(c._dup.count+' duplicate record'+(c._dup.count>1?'s':'')+' merged — '+(c._dup.reason||'same person')+'. Click to review.')}" aria-label="${escapeHtml(c._dup.count+' merged duplicates, click to review')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>${escapeHtml(c._dup.count+1)}</button>`:''}
       <span class="stale">${escapeHtml(c.stale)}</span>
       <div class="conf conf--${c.tier}">
         <span class="conf__dots"><span class="conf__dot"></span><span class="conf__dot"></span><span class="conf__dot"></span></span>
@@ -2780,6 +3118,11 @@ function activityIcon(type){
 
 function renderContactDetail(id){
   const IDX=window.__INDEX||{contactById:{},companyById:{},byContact:{sources:{}}};
+  // A merged duplicate resolves to its canonical record so stale links and
+  // old bookmarks land on the person the list actually shows.
+  const dq=getDuplicateIndex();
+  const primId=dq.primaryOf.get(id);
+  if(primId && primId!==id) id=primId;
   const all=getContactsForList();
   const c=all.find(x=>x.id===id)||all[0];
   if(!c) return;
@@ -4033,6 +4376,137 @@ let amModel=null;
 let amStatusFilter='all';      // all | champion | blocker | unowned
 let amLinkMode=false, amLinkSrcKey=null;
 let amGesture=null;            // active pan / node-drag gesture
+let amInferPreview=null;       // {companyId, rows:[...], stats:{...}} — pending inferred org preview
+
+/* ========== Reporting-structure inference (advanced analytics) ==========
+   When an account has contacts but few or no explicit reporting lines, we infer
+   the *likely* hierarchy from what we know about each person, the way an analyst
+   would reason about an org from job titles: rank everyone by title seniority,
+   then attach each person to the most probable manager above them — the nearest
+   senior person in a compatible function, boosted when the notes already say who
+   they report to. Every inferred link carries a confidence so the user sees how
+   sure we are, and can accept or dismiss the whole set. Nothing is guessed in
+   silence: inferred edges render distinctly (dashed, labelled with %) until the
+   user applies them. */
+
+// Fine-grained seniority score (0..100) parsed from a free-text title. Higher =
+// more senior. Tuned so adjacent management layers sit ~10-16 points apart, which
+// makes "one level up" the natural attachment point for a report.
+const AM_SENIORITY_TIERS=[
+  {rx:/\b(chair(man|woman|person)?|ceo|chief executive|founder|co-?founder|owner|president & ceo)\b/i, s:100, label:'Top of house'},
+  {rx:/\bpresident\b/i, s:90, label:'President'},
+  {rx:/\bchief\b|\bc[a-z]?o\b|\bcio\b|\bcto\b|\bciso\b|\bcfo\b|\bcoo\b|\bcmo\b|\bcro\b|\bchro\b/i, s:88, label:'C-suite'},
+  {rx:/\b(evp|executive vice president)\b/i, s:78, label:'EVP'},
+  {rx:/\b(svp|senior vice president)\b/i, s:70, label:'SVP'},
+  {rx:/\b(avp|assistant vice president)\b/i, s:60, label:'AVP'},
+  {rx:/\b(vp|vice president)\b/i, s:64, label:'VP'},
+  {rx:/\b(senior director|sr\.? director)\b/i, s:56, label:'Sr Director'},
+  {rx:/\bdirector\b/i, s:50, label:'Director'},
+  {rx:/\b(head of|principal)\b/i, s:47, label:'Head/Principal'},
+  {rx:/\b(senior manager|sr\.? manager)\b/i, s:40, label:'Sr Manager'},
+  {rx:/\b(manager|supervisor)\b/i, s:34, label:'Manager'},
+  {rx:/\b(team lead|tech lead|lead)\b/i, s:28, label:'Lead'},
+  {rx:/\b(senior|sr\.?|staff|principal engineer)\b/i, s:22, label:'Senior IC'},
+  {rx:/\b(engineer|analyst|specialist|developer|architect|consultant|administrator|associate|coordinator|technician|representative|officer|agent|clerk)\b/i, s:16, label:'IC'}
+];
+function amSeniority(title){
+  const t=String(title||'').trim();
+  if(!t) return {score:0, label:'', known:false};
+  for(const tier of AM_SENIORITY_TIERS){ if(tier.rx.test(t)) return {score:tier.s, label:tier.label, known:true}; }
+  return {score:18, label:'', known:false};
+}
+// Functional area (IT, Finance, Sales…) reused from the Titles & Roles patterns,
+// so a report is preferentially attached to a manager in the same function.
+function amFunctionKey(title){
+  const t=String(title||'');
+  const hit=TR_FUNCTION_PATTERNS.find(p=>p.rx.test(t));
+  if(hit) return hit.key;
+  // Supplementary signals for common titles the shared Titles & Roles patterns
+  // miss (e.g. "Financial Analyst" is not the whole word "finance"). Insurance
+  // roles like underwriting/actuarial/claims map onto the finance function.
+  if(/\b(financial|accountant|treasur\w*|payroll|actuar\w*|underwrit\w*|claims?|billing|audit\w*)\b/i.test(t)) return 'finance';
+  if(/\b(marketing|brand|demand\s*gen|growth|communications?)\b/i.test(t)) return 'sales';
+  if(/\b(legal|counsel|compliance|attorney|paralegal)\b/i.test(t)) return 'legal';
+  return '';
+}
+// Pull an explicit "Reports to: NAME" out of the decision_role free-text (the
+// sync path writes this) — the single strongest signal when present.
+function amStatedManagerName(c){
+  const m=String((c&&c.decision_role)||'').match(/reports?\s*to[:\s]+([a-z][a-z.'\-]+(?:\s+[a-z][a-z.'\-]+){0,3})/i);
+  return m?m[1].trim():'';
+}
+
+// Choose the most likely manager for `rep` from `people`, reasoning FUNCTION
+// FIRST: a person reports up their own department, so we attach to the nearest
+// senior in the same function; only when no same-function senior exists do we
+// fall back to a cross-function senior (and cap the confidence, since that's a
+// weaker guess). Returns {mgr, conf, rationale} or null.
+function amPickManager(rep, people){
+  const seniors=people.filter(m=>m.id!==rep.id && m.sen.score>rep.sen.score);
+  if(!seniors.length) return null;
+  const nearest=pool=>pool.slice().sort((a,b)=>(a.sen.score-b.sen.score) || String(a.id).localeCompare(String(b.id)))[0];
+  const gapShape=g=>g<=16?1:(g<=28?0.85:(g<=45?0.7:0.55));
+  const sameFn = rep.fn ? seniors.filter(m=>m.fn===rep.fn) : [];
+  if(sameFn.length){
+    const mgr=nearest(sameFn), g=gapShape(mgr.sen.score-rep.sen.score);
+    return {mgr, conf:Math.round((0.5+0.45*g)*100)/100, rationale:(mgr.sen.label||'Senior')+' → '+(rep.sen.label||'role')+', same function ('+rep.fn.toUpperCase()+')'};
+  }
+  // No same-function senior — prefer a senior generalist / exec as a manager.
+  const generalists=seniors.filter(m=>!m.fn || m.sen.score>=78);
+  const pool = generalists.length ? generalists : seniors;
+  const mgr=nearest(pool), g=gapShape(mgr.sen.score-rep.sen.score);
+  const isGeneralist=!mgr.fn || mgr.sen.score>=78;
+  const conf=(isGeneralist?0.45:0.3)+0.25*g;   // capped: cross-function is a weaker inference
+  const note = mgr.fn && rep.fn ? ' (cross-function)' : '';
+  return {mgr, conf:Math.round(conf*100)/100, rationale:(mgr.sen.label||'Senior')+' → '+(rep.sen.label||'role')+' by title seniority'+note};
+}
+
+// Produce {edges:[{fromId,toId,confidence,rationale}], topId, coverage} for one
+// account. `confirmedPairs` is a Set of "mgrId>repId" already established so we
+// never re-infer an edge the user already has.
+function computeReportingInference(companyId, confirmedPairs, hasManager){
+  const D=window.__DATA||{}, IDX=window.__INDEX||{};
+  const people=(D.contacts||[]).filter(c=>c.company_id===companyId && c.contact_id).map(c=>({
+    id:c.contact_id, row:c, name:c.full_name||'', title:c.title||'',
+    sen:amSeniority(c.title), fn:amFunctionKey(c.title),
+    stated:normalizeForMatch(amStatedManagerName(c))
+  }));
+  if(people.length<2) return {edges:[], topId:'', coverage:0};
+  const byId=new Map(people.map(p=>[p.id,p]));
+  const nameIndex=new Map();  // normalized name → person (last one wins; fine at this scale)
+  people.forEach(p=>{ const n=normalizeForMatch(p.name); if(n) nameIndex.set(n,p); });
+  const resolveStated=(p)=>{
+    if(!p.stated) return null;
+    if(nameIndex.has(p.stated)) return nameIndex.get(p.stated);
+    // last-name / nickname tolerant match within the company
+    const sp=p.stated.split(' ').filter(Boolean); const sf=sp[0]||'', sl=sp.length>1?sp[sp.length-1]:'';
+    for(const q of people){ if(q.id===p.id) continue; const qp=normalizeForMatch(q.name).split(' ').filter(Boolean); const qf=qp[0]||'', ql=qp.length>1?qp[qp.length-1]:'';
+      if(sl && sl===ql && (sf===qf || firstNamesMatch(sf,qf))) return q; }
+    return null;
+  };
+  const top=people.slice().sort((a,b)=>b.sen.score-a.sen.score)[0];
+  const edges=[];
+  people.forEach(rep=>{
+    if(rep.id===top.id) return;                 // the most senior person tops the tree
+    if(hasManager && hasManager.has(rep.id)) return;  // already has a real manager
+    // 1) explicit "reports to" wins outright when resolvable and senior.
+    const stated=resolveStated(rep);
+    if(stated && stated.id!==rep.id && stated.sen.score>=rep.sen.score){
+      if(!(confirmedPairs && confirmedPairs.has(stated.id+'>'+rep.id)))
+        edges.push({fromId:stated.id, toId:rep.id, confidence:0.95, rationale:'Notes say “reports to '+ (stated.name||amStatedManagerName(rep.row)) +'”'});
+      return;
+    }
+    // 2) otherwise attach to the most likely manager (function-first).
+    const pick=amPickManager(rep, people);
+    if(pick && pick.conf>=0.5){
+      const key=pick.mgr.id+'>'+rep.id;
+      if(confirmedPairs && confirmedPairs.has(key)) return;
+      edges.push({fromId:pick.mgr.id, toId:rep.id, confidence:pick.conf, rationale:pick.rationale});
+    }
+  });
+  const covered=new Set(edges.map(e=>e.toId));
+  return { edges, topId:top.id, coverage: people.length>1 ? covered.size/(people.length-1) : 0 };
+}
 
 function amAccountList(){
   const D=window.__DATA||{};
@@ -4095,7 +4569,7 @@ function buildAccountGraph(companyId){
       if(isJunkOrgNode(r)) return;
       if(r.role_type==='directReport'){
         const rep=ensure(r.name,r.title,r.source||'DATABASE',r.initials);
-        if(rep){ if(r.linked_contact_id && !rep.dbContactId){ rep.dbContactId=r.linked_contact_id; rep.source='DATABASE'; } if(self && rep.key!==self.key) reporting.push({from:self.key,to:rep.key}); }
+        if(rep){ if(r.linked_contact_id && !rep.dbContactId){ rep.dbContactId=r.linked_contact_id; rep.source='DATABASE'; } if(self && rep.key!==self.key) reporting.push({from:self.key,to:rep.key, inferred:(r.note==='inferred'||!!r._inferred), conf:Number(r.confidence||r._inferConf)||0, node_id:r.node_id||''}); }
       } else if(r.role_type==='peer'){
         ensure(r.name,r.title,r.source,r.initials);
       } else if(r.role_type==='influence'){
@@ -4116,7 +4590,11 @@ function buildAccountGraph(companyId){
     n.y=(c && c.map_y!=null && c.map_y!=='' && !isNaN(my))?my:null;
   });
   const dedupe=(arr)=>{ const s=new Set(); return arr.filter(e=>{ const k=e.from+'>'+e.to; if(s.has(k))return false; s.add(k); return true; }); };
-  const repEdges=dedupe(reporting).filter(e=>e.from!==e.to);
+  // Reporting edges: a confirmed edge always wins over an inferred duplicate.
+  const repMap=new Map();
+  reporting.forEach(e=>{ if(e.from===e.to) return; const k=e.from+'>'+e.to; const ex=repMap.get(k);
+    if(!ex) repMap.set(k,e); else if(ex.inferred && !e.inferred) repMap.set(k,e); });
+  const repEdges=[...repMap.values()];
   const infEdges=dedupe(influence).filter(e=>e.from!==e.to);
   // Partition into the org-chart canvas vs. the "not in org chart" tray.
   // A person is trayed if explicitly excluded (persisted as an inert Org_Chart
@@ -4200,6 +4678,13 @@ function renderAccountMap(companyId){
   }
   const isNewCompany = amRenderedCompany!==amCompanyId;
   if(isNewCompany){ amZoom=1; amPanX=40; amPanY=28; amLinkMode=false; amLinkSrcKey=null; }
+  // A pending inferred-org preview only applies to the account it was made on —
+  // switching accounts discards the unsaved staging rows so they don't leak.
+  if(amInferPreview && amInferPreview.companyId!==amCompanyId){
+    if(Array.isArray(D.org_chart)) D.org_chart=D.org_chart.filter(r=>!r._inferPreview);
+    amInferPreview=null;
+    if(typeof buildIndexes==='function') buildIndexes();
+  }
   amRenderedCompany=amCompanyId;
   amModel=amLayout(buildAccountGraph(amCompanyId));
   mount.innerHTML=amCanvasHtml(amCompanyId, companies);
@@ -4232,7 +4717,7 @@ function amCanvasHtml(companyId, companies){
     <div class="am-toolbar">
       <div class="am-toolbar__group"><span class="am-title">Account Map</span></div>
       <div class="am-toolbar__group"><select class="select am-co-select" id="am-co-select" aria-label="Choose account">${coOptions}</select></div>
-      <div class="am-toolbar__group"><button class="am-btn" id="am-automap-btn" title="Infer relationship status & committee roles from meeting notes">✨ Auto-map</button><button class="am-btn" id="am-tidy-btn" title="Use Claude to move off-org contacts (internal reps, partners, noise) off the chart">✦ Tidy</button></div>
+      <div class="am-toolbar__group"><button class="am-btn" id="am-automap-btn" title="Infer relationship status & committee roles from meeting notes">✨ Auto-map</button><button class="am-btn" id="am-infer-btn" title="Infer the likely reporting structure from job titles & functions">⚡ Infer org</button><button class="am-btn" id="am-tidy-btn" title="Use Claude to move off-org contacts (internal reps, partners, noise) off the chart">✦ Tidy</button></div>
       <div class="am-toolbar__spacer"></div>
       <div class="am-toolbar__group">${filters}</div>
       <div class="am-toolbar__group">
@@ -4241,6 +4726,7 @@ function amCanvasHtml(companyId, companies){
       </div>
     </div>
     ${amInsightsHtml(amModel)}
+    ${amInferBarHtml(companyId)}
     <div class="am-canvas" id="am-canvas">
       <div class="am-stage" id="am-stage">
         <svg class="am-edges" id="am-edges"></svg>
@@ -4304,7 +4790,21 @@ function amLegendHtml(){
     ${REL_STATUS_ORDER.map(k=>`<div class="am-legend__row"><span class="am-legend__dot" style="background:${REL_STATUS[k].color}"></span>${escapeHtml(REL_STATUS[k].label)}</div>`).join('')}
     <div class="am-legend__title">Links</div>
     <div class="am-legend__row"><span class="am-legend__sw"></span>Reports to</div>
-    <div class="am-legend__row"><span class="am-legend__sw am-legend__sw--inf"></span>Influences</div>`;
+    <div class="am-legend__row"><span class="am-legend__sw am-legend__sw--inf"></span>Influences</div>
+    <div class="am-legend__row"><span class="am-legend__sw am-legend__sw--infer"></span>Likely reporting</div>`;
+}
+
+// Preview action bar: appears while an inferred org is staged so the user can see
+// what was proposed and Apply or Dismiss it.
+function amInferBarHtml(companyId){
+  if(!amInferPreview || amInferPreview.companyId!==companyId) return '';
+  const s=amInferPreview.stats||{};
+  return `<div class="am-infer-bar">
+    <span class="am-infer-bar__ico">⚡</span>
+    <span class="am-infer-bar__txt">Inferred <b>${s.count}</b> likely reporting line${s.count===1?'':'s'} · avg confidence <b>${s.avg}%</b>${s.coverage!=null?` · ${s.coverage}% of the org placed`:''}. Dashed links below are proposals.</span>
+    <button class="am-btn am-btn--active" id="am-infer-apply" type="button">Apply</button>
+    <button class="am-btn" id="am-infer-dismiss" type="button">Dismiss</button>
+  </div>`;
 }
 
 function amInsightsHtml(model){
@@ -4353,9 +4853,16 @@ function amDrawEdges(){
     const p1=amBorderPoint(c1,c2,(a._w||AM_NODE_W)/2,(a._h||70)/2);
     const p2=amBorderPoint(c2,c1,(b._w||AM_NODE_W)/2,(b._h||70)/2);
     return {p1,p2}; };
-  const parts=['<defs><marker id="am-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#9999A8"/></marker><marker id="am-arrow-inf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#00BFFF"/></marker></defs>'];
+  const parts=['<defs><marker id="am-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#9999A8"/></marker><marker id="am-arrow-inf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#00BFFF"/></marker><marker id="am-arrow-infer" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#B57500"/></marker></defs>'];
   amModel.reporting.forEach(e=>{ const a=byKey.get(e.from), b=byKey.get(e.to); if(!a||!b||!a.inChart||!b.inChart) return; const {p1,p2}=seg(a,b);
-    parts.push(`<line class="am-edge am-edge--report" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}" marker-end="url(#am-arrow)"/>`); });
+    if(e.inferred){
+      parts.push(`<line class="am-edge am-edge--infer" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}" marker-end="url(#am-arrow-infer)"/>`);
+      if(e.conf){ const mx=((p1.x+p2.x)/2).toFixed(1), my=((p1.y+p2.y)/2).toFixed(1);
+        parts.push(`<rect class="am-edge__lblbg" x="${(mx-13)}" y="${(my-8)}" width="26" height="14" rx="7"/><text class="am-edge__lbl" x="${mx}" y="${(my+2)}" text-anchor="middle">${Math.round(e.conf*100)}%</text>`); }
+      if(e.node_id) parts.push(`<line class="am-edge-hit" data-am-infer-edge="${escapeHtml(e.node_id)}" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}"><title>Likely reporting: ${escapeHtml(a.name)} → ${escapeHtml(b.name)}${e.conf?` (${Math.round(e.conf*100)}%)`:''} — click to remove</title></line>`);
+    } else {
+      parts.push(`<line class="am-edge am-edge--report" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}" marker-end="url(#am-arrow)"/>`);
+    } });
   amModel.influence.forEach((e,i)=>{ const a=byKey.get(e.from), b=byKey.get(e.to); if(!a||!b||!a.inChart||!b.inChart) return; const {p1,p2}=seg(a,b);
     parts.push(`<line class="am-edge am-edge--influence" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}" marker-end="url(#am-arrow-inf)"/>`);
     parts.push(`<line class="am-edge-hit" data-am-inf="${i}" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}"><title>Influence: ${escapeHtml(a.name)} → ${escapeHtml(b.name)} (click to remove)</title></line>`); });
@@ -4372,8 +4879,12 @@ function amWireCanvas(){
   on('am-zoom-fit',amFit);
   on('am-reset-layout',amResetLayout);
   on('am-automap-btn',amAutoMap);
+  on('am-infer-btn',amInferReporting);
   on('am-tidy-btn',amTidyWithAI);
   on('am-export-btn',amExportSVG);
+  on('am-infer-apply',amApplyInferred);
+  on('am-infer-dismiss',amDismissInferred);
+  const inferBtn=document.getElementById('am-infer-btn'); if(inferBtn) inferBtn.classList.toggle('am-btn--active', !!(amInferPreview&&amInferPreview.companyId===amCompanyId));
   const link=document.getElementById('am-link-btn'); if(link){ link.classList.toggle('am-btn--active',amLinkMode); link.onclick=amToggleLinkMode; }
   const sel=document.getElementById('am-co-select'); if(sel) sel.onchange=()=>navigate('account-map', sel.value);
   document.querySelectorAll('[data-am-filter]').forEach(b=>{ b.onclick=()=>amSetFilter(b.getAttribute('data-am-filter')); });
@@ -4395,6 +4906,8 @@ function amPointerDown(e){
   if(exclBtn){ e.preventDefault(); e.stopPropagation(); amExcludeContact(exclBtn.getAttribute('data-am-exclude')); return; }
   const infHit=e.target.closest('[data-am-inf]');
   if(infHit){ e.preventDefault(); amRemoveInfluence(Number(infHit.getAttribute('data-am-inf'))); return; }
+  const inferHit=e.target.closest('[data-am-infer-edge]');
+  if(inferHit){ e.preventDefault(); amRemoveInferredEdge(inferHit.getAttribute('data-am-infer-edge')); return; }
   const nodeEl=e.target.closest('.am-node');
   if(nodeEl){
     const idx=Number(nodeEl.getAttribute('data-am-idx')); const node=amModel.nodes[idx];
@@ -4781,6 +5294,98 @@ async function amTidyWithAI(){
   if(btn){ btn.disabled=false; btn.textContent=orig; }
   renderAccountMap(amCompanyId);
   if(typeof showToast==='function') showToast(`Tidied: ${ex} moved off the chart${re?`, ${re} restored`:''}${ex+re===0?' — nothing to change':''}`);
+}
+
+// --- Infer org: analytics-driven reporting-structure inference ---
+// Builds the set of confirmed reporting pairs, runs the inference engine, then
+// stages the result as an in-memory preview (dashed edges) the user can Apply or
+// Dismiss. Applying persists each inferred link as an ordinary, removable
+// directReport Org_Chart row, so it behaves exactly like a hand-drawn one.
+function amInferReporting(){
+  if(!amModel) return;
+  const D=window.__DATA||{}, IDX=window.__INDEX||{};
+  // Confirmed reporting pairs (contactId>contactId) from the CURRENT model, so
+  // we never duplicate an existing line, and the set of people who already have
+  // a real manager (an incoming confirmed edge).
+  const keyToContact=new Map(amModel.nodes.map(n=>[n.key, n.contactId||null]));
+  const confirmedPairs=new Set(), hasManager=new Set();
+  amModel.reporting.forEach(e=>{ if(e.inferred) return; const f=keyToContact.get(e.from), t=keyToContact.get(e.to); if(f&&t){ confirmedPairs.add(f+'>'+t); hasManager.add(t); } });
+
+  const {edges, coverage}=computeReportingInference(amCompanyId, confirmedPairs, hasManager);
+  const fresh=edges.filter(e=>e.fromId && e.toId && IDX.contactById[e.fromId] && IDX.contactById[e.toId]);
+  if(!fresh.length){ if(typeof showToast==='function') showToast('No new reporting lines to infer — need clearer titles or they’re already mapped'); return; }
+
+  // Stage preview rows on the org_chart (in memory only), rebuild, re-render.
+  amClearInferPreview(true);
+  const rows=fresh.map(e=>{ const rep=IDX.contactById[e.toId]; return {
+    node_id:genId('INF'), contact_id:e.fromId, role_type:'directReport',
+    linked_contact_id:e.toId, name:(rep&&rep.full_name)||'', title:(rep&&rep.title)||'',
+    display_order:0, source:'RESEARCHED', note:'inferred', confidence:e.confidence,
+    _inferred:true, _inferConf:e.confidence, _inferPreview:true, _rationale:e.rationale
+  }; });
+  (D.org_chart||(D.org_chart=[])).push(...rows);
+  const avg=Math.round(fresh.reduce((s,e)=>s+e.confidence,0)/fresh.length*100);
+  amInferPreview={companyId:amCompanyId, rows, stats:{count:fresh.length, avg, coverage:Math.round(coverage*100)}};
+  if(typeof buildIndexes==='function') buildIndexes();
+  renderAccountMap(amCompanyId);
+}
+
+// Remove any staged preview rows. `silent` skips the re-render (caller handles it).
+function amClearInferPreview(silent){
+  const D=window.__DATA||{};
+  if(Array.isArray(D.org_chart)) D.org_chart=D.org_chart.filter(r=>!r._inferPreview);
+  amInferPreview=null;
+  if(!silent){ if(typeof buildIndexes==='function') buildIndexes(); renderAccountMap(amCompanyId); }
+}
+
+function amDismissInferred(){
+  amClearInferPreview(false);
+  if(typeof showToast==='function') showToast('Dismissed inferred reporting lines');
+}
+
+// Remove a single inferred reporting line by its org_chart node_id. Works for
+// both an unsaved preview row and an already-applied one.
+async function amRemoveInferredEdge(nodeId){
+  if(!nodeId) return;
+  const D=window.__DATA||{};
+  const rows=(D.org_chart||[]);
+  const row=rows.find(r=>r.node_id===nodeId);
+  if(!row) return;
+  const isPreview=!!row._inferPreview;
+  if(!isPreview){
+    try{ await postToSheet({action:'delete', tab:'Org_Chart', idColumn:'node_id', idValue:nodeId}); }
+    catch(err){ console.error('[LeadCheck] remove inferred edge failed', err); if(typeof showToast==='function') showToast('Couldn’t remove that line'); return; }
+  }
+  if(Array.isArray(D.org_chart)) D.org_chart=D.org_chart.filter(r=>r.node_id!==nodeId);
+  if(amInferPreview){
+    amInferPreview.rows=amInferPreview.rows.filter(r=>r.node_id!==nodeId);
+    if(!amInferPreview.rows.length){ amInferPreview=null; }
+    else { const c=amInferPreview.rows.length; amInferPreview.stats.count=c; amInferPreview.stats.avg=Math.round(amInferPreview.rows.reduce((s,r)=>s+(Number(r.confidence)||0),0)/c*100); }
+  }
+  if(typeof buildIndexes==='function') buildIndexes();
+  renderAccountMap(amCompanyId);
+  if(typeof showToast==='function') showToast('Removed inferred reporting line');
+}
+
+async function amApplyInferred(){
+  if(!amInferPreview || amInferPreview.companyId!==amCompanyId) return;
+  const D=window.__DATA||{};
+  const rows=amInferPreview.rows.slice();
+  const bar=document.getElementById('am-infer-apply'); if(bar){ bar.disabled=true; bar.textContent='Saving…'; }
+  let ok=0;
+  for(const r of rows){
+    const persisted={node_id:r.node_id, contact_id:r.contact_id, role_type:'directReport', linked_contact_id:r.linked_contact_id, name:r.name, title:r.title, display_order:0, source:'RESEARCHED', note:'inferred', confidence:r.confidence};
+    try{
+      await postToSheet({action:'append', tab:'Org_Chart', data:persisted});
+      // Convert the in-memory preview row into a real one (drop preview flags).
+      delete r._inferPreview; r._rationale=r._rationale; ok++;
+    }catch(err){ console.error('[LeadCheck] apply inferred failed', err); }
+    await new Promise(res=>setTimeout(res,150));
+  }
+  amInferPreview=null;
+  if(typeof buildIndexes==='function') buildIndexes();
+  renderAccountMap(amCompanyId);
+  if(typeof showToast==='function') showToast(`Saved ${ok} inferred reporting line${ok===1?'':'s'} — click any amber line to remove it`);
 }
 /* ========== End Account Map ========== */
 
