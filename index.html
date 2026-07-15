@@ -312,6 +312,48 @@ main{flex:1;padding-bottom:var(--s-9)}
 .peer-row__body{flex:1;min-width:0}
 .peer-row__name{font-size:13px;font-weight:500;color:var(--ink)}
 .peer-row__title{font-size:11px;color:var(--ink-3)}
+
+/* ===== Relationship mapping (100HS-style): node badges, coverage, editor ===== */
+.rel-badges{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:6px}
+.rel-badge{display:inline-flex;align-items:center;font-size:9px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 6px;border-radius:3px;line-height:1.5}
+.rel-badge--status{color:var(--rel-c,#6B6B7A);background:var(--rel-bg,rgba(107,107,122,.12))}
+.rel-badge--role{color:var(--ink-2);background:var(--bg-tint);border:1px solid var(--border)}
+.rel-owner{display:flex;align-items:center;justify-content:center;gap:3px;font-size:10px;color:var(--ink-3);margin-top:4px}
+.rel-owner__ico{color:var(--ink-4);font-size:11px}
+.rel-edit-btn{position:absolute;top:5px;left:6px;width:17px;height:17px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-4);opacity:0;border-radius:3px;transition:opacity var(--t-fast) var(--ease),background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
+.org-node:hover .rel-edit-btn,.rel-edit-btn:focus-visible{opacity:.75}
+.rel-edit-btn:hover{opacity:1;background:var(--bg-tint);color:var(--primary)}
+.rel-edit-btn svg{width:12px;height:12px}
+.org-node--target .rel-edit-btn{color:rgba(255,255,255,.85)}
+.org-node--target .rel-badge--role{color:#fff;background:rgba(255,255,255,.18);border-color:transparent}
+/* relationship colour mode — toggled via a class on the org body */
+.org-colormode-status .org-node[data-rel-status]{border-width:2px}
+.org-colormode-status .org-node[data-rel-status="champion"]{border-color:var(--green)}
+.org-colormode-status .org-node[data-rel-status="supporter"]{border-color:#3B8A4E}
+.org-colormode-status .org-node[data-rel-status="neutral"]{border-color:var(--ink-4)}
+.org-colormode-status .org-node[data-rel-status="detractor"]{border-color:var(--amber)}
+.org-colormode-status .org-node[data-rel-status="blocker"]{border-color:var(--red)}
+.section__head--org{display:flex;align-items:center;gap:var(--s-2)}
+.org-colortoggle{display:inline-flex;margin-left:auto;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
+.org-colortoggle button{font-size:11px;font-weight:600;padding:4px 10px;color:var(--ink-3);background:var(--bg);transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
+.org-colortoggle button+button{border-left:1px solid var(--border)}
+.org-colortoggle button.active{background:var(--primary);color:#fff}
+.rel-coverage{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg);margin-bottom:var(--s-4)}
+.rel-coverage__label{font-size:12px;font-weight:700;color:var(--ink-2)}
+.rel-seats{display:flex;flex-wrap:wrap;gap:6px}
+.rel-seat{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:12px}
+.rel-seat--filled{color:var(--green);background:var(--green-bg)}
+.rel-seat--empty{color:var(--amber);background:var(--amber-bg)}
+.rel-coverage__stats{display:flex;flex-wrap:wrap;gap:10px;margin-left:auto;font-size:12px;color:var(--ink-3)}
+.rel-coverage__stat b{color:var(--ink)}
+.rel-coverage__stat--warn b{color:var(--red)}
+.modal--rel{max-width:460px}
+.rel-field+.rel-field{margin-top:var(--s-4)}
+.rel-seg{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.rel-seg__btn{font-size:12px;font-weight:600;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-md);color:var(--ink-2);background:var(--bg);transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
+.rel-seg__btn:hover{border-color:var(--border-strong);background:var(--bg-tint)}
+.rel-seg__btn.active{border-color:var(--primary);background:var(--primary);color:#fff}
+.rel-seg[data-rel-field="status"] .rel-seg__btn.active{background:var(--rel-c,var(--primary));border-color:var(--rel-c,var(--primary));color:#fff}
 .peer-detail{display:none;margin:4px 0 var(--s-2) 40px;padding:10px 14px;background:var(--bg-tint);border-left:3px solid var(--cyan);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:12px;color:var(--ink-2);line-height:1.55;font-style:italic}
 .peer-detail.open{display:block}
 .peer-detail a{color:var(--primary);font-style:normal;font-weight:500;display:inline-block;margin-top:4px}
@@ -1777,6 +1819,80 @@ function isChampion(c){
   if(/\b(not|no|never|isn'?t|wasn'?t|aren'?t|won'?t|wouldn'?t|hardly|nobody)\b[^.;—!]{0,60}\bchampion\b/.test(dr)) return false;
   return /\bchampion\b/.test(dr);
 }
+
+/* ========== Relationship Mapping data model (100HS-style) ==========
+   A buying-committee intelligence layer on top of the org chart:
+     relationship_status — how the person leans toward us (champion…blocker)
+     deal_role           — their seat on the buying committee (economic buyer…user)
+     relationship_owner  — who on OUR side owns the relationship
+   All three persist to new Contacts columns via postToSheet(update). Until a
+   contact is tagged we DERIVE a sensible default from the existing free-text
+   decision_role so the map is useful immediately; a stored value always wins. */
+const REL_STATUS={
+  champion :{label:'Champion' ,color:'#0F7A3F'},
+  supporter:{label:'Supporter',color:'#3B8A4E'},
+  neutral  :{label:'Neutral'  ,color:'#6B6B7A'},
+  detractor:{label:'Detractor',color:'#B57500'},
+  blocker  :{label:'Blocker'  ,color:'#C42020'}
+};
+const REL_STATUS_ORDER=['champion','supporter','neutral','detractor','blocker'];
+const REL_STATUS_BG={champion:'rgba(15,122,63,.12)',supporter:'rgba(15,122,63,.08)',neutral:'rgba(107,107,122,.12)',detractor:'rgba(181,117,0,.12)',blocker:'rgba(196,32,32,.12)'};
+const DEAL_ROLES={
+  'economic-buyer':'Economic Buyer',
+  'decision-maker':'Decision Maker',
+  'technical-evaluator':'Technical Evaluator',
+  'influencer':'Influencer',
+  'coach':'Coach',
+  'user':'User',
+  'blocker':'Blocker'
+};
+const DEAL_ROLE_ORDER=['economic-buyer','decision-maker','technical-evaluator','influencer','coach','user','blocker'];
+// The committee "seats" we score account coverage against.
+const COMMITTEE_SEATS=['economic-buyer','decision-maker','technical-evaluator','influencer'];
+
+function normRelStatus(v){
+  const s=String(v||'').toLowerCase().trim().replace(/\s+/g,'-');
+  return REL_STATUS[s]?s:'';
+}
+function normDealRole(v){
+  const s=String(v||'').toLowerCase().trim().replace(/\s+/g,'-');
+  if(DEAL_ROLES[s]) return s;
+  const alias={economic:'economic-buyer',buyer:'economic-buyer',eb:'economic-buyer','budget-holder':'economic-buyer',
+    dm:'decision-maker',decision:'decision-maker',
+    technical:'technical-evaluator',evaluator:'technical-evaluator',tech:'technical-evaluator',
+    influence:'influencer','end-user':'user'};
+  return alias[s]||'';
+}
+// Relationship status: stored value, else inferred from decision_role text.
+function contactRelStatus(c){
+  if(!c) return '';
+  const stored=normRelStatus(c.relationship_status);
+  if(stored) return stored;
+  if(isChampion(c)) return 'champion';
+  const dr=String(c.decision_role||'').toLowerCase();
+  if(!dr) return '';
+  if(/\b(blocker|blocking|opposed|against us|hostile|obstruct)\b/.test(dr)) return 'blocker';
+  if(/\b(detractor|skeptic|skeptical|resistant|not convinced|lukewarm|concern)\b/.test(dr)) return 'detractor';
+  if(/\b(supporter|supportive|advocate|ally|on our side|positive)\b/.test(dr)) return 'supporter';
+  return '';
+}
+// Deal / committee role: stored value, else inferred from decision_role text.
+function contactDealRole(c){
+  if(!c) return '';
+  const stored=normDealRole(c.deal_role);
+  if(stored) return stored;
+  const dr=String(c.decision_role||'').toLowerCase();
+  if(!dr) return '';
+  if(/economic buyer|budget (holder|owner)|controls? (the )?budget|signs? (the )?(check|contract|deal)|final approval|approves? (the )?(budget|spend|purchase)/.test(dr)) return 'economic-buyer';
+  if(/decision[- ]maker|makes? (the )?(final |ultimate )?(call|decision)|final (call|say|decision)|decision authority/.test(dr)) return 'decision-maker';
+  if(/technical (evaluator|buyer|lead|owner)|evaluat|proof of concept|\bpoc\b/.test(dr)) return 'technical-evaluator';
+  if(/influenc/.test(dr)) return 'influencer';
+  if(/\bcoach\b/.test(dr)) return 'coach';
+  if(/end[- ]?user|day[- ]to[- ]day user|primary user/.test(dr)) return 'user';
+  return '';
+}
+function contactRelOwner(c){ return String((c&&c.relationship_owner)||'').trim(); }
+/* ========== End Relationship Mapping data model ========== */
 // Short ID generator that's robust against same-ms collisions (e.g. two rapid
 // add-contact submits). Reuses the existing prefixed-timestamp convention but
 // appends 6 chars of randomness so org_id/contact_id stay unique even under burst.
@@ -1795,6 +1911,7 @@ function escapeHtml(v){
 /* ========== End Data Layer ========== */
 
 let activeFilter='company',activeSort='recent',activeSearch='',editingId=null,expandedCompanyId=null,activeAccountType='customer';
+let orgColorMode='source'; // 'source' | 'status' — how combined-org-chart nodes are coloured
 let trAccountScope='opportunity',trTierFilter='all',trExpandedCoId=null,trSearchTerm='';
 
 function showView(name){
@@ -2288,13 +2405,17 @@ function renderCompanyExpanded(companyId){
       else if(item.src==='MENTIONED'){ chipCls='org-unmapped-chip--mentioned'; chipText='Mentioned'; }
       else if(item.src==='PEER'){ chipCls='org-unmapped-chip--peer'; chipText='Peer'; }
       else { chipCls='org-unmapped-chip--researched'; chipText='Research'; }
-      const attrs=item.dbContactId?` data-route="contact" data-id="${escapeHtml(item.dbContactId)}" type="button"`:'';
-      const tag=item.dbContactId?'button':'div';
-      return `<${tag} class="org-node org-unmapped-card"${attrs}>
+      const contact=item.dbContactId?((IDX.contactById&&IDX.contactById[item.dbContactId])||null):null;
+      const rel=relNodeOverlay(contact);
+      const editBtn=item.dbContactId?relEditBtnHtml(item.dbContactId):'';
+      const navAttrs=item.dbContactId?` data-route="contact" data-id="${escapeHtml(item.dbContactId)}" role="button" tabindex="0"`:'';
+      return `<div class="org-node org-unmapped-card"${rel.attr}${navAttrs}>
+        ${editBtn}
         <div class="org-node__name">${escapeHtml(displayOrgName(item.name))}</div>
         ${item.title?`<div class="org-node__title">${escapeHtml(item.title)}</div>`:''}
+        ${rel.badges}
         <span class="org-node__chip ${chipCls}">${chipText}</span>
-      </${tag}>`;
+      </div>`;
     };
 
     const gapHtml=(count)=>`<div class="org-node org-node--gap"><div class="org-node__name">…</div><div class="org-node__title">${count} unverified level${count===1?'':'s'}</div></div>`;
@@ -2365,17 +2486,41 @@ function renderCompanyExpanded(companyId){
     </button>
     <div class="org-add-form-slot"></div>
   </div>`;
-  const orgHintHtml=`<p class="prose" style="color:var(--ink-3);font-size:11px;margin-top:var(--s-3)">Drag a contact onto another to set "reports to". Adds save to your sheet.</p>`;
+  const orgHintHtml=`<p class="prose" style="color:var(--ink-3);font-size:11px;margin-top:var(--s-3)">Drag a contact onto another to set "reports to". Click the ✎ on a card to tag their buying-committee role &amp; relationship. Changes save to your sheet.</p>`;
+  // Buying-committee coverage strip + relationship colour toggle — only meaningful
+  // when there are real DB contacts at this company to tag.
+  let coverageHtml='',colorToggleHtml='';
+  if(contactsAtCo.length){
+    const seatCount={}; COMMITTEE_SEATS.forEach(s=>seatCount[s]=0);
+    let champions=0,blockers=0,owned=0;
+    contactsAtCo.forEach(c=>{
+      const st=contactRelStatus(c); if(st==='champion')champions++; else if(st==='blocker')blockers++;
+      if(contactRelOwner(c))owned++;
+      const r=contactDealRole(c); if(r in seatCount)seatCount[r]++;
+    });
+    const seatsHtml=COMMITTEE_SEATS.map(s=>{
+      const filled=seatCount[s]>0;
+      return `<span class="rel-seat rel-seat--${filled?'filled':'empty'}">${filled?'✓':'○'} ${escapeHtml(DEAL_ROLES[s])}${filled&&seatCount[s]>1?' ·'+seatCount[s]:''}</span>`;
+    }).join('');
+    const stats=[];
+    if(champions)stats.push(`<span class="rel-coverage__stat"><b>${champions}</b> champion${champions===1?'':'s'}</span>`);
+    if(blockers)stats.push(`<span class="rel-coverage__stat rel-coverage__stat--warn"><b>${blockers}</b> blocker${blockers===1?'':'s'}</span>`);
+    stats.push(`<span class="rel-coverage__stat"><b>${owned}</b>/${contactsAtCo.length} owned</span>`);
+    coverageHtml=`<div class="rel-coverage"><span class="rel-coverage__label">Buying committee</span><div class="rel-seats">${seatsHtml}</div><div class="rel-coverage__stats">${stats.join('')}</div></div>`;
+    colorToggleHtml=`<div class="org-colortoggle" role="group" aria-label="Colour nodes by"><button type="button" data-org-colormode="source" class="${orgColorMode==='status'?'':'active'}">Source</button><button type="button" data-org-colormode="status" class="${orgColorMode==='status'?'active':''}">Relationship</button></div>`;
+  }
+  const colorModeClass=orgColorMode==='status'?' org-colormode-status':'';
   const orgHtml=`
     <div class="section">
-      <div class="section__head"><span class="section__title">Combined Org Chart</span></div>
-      <div class="section__body" data-co-org="${escapeHtml(companyId)}">${gapBannerHtml}${orgBodyHtml}${orgAddHtml}${orgHintHtml}</div>
+      <div class="section__head section__head--org"><span class="section__title">Combined Org Chart</span>${colorToggleHtml}</div>
+      <div class="section__body${colorModeClass}" data-co-org="${escapeHtml(companyId)}">${coverageHtml}${gapBannerHtml}${orgBodyHtml}${orgAddHtml}${orgHintHtml}</div>
     </div>`;
 
   return `<div class="company-detail">${summaryHtml}${contactsHtml}${orgHtml}</div>`;
 }
 
 function orgNodeHtmlCombined(node, companyId){
+  const IDX=window.__INDEX||{};
   const effectiveSrc=node.dbContactId?'DATABASE':(node.source||'RESEARCHED');
   let cls='',chipText='';
   if(effectiveSrc==='DATABASE'){
@@ -2385,17 +2530,41 @@ function orgNodeHtmlCombined(node, companyId){
   } else {
     cls='org-node--source-researched'; chipText='From research';
   }
-  const attrs=node.dbContactId?` data-route="contact" data-id="${escapeHtml(node.dbContactId)}"`:'';
+  // Relationship-mapping overlay (only real DB contacts carry it).
+  const contact=node.dbContactId?((IDX.contactById&&IDX.contactById[node.dbContactId])||null):null;
+  const relHtml=relNodeOverlay(contact);
+  const editBtn=node.dbContactId?relEditBtnHtml(node.dbContactId):'';
   // Database contacts are draggable for reparenting in the combined company org chart.
   // The drop handler reads data-co-drag (company scope) + data-co-contact (the contact being moved).
+  // They render as a role=button div (not <button>) so the edit affordance can nest inside.
+  const navAttrs=node.dbContactId?` data-route="contact" data-id="${escapeHtml(node.dbContactId)}" role="button" tabindex="0"`:'';
   const dragAttrs=(node.dbContactId && companyId)?` draggable="true" data-co-drag="${escapeHtml(companyId)}" data-co-contact="${escapeHtml(node.dbContactId)}"`:'';
-  const tag=node.dbContactId?'button':'div';
-  const typeAttr=node.dbContactId?' type="button"':'';
-  return `<${tag} class="org-node ${cls}"${attrs}${typeAttr}${dragAttrs}>
+  return `<div class="org-node ${cls}"${relHtml.attr}${navAttrs}${dragAttrs}>
+    ${editBtn}
     <div class="org-node__name">${escapeHtml(displayOrgName(node.name))}</div>
     <div class="org-node__title">${escapeHtml(node.title)}</div>
+    ${relHtml.badges}${relHtml.owner}
     <span class="org-node__chip">${escapeHtml(chipText)}</span>
-  </${tag}>`;
+  </div>`;
+}
+
+// The pencil affordance that opens the relationship editor for a DB contact.
+function relEditBtnHtml(contactId){
+  return `<button class="rel-edit-btn" type="button" data-rel-edit="${escapeHtml(contactId)}" aria-label="Edit relationship" title="Edit buying-committee role & relationship"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`;
+}
+// Shared status/role badge + owner markup for a contact (returns {attr,badges,owner}).
+function relNodeOverlay(contact){
+  const status=contact?contactRelStatus(contact):'';
+  const role=contact?contactDealRole(contact):'';
+  const owner=contact?contactRelOwner(contact):'';
+  let badges='';
+  if(status){ const s=REL_STATUS[status]; badges+=`<span class="rel-badge rel-badge--status" style="--rel-c:${s.color};--rel-bg:${REL_STATUS_BG[status]}">${escapeHtml(s.label)}</span>`; }
+  if(role){ badges+=`<span class="rel-badge rel-badge--role">${escapeHtml(DEAL_ROLES[role])}</span>`; }
+  return {
+    attr: status?` data-rel-status="${escapeHtml(status)}"`:'',
+    badges: badges?`<div class="rel-badges">${badges}</div>`:'',
+    owner: owner?`<div class="rel-owner"><span class="rel-owner__ico">◷</span>${escapeHtml(owner)}</div>`:''
+  };
 }
 
 function orgSideRow(r,nameToContactId){
@@ -3444,6 +3613,87 @@ function coOrgRefreshExpanded(companyId){
   }
 }
 
+/* ========== Relationship editor popover ==========
+   Opened from the ✎ on any DB-contact org-chart card. Lets the user set the
+   person's relationship status, buying-committee role, and internal owner, then
+   persists to the Contacts sheet via postToSheet(update) and re-renders. */
+function relEditorKeydown(e){ if(e.key==='Escape') closeRelEditor(); }
+function closeRelEditor(){
+  const b=document.getElementById('rel-editor-backdrop');
+  if(b) b.remove();
+  document.removeEventListener('keydown',relEditorKeydown);
+}
+function openRelEditor(contactId){
+  const IDX=window.__INDEX||{};
+  const c=(IDX.contactById&&IDX.contactById[contactId])||null;
+  if(!c){ if(typeof showToast==='function') showToast('Contact not found'); return; }
+  closeRelEditor();
+  const curStatus=contactRelStatus(c);
+  const curRole=contactDealRole(c);
+  const curOwner=contactRelOwner(c);
+  const name=c.full_name||c.short_name||c.email||'Contact';
+  const sub=String(c.title||'').trim();
+  const statusBtns=REL_STATUS_ORDER.map(k=>`<button type="button" class="rel-seg__btn${k===curStatus?' active':''}" data-rel-val="${k}" style="--rel-c:${REL_STATUS[k].color}">${escapeHtml(REL_STATUS[k].label)}</button>`).join('')
+    +`<button type="button" class="rel-seg__btn${curStatus?'':' active'}" data-rel-val="">—</button>`;
+  const roleBtns=DEAL_ROLE_ORDER.map(k=>`<button type="button" class="rel-seg__btn${k===curRole?' active':''}" data-rel-val="${k}">${escapeHtml(DEAL_ROLES[k])}</button>`).join('')
+    +`<button type="button" class="rel-seg__btn${curRole?'':' active'}" data-rel-val="">—</button>`;
+  const back=document.createElement('div');
+  back.className='modal-backdrop open';
+  back.id='rel-editor-backdrop';
+  back.innerHTML=`<div class="modal modal--rel" role="dialog" aria-modal="true" aria-label="Edit relationship">
+    <div class="modal__head">
+      <h2 class="modal__title">${escapeHtml(name)}${sub?` <span style="font-weight:500;color:var(--ink-3);font-size:13px">· ${escapeHtml(sub)}</span>`:''}</h2>
+      <button class="modal__close" type="button" data-rel-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal__body">
+      <div class="rel-field field"><label class="field__label">Relationship status</label><div class="rel-seg" data-rel-field="status">${statusBtns}</div></div>
+      <div class="rel-field field"><label class="field__label">Buying-committee role</label><div class="rel-seg" data-rel-field="role">${roleBtns}</div></div>
+      <div class="rel-field field"><label class="field__label" for="rel-owner-input">Relationship owner (your team)</label><input class="input" id="rel-owner-input" type="text" placeholder="e.g. you or a teammate" value="${escapeHtml(curOwner)}"></div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn btn--ghost" type="button" data-rel-close>Cancel</button>
+      <button class="btn btn--primary" type="button" data-rel-save="${escapeHtml(contactId)}">Save</button>
+    </div>
+  </div>`;
+  document.body.appendChild(back);
+  document.addEventListener('keydown',relEditorKeydown);
+  back.addEventListener('click',(e)=>{
+    const seg=e.target.closest('.rel-seg__btn');
+    if(seg){ const g=seg.closest('.rel-seg'); g.querySelectorAll('.rel-seg__btn').forEach(b=>b.classList.toggle('active',b===seg)); return; }
+    if(e.target===back || e.target.closest('[data-rel-close]')){ closeRelEditor(); return; }
+    const save=e.target.closest('[data-rel-save]');
+    if(save){ saveRelEditor(save.getAttribute('data-rel-save')); }
+  });
+  const inp=back.querySelector('#rel-owner-input'); if(inp) inp.focus();
+}
+async function saveRelEditor(contactId){
+  const back=document.getElementById('rel-editor-backdrop'); if(!back) return;
+  const IDX=window.__INDEX||{};
+  const c=(IDX.contactById&&IDX.contactById[contactId])||null;
+  if(!c){ if(typeof showToast==='function') showToast('Contact not found'); return; }
+  const pick=(field)=>{ const el=back.querySelector(`.rel-seg[data-rel-field="${field}"] .rel-seg__btn.active`); return el?(el.getAttribute('data-rel-val')||''):''; };
+  const status=pick('status');
+  const role=pick('role');
+  const owner=(back.querySelector('#rel-owner-input')?.value||'').trim();
+  const saveBtn=back.querySelector('[data-rel-save]');
+  if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='Saving…'; }
+  const data={ relationship_status:status, deal_role:role, relationship_owner:owner, last_updated:new Date().toISOString().slice(0,10) };
+  try{
+    await postToSheet({action:'update',tab:'Contacts',idColumn:'contact_id',idValue:contactId,data});
+    Object.assign(c,data);
+    if(typeof buildIndexes==='function') buildIndexes();
+    closeRelEditor();
+    const cid=c.company_id;
+    if(cid && typeof coOrgRefreshExpanded==='function') coOrgRefreshExpanded(cid);
+    if(typeof showToast==='function') showToast('Relationship updated');
+  }catch(err){
+    console.error('[LeadCheck] saveRelEditor failed',err);
+    if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Save'; }
+    if(typeof showToast==='function') showToast('Couldn’t save — '+(err.message||'unknown error'));
+  }
+}
+/* ========== End Relationship editor ========== */
+
 // Delegated drag handlers on document — works for any expanded company.
 // We DON'T store the DOM node in the payload: the org chart re-renders mid-drop
 // (between drop and dragend) so any node ref becomes detached. Track the
@@ -3894,16 +4144,30 @@ document.addEventListener('click',e=>{
     handleContactAction(actionBtn.getAttribute('data-contact-action'), actionBtn.getAttribute('data-contact-id'));
     return;
   }
+  const relEditBtn=e.target.closest('[data-rel-edit]');
+  if(relEditBtn){
+    e.preventDefault(); e.stopPropagation();
+    openRelEditor(relEditBtn.getAttribute('data-rel-edit'));
+    return;
+  }
+  const colorBtn=e.target.closest('[data-org-colormode]');
+  if(colorBtn){
+    e.preventDefault();
+    orgColorMode=colorBtn.getAttribute('data-org-colormode')==='status'?'status':'source';
+    document.querySelectorAll('[data-co-org]').forEach(b=>b.classList.toggle('org-colormode-status',orgColorMode==='status'));
+    document.querySelectorAll('[data-org-colormode]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-org-colormode')===orgColorMode));
+    return;
+  }
   const t=e.target.closest('[data-route]');
   if(t){e.preventDefault();navigate(t.dataset.route,t.dataset.id);}
 });
 
-// Keyboard support for contact rows (role="button" divs)
+// Keyboard support for contact rows and org-chart nodes (role="button" divs)
 document.addEventListener('keydown',e=>{
   if(e.key!=='Enter' && e.key!==' ') return;
-  const row=e.target.closest('.contact-item--row[data-route]');
+  const row=e.target.closest('.contact-item--row[data-route], .org-node[data-route]');
   if(!row) return;
-  if(e.target.closest('[data-contact-action]')) return; // let action buttons handle their own key events
+  if(e.target.closest('[data-contact-action],[data-rel-edit]')) return; // let action buttons handle their own key events
   e.preventDefault();
   navigate(row.dataset.route, row.dataset.id);
 });
