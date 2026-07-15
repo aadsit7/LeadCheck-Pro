@@ -26,6 +26,15 @@
 //
 // 3. Deploy → Manage deployments → Edit → New version → Deploy.
 //
+// SECURITY — keep the API key out of the source. Store it in Project Settings →
+// Script properties (property name ANTHROPIC_API_KEY) and read it via:
+//
+//        const ANTHROPIC_API_KEY =
+//          PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+//
+// This snippet references that same ANTHROPIC_API_KEY constant, so no change is
+// needed here once you've made the constant read from Script properties.
+//
 // The front-end degrades gracefully: if this action isn't deployed yet (or the
 // call fails), "🧠 Deep infer" automatically falls back to its built-in local
 // reasoning engine, so nothing breaks in the meantime.

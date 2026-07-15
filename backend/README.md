@@ -31,6 +31,33 @@ public sources via web search) and falling back to comparable-company reasoning
 
 4. **Deploy → Manage deployments → Edit → New version → Deploy.**
 
+## Storing the API key securely (Script properties)
+
+Never hard-code your Anthropic API key in the source. Store it in the project's
+**Script properties** and read it at runtime:
+
+1. In the Apps Script editor, open **⚙️ Project Settings** (left sidebar).
+2. Scroll to **Script Properties** → **Edit script properties** → **Add script
+   property**.
+3. Property = `ANTHROPIC_API_KEY`, Value = your key (`sk-ant-…`). **Save.**
+4. In `Code.gs`, replace the hard-coded constant with a lookup:
+
+   ```javascript
+   // Before:
+   // const ANTHROPIC_API_KEY = 'sk-ant-…';   // ← never commit a real key
+
+   // After — reads from Project Settings → Script properties:
+   const ANTHROPIC_API_KEY =
+     PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+   ```
+
+Every action (`research`, `syncOpportunities`, `syncPartners`, `reasonOrg`)
+already references the `ANTHROPIC_API_KEY` constant, so they all pick up the
+stored value automatically — no other edits needed. Script properties are
+project-scoped, are never exposed to the front-end, and are never committed to
+git. If a key was ever committed or shared, rotate it in the Anthropic console
+and store the new one this way.
+
 ### Graceful fallback
 
 The front-end degrades gracefully. Until this action is deployed (or if the
