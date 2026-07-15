@@ -4649,6 +4649,49 @@ function computeComparableCompanyInference(companyId, confirmedPairs, hasManager
   return { edges, coverage: people.length>1?covered.size/(people.length-1):0, band, staff, bandKnown };
 }
 
+// Map the AI reasoning model's edges to internal edges. The model returns
+// reporting lines by person NAME with a "basis" tag; we resolve names to the
+// account's contact IDs (tolerant of nicknames / partial matches, like the
+// stated-manager resolver) and normalise the basis into our source tiers so the
+// existing styling, confidence caps, and reload-persistence all apply unchanged.
+// Returns an array of {fromId,toId,confidence,source,rationale} (one per report,
+// highest-confidence wins) or null if the payload has no edges.
+function mapAiEdgesToInternal(ai, roster){
+  const list = Array.isArray(ai) ? ai : (ai && Array.isArray(ai.edges) ? ai.edges : null);
+  if(!list) return null;
+  const idByNorm=new Map();
+  (roster||[]).forEach(p=>{ const n=normalizeForMatch(p.name||''); if(n && p.id) idByNorm.set(n, p.id); });
+  const resolve=(nm)=>{
+    const n=normalizeForMatch(nm||''); if(!n) return '';
+    if(idByNorm.has(n)) return idByNorm.get(n);
+    const sp=n.split(' ').filter(Boolean); const sf=sp[0]||'', sl=sp.length>1?sp[sp.length-1]:'';
+    for(const p of (roster||[])){ if(!p.id) continue; const qp=normalizeForMatch(p.name||'').split(' ').filter(Boolean); const qf=qp[0]||'', ql=qp.length>1?qp[qp.length-1]:'';
+      if(sl && sl===ql && (sf===qf || firstNamesMatch(sf,qf))) return p.id; }
+    return '';
+  };
+  const basisToSource={confirmed:'stated', researched:'stated', verified:'stated', stated:'stated',
+    inferred:'analytics', analytics:'analytics', title:'analytics',
+    comparable:'comparable', comparable_company:'comparable', estimate:'comparable', guess:'comparable'};
+  const byRep=new Map();
+  list.forEach(e=>{
+    if(!e) return;
+    const fromId=resolve(e.manager||e.manager_name||e.reports_to||e.to);
+    const toId=resolve(e.report||e.report_name||e.person||e.name||e.from);
+    if(!fromId || !toId || fromId===toId) return;
+    let conf=Number(e.confidence);
+    if(!isFinite(conf) || conf<=0) conf=0.5;
+    if(conf>1) conf=conf/100;                                  // tolerate a 0–100 scale
+    const basis=String(e.basis||e.source||e.type||'').toLowerCase().replace(/[^a-z_]/g,'');
+    const source=basisToSource[basis]||'analytics';
+    if(source==='comparable') conf=Math.min(conf, 0.6);        // a guess never reads as fact
+    conf=Math.max(0.2, Math.min(0.97, Math.round(conf*100)/100));
+    const rationale=(String(e.rationale||e.reason||e.explanation||'').trim().slice(0,400)) || 'Reasoned by Claude from the researched roster.';
+    const ex=byRep.get(toId);
+    if(!ex || conf>ex.confidence) byRep.set(toId, {fromId, toId, confidence:conf, source, rationale});
+  });
+  return [...byRep.values()];
+}
+
 function amAccountList(){
   const D=window.__DATA||{};
   const counts={};
@@ -4947,11 +4990,12 @@ function amInferBarHtml(companyId){
     ico='🧠';
     const tiers=[];
     if(s.confirmed) tiers.push('<b>'+s.confirmed+'</b> confirmed from research');
-    if(s.analytics) tiers.push('<b>'+s.analytics+'</b> from title analytics');
+    if(s.analytics) tiers.push('<b>'+s.analytics+'</b> '+(s.aiReasoned?'AI-inferred':'from title analytics'));
     if(s.comparable) tiers.push('<b>'+s.comparable+'</b> comparable-company guess'+(s.comparable===1?'':'es'));
     const tierTxt=tiers.length?(' — '+tiers.join(' · ')):'';
     const sizeTxt=s.comparable&&s.sizeLabel?(' Guesses benchmark '+s.sizeLabel+'.'):'';
-    txt='Researched <b>'+(s.researched||0)+'</b> contact'+((s.researched||0)===1?'':'s')+' online, proposed <b>'+s.count+'</b> reporting line'+(s.count===1?'':'s')+tierTxt+' · avg confidence <b>'+s.avg+'%</b>.'+sizeTxt+' Confirmed lines are solid guesses; hover any dashed line for the reasoning.';
+    const verb=s.aiReasoned?'Claude reasoned':'proposed';
+    txt='Researched <b>'+(s.researched||0)+'</b> contact'+((s.researched||0)===1?'':'s')+' online, '+verb+' <b>'+s.count+'</b> reporting line'+(s.count===1?'':'s')+tierTxt+' · avg confidence <b>'+s.avg+'%</b>.'+sizeTxt+' Confirmed lines are solid guesses; hover any dashed line for the reasoning.';
   } else {
     txt='Inferred <b>'+s.count+'</b> likely reporting line'+(s.count===1?'':'s')+' · avg confidence <b>'+s.avg+'%</b>'+(s.coverage!=null?(' · '+s.coverage+'% of the org placed'):'')+'. Dashed links below are proposals.';
   }
@@ -5549,9 +5593,13 @@ async function amDeepInferReporting(){
   if(typeof buildIndexes==='function') buildIndexes();
   IDX=window.__INDEX||IDX;                                       // buildIndexes rebuilds the index — refresh our handle
 
-  // 2) Reason the structure in tiers. Confirmed model edges are honoured first,
-  // then analytics, then comparable-company priors for whoever is still unplaced.
-  setBtn('Reasoning org…');
+  // 2) Reason the structure. Prefer a real AI reasoning pass over the whole
+  // researched roster (the backend `reasonOrg` action, which web-searches for
+  // the actual reporting lines and reasons from comparable companies where they
+  // aren't public). Fall back to the local tiered engine if that action isn't
+  // deployed or the call fails. Either way, the comparable-company prior
+  // backfills anyone still unplaced.
+  setBtn('Reasoning org (AI)…');
   const keyToContact=new Map(amModel.nodes.map(n=>[n.key, n.contactId||null]));
   const confirmedPairs=new Set(), hasManager=new Set();
   amModel.reporting.forEach(e=>{ if(e.inferred) return; const f=keyToContact.get(e.from), t=keyToContact.get(e.to); if(f&&t){ confirmedPairs.add(f+'>'+t); hasManager.add(t); } });
@@ -5559,12 +5607,33 @@ async function amDeepInferReporting(){
   // If the user navigated to a different account mid-run, stop without touching it.
   if(amCompanyId!==startCo){ amDeepInferring=false; amDeepInferAbort=false; return; }
 
-  const primary=computeReportingInference(amCompanyId, confirmedPairs, hasManager);
-  const placed=new Set(primary.edges.map(e=>e.toId));
-  const comparable=computeComparableCompanyInference(amCompanyId, confirmedPairs, hasManager, placed);
+  const roster=(D.contacts||[]).filter(c=>c.company_id===amCompanyId && c.contact_id).map(c=>({
+    id:c.contact_id, name:c.full_name||'', title:c.title||'',
+    note:String(c.decision_role||'').slice(0,240),
+    seniority:amSeniority(c.title).label, functionArea:amFunctionKey(c.title)
+  }));
+  let all=[], usedAI=false;
+  try{
+    const companyInfo={ name:companyName, size:co.size||'', revenue:co.revenue||'', industry:co.industry||'' };
+    const aiRaw=await callOrgReasoningAPI(companyInfo, roster);
+    if(amCompanyId!==startCo){ amDeepInferring=false; amDeepInferAbort=false; return; }
+    const aiEdges=mapAiEdgesToInternal(aiRaw, roster);
+    if(aiEdges && aiEdges.length){
+      usedAI=true;
+      const seen=new Set();
+      aiEdges.forEach(e=>{ if(hasManager.has(e.toId)) return; if(confirmedPairs.has(e.fromId+'>'+e.toId)) return; if(seen.has(e.toId)) return; seen.add(e.toId); all.push(e); });
+      // Backfill anyone the AI left unplaced with the comparable-company prior.
+      const comp=computeComparableCompanyInference(amCompanyId, confirmedPairs, hasManager, seen);
+      all=all.concat(comp.edges);
+    }
+  }catch(err){ console.warn('[LeadCheck] AI org reasoning unavailable — using local engine', err); }
 
-  const all=primary.edges.map(e=>Object.assign({}, e, {source:e.source||'analytics'}))
-    .concat(comparable.edges);
+  if(!usedAI){
+    const primary=computeReportingInference(amCompanyId, confirmedPairs, hasManager);
+    const placed=new Set(primary.edges.map(e=>e.toId));
+    const comparable=computeComparableCompanyInference(amCompanyId, confirmedPairs, hasManager, placed);
+    all=primary.edges.map(e=>Object.assign({}, e, {source:e.source||'analytics'})).concat(comparable.edges);
+  }
   const fresh=all.filter(e=>e.fromId && e.toId && IDX.contactById[e.fromId] && IDX.contactById[e.toId]);
 
   amDeepInferring=false;
@@ -5593,10 +5662,12 @@ async function amDeepInferReporting(){
   (D.org_chart||(D.org_chart=[])).push(...rows);
   const avg=Math.round(fresh.reduce((s,e)=>s+e.confidence,0)/fresh.length*100);
   const byS=(s)=>fresh.filter(e=>e.source===s).length;
+  const bandInfo=amCompanySizeBand(co);
+  const coveragePct=roster.length>1?Math.round(new Set(fresh.map(e=>e.toId)).size/(roster.length-1)*100):0;
   amInferPreview={companyId:amCompanyId, deep:true, rows, stats:{
-    count:fresh.length, avg, coverage:Math.round((comparable.coverage||primary.coverage||0)*100),
+    count:fresh.length, avg, coverage:coveragePct, aiReasoned:usedAI,
     confirmed:byS('stated'), analytics:byS('analytics'), comparable:byS('comparable'),
-    researched, researchFails, aborted, sizeLabel:comparable.bandKnown?comparable.band.label:''
+    researched, researchFails, aborted, sizeLabel:bandInfo.known?bandInfo.band.label:''
   }};
   if(typeof buildIndexes==='function') buildIndexes();
   renderAccountMap(amCompanyId);
@@ -6916,6 +6987,39 @@ async function callResearchAPI(name, company){
 
   console.error('[LeadCheck] Failed to extract JSON. Text preview:', text.slice(0, 800));
   throw new Error("Research completed but couldn't parse results — try again");
+}
+
+// Ask the backend's AI reasoning model (`reasonOrg` action) to infer the
+// reporting hierarchy from the researched roster + company profile. Returns the
+// parsed result (an {edges:[...]} object or an edges array), or throws if the
+// action isn't deployed / the call fails — the caller falls back to the local
+// reasoning engine on any throw.
+async function callOrgReasoningAPI(company, roster){
+  const resp = await fetch(CONFIG.WEB_APP_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action:'reasonOrg', company, roster })
+  });
+  if(!resp.ok){ const t=await resp.text().catch(()=> ''); throw new Error('reasonOrg API '+resp.status+': '+t.slice(0,160)); }
+  const rawBody = await resp.text();
+  let data;
+  try { data = JSON.parse(rawBody); } catch(e){ throw new Error('reasonOrg returned non-JSON'); }
+  if(data && data.ok===false) throw new Error(data.error||'reasonOrg failed');
+  // Unwrap common Apps Script wrappers until we reach the Anthropic payload.
+  for(let i=0; i<4 && data && typeof data==='object' && !Array.isArray(data.content); i++){
+    const next = data.data ?? data.response ?? data.result ?? data.body ?? data.payload;
+    if(next==null) break;
+    data = (typeof next==='string') ? (()=>{ try{ return JSON.parse(next); }catch(e){ return next; } })() : next;
+  }
+  if(typeof data==='string'){ try{ data=JSON.parse(data); }catch(e){} }
+  const blocks=(data && Array.isArray(data.content)) ? data.content : [];
+  const text=blocks.filter(b=>b && b.type==='text').map(b=>b.text||'').join('\n').trim();
+  if(!text) throw new Error('reasonOrg returned no text content');
+  try { return JSON.parse(text); } catch(_){}
+  const fence=text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if(fence){ try { return JSON.parse(fence[1].trim()); } catch(_){} }
+  const obj=extractLargestJsonObject(text);
+  if(obj) return obj;
+  throw new Error("reasonOrg output couldn't be parsed");
 }
 
 const SYNC_NICKNAMES = (() => {
