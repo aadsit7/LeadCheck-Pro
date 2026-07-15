@@ -2023,7 +2023,7 @@ function navigate(route,id){
   else if(route==='contact')location.hash='#/contact/'+(id||'C001');
   else if(route==='company-search')location.hash='#/company-search';
   else if(route==='titles-roles')location.hash='#/titles-roles';
-  else if(route==='account-map')location.hash='#/account-map';
+  else if(route==='account-map')location.hash='#/account-map'+(id?'/'+id:'');
 }
 function handleHash(){
   const hash=location.hash||'#/';
@@ -4445,28 +4445,110 @@ async function amRemoveInfluence(i){
     if(typeof showToast==='function') showToast('Influence link removed');
   }catch(err){ console.error('[LeadCheck] remove influence failed',err); if(typeof showToast==='function') showToast('Couldn’t remove link'); }
 }
+// Map a free-text LLM sentiment summary to one of our relationship statuses.
+// Ordered so the strongest signal wins (champion > blocker > supporter > detractor).
+function interpretSentiment(text){
+  const s=String(text||'').toLowerCase();
+  if(!s.trim()) return '';
+  const negated=(kw)=>new RegExp("\\b(not|no|isn'?t|aren'?t|hardly|never)\\b[^.;!]{0,25}"+kw).test(s);
+  if(/\b(champion|strong(ly)? advocate|actively (promot|champion|push)|internal sponsor|highly enthusiastic|biggest supporter|going to bat)\b/.test(s) && !negated('(champion|advocate|sponsor)')) return 'champion';
+  if(/\b(block(er|ing|s)?|opposed|against us|hostile|major obstacle|won'?t support|actively resist|showstopper|kill the deal)\b/.test(s)) return 'blocker';
+  // supporter before detractor so "supportive but has a concern" reads as supporter
+  if(/\b(support|positive|favou?rable|on board|receptive|advocate|enthusiastic|friendly|bought in|in favou?r)/.test(s) && !negated('(support|positive|favou?rable|receptive|advocate|enthusiastic|friendly|on board)')) return 'supporter';
+  if(/\bally\b/.test(s) && !negated('ally')) return 'supporter';
+  if(/\b(skeptic|sceptic|concern|hesitan|cautio|reluctan|lukewarm|doubt|unconvinced|wary|resistan|negativ|frustrat|detractor|pushback|worried)/.test(s)) return 'detractor';
+  if(/\b(neutral|indifferent|unclear|unknown|no strong|mixed|not (yet )?engaged|hasn'?t engaged|passive|too early)/.test(s)) return 'neutral';
+  return '';
+}
+// role_in_deal text (LLM) → committee role key, reusing the tested title inference.
+function amRoleFromText(text){
+  const direct=normDealRole(text); if(direct) return direct;
+  return contactDealRole({decision_role:text});
+}
+// Collapse the LLM's per-source contact arrays into name→{sentiment,role_in_deal}.
+function amBuildLlmMap(llmContacts){
+  const map=new Map();
+  (llmContacts||[]).forEach(lc=>{
+    const nm=normalizeForMatch((lc&&(lc.name||lc.full_name))||'');
+    if(!nm) return;
+    const cur=map.get(nm)||{sentiment:'',role_in_deal:''};
+    if(!cur.sentiment && lc.sentiment) cur.sentiment=lc.sentiment;
+    if(!cur.role_in_deal && lc.role_in_deal) cur.role_in_deal=lc.role_in_deal;
+    map.set(nm,cur);
+  });
+  return map;
+}
+function amMatchLlm(contact, llmMap){
+  const nm=normalizeForMatch(contact.full_name||'');
+  if(!nm) return null;
+  if(llmMap.has(nm)) return llmMap.get(nm);
+  const parts=nm.split(' ').filter(Boolean);
+  const first=parts[0]||'', last=parts.length>1?parts[parts.length-1]:'';
+  for(const [k,v] of llmMap){
+    const kp=k.split(' ').filter(Boolean); const kf=kp[0]||'', kl=kp.length>1?kp[kp.length-1]:'';
+    if(kl && kl===last && firstNamesMatch(kf,first)) return v;
+  }
+  return null;
+}
+// Pure: compute the tag updates. Fills only empty fields (respects manual edits);
+// prefers Claude's read of the notes, falling back to keyword inference.
+function amComputeAutoTags(contacts, llmMap){
+  const updates=[];
+  contacts.forEach(c=>{
+    const llm=amMatchLlm(c, llmMap)||{};
+    const data={}; const src={};
+    if(!normRelStatus(c.relationship_status)){
+      let st=llm.sentiment?interpretSentiment(llm.sentiment):'';
+      if(st){ data.relationship_status=st; src.status='ai'; }
+      else { st=contactRelStatus(c); if(st){ data.relationship_status=st; src.status='keyword'; } }
+    }
+    if(!normDealRole(c.deal_role)){
+      let r=llm.role_in_deal?amRoleFromText(llm.role_in_deal):'';
+      if(r){ data.deal_role=r; src.role='ai'; }
+      else { r=contactDealRole(c); if(r){ data.deal_role=r; src.role='keyword'; } }
+    }
+    if(Object.keys(data).length) updates.push({contactId:c.contact_id, data, src});
+  });
+  return updates;
+}
+// Auto-map: a fresh Claude pass over the account's meeting notes (sentiment +
+// committee role), with keyword inference as a fallback for anyone Claude can't
+// see. Only fills untagged fields; existing tags are preserved.
 async function amAutoMap(){
   if(!amModel) return;
-  const D=window.__DATA||{};
-  const contacts=(D.contacts||[]).filter(c=>c.company_id===amCompanyId && c.contact_id);
-  const todo=[];
-  contacts.forEach(c=>{
-    const data={};
-    if(!normRelStatus(c.relationship_status)){ const s=contactRelStatus(c); if(s) data.relationship_status=s; }
-    if(!normDealRole(c.deal_role)){ const r=contactDealRole(c); if(r) data.deal_role=r; }
-    if(Object.keys(data).length) todo.push({c,data});
-  });
-  if(!todo.length){ if(typeof showToast==='function') showToast('Nothing new to infer — every contact is already tagged'); return; }
-  if(!confirm(`Auto-tag ${todo.length} contact${todo.length===1?'':'s'} from meeting notes? You can adjust any afterward.`)) return;
-  const btn=document.getElementById('am-automap-btn'); if(btn){ btn.disabled=true; btn.textContent='Tagging…'; }
+  const co=(window.__INDEX&&window.__INDEX.companyById&&window.__INDEX.companyById[amCompanyId])||{};
+  const companyName=co.name||'';
+  const contacts=((window.__DATA&&window.__DATA.contacts)||[]).filter(c=>c.company_id===amCompanyId && c.contact_id);
+  if(!contacts.length){ if(typeof showToast==='function') showToast('No contacts to tag on this account'); return; }
+  if(!confirm(`Ask Claude to read this account's meeting notes and tag relationship status + committee roles?\n\nOnly untagged fields are filled — your manual tags are kept.`)) return;
+  const btn=document.getElementById('am-automap-btn'); const orig=btn?btn.textContent:'';
+  if(btn){ btn.disabled=true; btn.textContent='Analyzing notes…'; }
+  let llmMap=new Map(), llmOk=false;
+  if(companyName && typeof fetchSyncedContactsFromSource==='function'){
+    try{
+      const settled=await Promise.allSettled(['syncOpportunities','syncPartners'].map(a=>fetchSyncedContactsFromSource(a, companyName)));
+      const llmContacts=[];
+      settled.forEach(s=>{ if(s.status==='fulfilled' && Array.isArray(s.value)){ llmOk=true; llmContacts.push(...s.value); } });
+      llmMap=amBuildLlmMap(llmContacts);
+    }catch(err){ console.error('[LeadCheck] auto-map LLM fetch failed',err); }
+  }
+  const updates=amComputeAutoTags(contacts, llmMap);
+  if(!updates.length){
+    if(btn){ btn.disabled=false; btn.textContent=orig; }
+    if(typeof showToast==='function') showToast(llmOk?'Claude found nothing new to tag — all set':'Nothing new to infer — every contact is already tagged');
+    return;
+  }
+  const aiCount=updates.filter(u=>u.src.status==='ai'||u.src.role==='ai').length;
+  if(btn){ btn.textContent='Saving…'; }
   let ok=0;
-  for(const t of todo){
-    try{ await postToSheet({action:'update',tab:'Contacts',idColumn:'contact_id',idValue:t.c.contact_id,data:t.data}); Object.assign(t.c,t.data); ok++; }
-    catch(err){ console.error('[LeadCheck] auto-map failed for',t.c.contact_id,err); }
+  for(const u of updates){
+    try{ await postToSheet({action:'update',tab:'Contacts',idColumn:'contact_id',idValue:u.contactId,data:u.data}); const c=(window.__INDEX.contactById||{})[u.contactId]; if(c) Object.assign(c,u.data); ok++; }
+    catch(err){ console.error('[LeadCheck] auto-map save failed',u.contactId,err); }
   }
   if(typeof buildIndexes==='function') buildIndexes();
+  if(btn){ btn.disabled=false; btn.textContent=orig; }
   renderAccountMap(amCompanyId);
-  if(typeof showToast==='function') showToast(`Auto-tagged ${ok} contact${ok===1?'':'s'} from meeting notes`);
+  if(typeof showToast==='function') showToast(`Tagged ${ok} contact${ok===1?'':'s'}${llmOk&&aiCount?` — ${aiCount} from Claude's read of your notes`:' from notes'}`);
 }
 function amExportSVG(){
   if(!amModel || !amModel.nodes.length) return;
