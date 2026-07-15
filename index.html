@@ -434,6 +434,22 @@ main{flex:1;padding-bottom:var(--s-9)}
 .am-picker__name{font-size:14px;font-weight:700;color:var(--ink)}
 .am-picker__meta{font-size:12px;color:var(--ink-3);margin-top:5px;display:flex;flex-wrap:wrap;gap:8px}
 .am-picker__head{font-size:18px;font-weight:700;color:var(--ink);padding:24px 24px 0;max-width:1040px;margin:0 auto;width:100%}
+.am-node__excl{position:absolute;top:5px;right:24px;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-4);opacity:0;border-radius:3px;transition:opacity var(--t-fast) var(--ease),color var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
+.am-node:hover .am-node__excl{opacity:.55}
+.am-node__excl:hover{opacity:1;color:var(--red);background:var(--bg-tint)}
+.am-node__excl svg{width:11px;height:11px}
+.am-tray{border-top:1px solid var(--border);background:var(--bg);padding:8px 16px 10px;max-height:136px;overflow-y:auto;flex-shrink:0}
+.am-tray__head{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4);margin-bottom:7px}
+.am-tray__count{background:var(--ink);color:#fff;border-radius:10px;font-size:10px;padding:1px 7px;letter-spacing:0}
+.am-tray__sub{font-weight:600;text-transform:none;letter-spacing:0;color:var(--ink-3);font-size:11px}
+.am-tray__body{display:flex;flex-wrap:wrap;gap:6px}
+.am-tray__chip{display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 5px;border:1px solid var(--border);border-radius:16px;background:var(--bg);cursor:pointer;transition:border-color var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
+.am-tray__chip:hover{border-color:var(--border-strong);background:var(--bg-tint)}
+.am-tray__chip--ex{opacity:.6;border-style:dashed}
+.am-tray__ava{width:20px;height:20px;border-radius:50%;background:var(--ink-4);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.am-tray__nm{font-size:12px;font-weight:600;color:var(--ink-2);white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.am-tray__act{width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%;color:var(--ink-4);font-size:12px;line-height:1;flex-shrink:0}
+.am-tray__act:hover{background:var(--border);color:var(--ink)}
 @media print{
   .app-header,.am-toolbar,.am-insights,.am-zoombar,.am-node__edit{display:none!important}
   .am,.am-canvas{height:auto!important;overflow:visible!important}
@@ -824,9 +840,8 @@ main{flex:1;padding-bottom:var(--s-9)}
         <span class="brand__product">LeadCheck Pro</span>
       </button>
       <nav class="app-nav" id="app-nav">
-        <button class="app-nav__tab active" data-nav="home" type="button">Contacts</button>
-        <button class="app-nav__tab" data-nav="company-search" type="button">Company Search</button>
-        <button class="app-nav__tab" data-nav="titles-roles" type="button">Titles &amp; Roles</button>
+        <button class="app-nav__tab active" data-nav="home" type="button">Companies</button>
+        <button class="app-nav__tab" data-nav="contacts" type="button">Contacts</button>
         <button class="app-nav__tab" data-nav="account-map" type="button">Account Map</button>
       </nav>
     </div>
@@ -842,6 +857,10 @@ main{flex:1;padding-bottom:var(--s-9)}
         <button class="chip" data-filter="high">High Confidence<span class="chip__count">3</span></button>
       </div>
       <div class="sort">
+        <button class="btn btn--sm btn--ghost" id="research-company-btn" type="button" title="Research any company and add it to your database">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Research a company
+        </button>
         <span class="refresh-stamp" id="refresh-stamp"></span>
         <button class="refresh-btn" id="refresh-contacts-btn" type="button" aria-label="Refresh from Opportunities & Partners" title="Re-sync Opportunities & Partners (updates Google Sheets)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.09"/></svg>
@@ -2004,13 +2023,23 @@ let orgColorMode='source'; // 'source' | 'status' — how combined-org-chart nod
 let trAccountScope='opportunity',trTierFilter='all',trExpandedCoId=null,trSearchTerm='';
 
 function showView(name){
-  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
-  const isHome=name==='home';
+  // 'contacts' and 'home' both render the home view; they differ only by the
+  // default list filter (flat vs by-company) and which nav tab is highlighted.
+  const viewName=(name==='contacts')?'home':name;
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+viewName));
+  const isHome=(viewName==='home');
   document.getElementById('filter-row').style.display=isHome?'':'none';
   document.querySelector('.search-wrap').style.display=isHome?'':'none';
   document.querySelectorAll('.app-nav__tab').forEach(t=>t.classList.toggle('active',t.dataset.nav===name));
   updateAccountTabsVisibility();
   window.scrollTo({top:0,behavior:'smooth'});
+}
+// Set the home-view list filter (company/all/high), sync the chips, re-render.
+function setHomeFilter(f){
+  activeFilter=f;
+  document.querySelectorAll('.filter-chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.filter===f));
+  if(typeof updateAccountTabsVisibility==='function') updateAccountTabsVisibility();
+  if(typeof renderList==='function') renderList();
 }
 function updateAccountTabsVisibility(){
   const el=document.getElementById('acct-tabs');
@@ -2023,6 +2052,7 @@ function navigate(route,id){
   else if(route==='contact')location.hash='#/contact/'+(id||'C001');
   else if(route==='company-search')location.hash='#/company-search';
   else if(route==='titles-roles')location.hash='#/titles-roles';
+  else if(route==='contacts')location.hash='#/contacts';
   else if(route==='account-map')location.hash='#/account-map'+(id?'/'+id:'');
 }
 function handleHash(){
@@ -2032,7 +2062,8 @@ function handleHash(){
   else if(parts[0]==='company-search'){showView('company-search');}
   else if(parts[0]==='titles-roles'){showView('titles-roles');renderTitlesRoles();}
   else if(parts[0]==='account-map'){showView('account-map');renderAccountMap(parts[1]||'');}
-  else showView('home');
+  else if(parts[0]==='contacts'){showView('contacts');setHomeFilter('all');}
+  else {showView('home');setHomeFilter('company');}
 }
 window.addEventListener('hashchange',handleHash);
 
@@ -4085,31 +4116,57 @@ function buildAccountGraph(companyId){
     n.y=(c && c.map_y!=null && c.map_y!=='' && !isNaN(my))?my:null;
   });
   const dedupe=(arr)=>{ const s=new Set(); return arr.filter(e=>{ const k=e.from+'>'+e.to; if(s.has(k))return false; s.add(k); return true; }); };
-  return { companyId, nodes:[...nodes.values()], reporting:dedupe(reporting).filter(e=>e.from!==e.to), influence:dedupe(influence).filter(e=>e.from!==e.to), contactsAtCo };
+  const repEdges=dedupe(reporting).filter(e=>e.from!==e.to);
+  const infEdges=dedupe(influence).filter(e=>e.from!==e.to);
+  // Partition into the org-chart canvas vs. the "not in org chart" tray.
+  // A person is trayed if explicitly excluded (persisted as an inert Org_Chart
+  // row, role_type='excluded'), or has no reporting/influence connection at all.
+  const excludedIds=new Set();
+  contactsAtCo.forEach(c=>{
+    const rows=(IDX.byContact&&IDX.byContact.org_chart&&IDX.byContact.org_chart[c.contact_id])||[];
+    if(rows.some(r=>r.role_type==='excluded')) excludedIds.add(c.contact_id);
+  });
+  const connKeys=new Set();
+  repEdges.forEach(e=>{ connKeys.add(e.from); connKeys.add(e.to); });
+  infEdges.forEach(e=>{ connKeys.add(e.from); connKeys.add(e.to); });
+  nodes.forEach(n=>{
+    n.excluded = n.contactId ? excludedIds.has(n.contactId) : false;
+    n.hasConn = connKeys.has(n.key);
+    n.inChart = !n.excluded && n.hasConn;
+  });
+  return { companyId, nodes:[...nodes.values()], reporting:repEdges, influence:infEdges, contactsAtCo, excludedIds };
 }
 
 // Assign x/y to any node lacking a saved position, via a tidy layered layout.
+// Tidy hierarchical layout over the CANVAS nodes only (tray nodes get no
+// position). Leaves are placed left-to-right; every parent is centered over its
+// children, which removes the long crossing edges of the old layered layout.
 function amLayout(model){
-  const NODE_H=70, COLGAP=44, ROWGAP=86;
-  const indeg=new Map(model.nodes.map(n=>[n.key,0]));
-  model.reporting.forEach(e=>{ if(indeg.has(e.to)) indeg.set(e.to, indeg.get(e.to)+1); });
-  const kids=new Map(model.nodes.map(n=>[n.key,[]]));
-  model.reporting.forEach(e=>{ if(kids.has(e.from)) kids.get(e.from).push(e.to); });
-  const depth=new Map(); const seen=new Set();
-  const queue=model.nodes.filter(n=>indeg.get(n.key)===0).map(n=>{ depth.set(n.key,0); seen.add(n.key); return n.key; });
-  let guard=0;
-  while(queue.length && guard++<20000){ const k=queue.shift(); const d=depth.get(k)||0;
-    (kids.get(k)||[]).forEach(ch=>{ const nd=Math.max((depth.get(ch)||0), d+1); depth.set(ch,nd); if(!seen.has(ch)){ seen.add(ch); queue.push(ch); } }); }
-  model.nodes.forEach(n=>{ if(!depth.has(n.key)) depth.set(n.key,0); });
-  const layers={}; model.nodes.forEach(n=>{ const d=depth.get(n.key); (layers[d]||(layers[d]=[])).push(n); });
-  const depths=Object.keys(layers).map(Number).sort((a,b)=>a-b);
-  let maxW=0; depths.forEach(d=>{ maxW=Math.max(maxW, layers[d].length*(AM_NODE_W+COLGAP)); });
-  depths.forEach(d=>{
-    const layer=layers[d]; const total=layer.length*(AM_NODE_W+COLGAP); const startX=Math.max(0,(maxW-total)/2);
-    layer.forEach((n,i)=>{
-      const ax=Math.round(startX + i*(AM_NODE_W+COLGAP) + 20), ay=Math.round(40 + Number(d)*(NODE_H+ROWGAP));
-      if(n.x==null) n.x=ax; if(n.y==null) n.y=ay;
-    });
+  const NODE_H=72, HGAP=28, VGAP=92, unit=AM_NODE_W+HGAP;
+  const canvas=model.nodes.filter(n=>n.inChart);
+  const inSet=new Set(canvas.map(n=>n.key));
+  const kids=new Map(canvas.map(n=>[n.key,[]]));
+  const indeg=new Map(canvas.map(n=>[n.key,0]));
+  model.reporting.forEach(e=>{ if(inSet.has(e.from)&&inSet.has(e.to)){ kids.get(e.from).push(e.to); indeg.set(e.to,(indeg.get(e.to)||0)+1); } });
+  const roots=canvas.filter(n=>(indeg.get(n.key)||0)===0);
+  const visited=new Set(), xpos=new Map(), ypos=new Map();
+  let leaf=0;
+  function place(key,depth){
+    if(visited.has(key)) return null; visited.add(key);
+    ypos.set(key, 40+depth*(NODE_H+VGAP));
+    const ch=(kids.get(key)||[]).filter(k=>!visited.has(k));
+    if(!ch.length){ const x=leaf*unit; leaf++; xpos.set(key,x); return x; }
+    const cxs=ch.map(k=>place(k,depth+1)).filter(v=>v!=null);
+    const cx = cxs.length ? (cxs[0]+cxs[cxs.length-1])/2 : ((leaf++)*unit);
+    xpos.set(key,cx); return cx;
+  }
+  roots.forEach(r=>{ place(r.key,0); leaf+=0.5; });          // gap between trees
+  canvas.forEach(n=>{ if(!visited.has(n.key)){ visited.add(n.key); xpos.set(n.key, leaf*unit); ypos.set(n.key,40); leaf++; } });
+  let minX=Infinity; xpos.forEach(v=>{ if(v<minX)minX=v; }); if(!isFinite(minX)) minX=0;
+  canvas.forEach(n=>{
+    const ax=Math.round((xpos.get(n.key)||0)-minX+24), ay=Math.round(ypos.get(n.key)||40);
+    if(n.x==null) n.x=ax;
+    if(n.y==null) n.y=ay;
   });
   model._byKey=new Map(model.nodes.map(n=>[n.key,n]));
   return model;
@@ -4170,12 +4227,12 @@ function amCanvasHtml(companyId, companies){
   const coOptions=companies.map(c=>`<option value="${escapeHtml(c.company_id)}"${c.company_id===companyId?' selected':''}>${escapeHtml(c.name||c.company_id)} · ${c._contactCount}</option>`).join('');
   const filters=[['all','All'],['champion','Champions'],['blocker','Blockers'],['unowned','Unowned']]
     .map(([k,l])=>`<button type="button" class="am-chip${amStatusFilter===k?' active':''}" data-am-filter="${k}">${escapeHtml(l)}</button>`).join('');
-  const nodesHtml=amModel.nodes.map((n,i)=>amNodeHtml(n,i)).join('');
+  const nodesHtml=amModel.nodes.map((n,i)=>n.inChart?amNodeHtml(n,i):'').join('');
   return `<div class="am">
     <div class="am-toolbar">
       <div class="am-toolbar__group"><span class="am-title">Account Map</span></div>
       <div class="am-toolbar__group"><select class="select am-co-select" id="am-co-select" aria-label="Choose account">${coOptions}</select></div>
-      <div class="am-toolbar__group"><button class="am-btn" id="am-automap-btn" title="Infer relationship status & committee roles from meeting notes">✨ Auto-map</button></div>
+      <div class="am-toolbar__group"><button class="am-btn" id="am-automap-btn" title="Infer relationship status & committee roles from meeting notes">✨ Auto-map</button><button class="am-btn" id="am-tidy-btn" title="Use Claude to move off-org contacts (internal reps, partners, noise) off the chart">✦ Tidy</button></div>
       <div class="am-toolbar__spacer"></div>
       <div class="am-toolbar__group">${filters}</div>
       <div class="am-toolbar__group">
@@ -4197,6 +4254,28 @@ function amCanvasHtml(companyId, companies){
         <button type="button" id="am-reset-layout" aria-label="Reset to auto layout" title="Reset to auto layout"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
       </div>
     </div>
+    ${amTrayHtml(amModel)}
+  </div>`;
+}
+
+// The "Not in the org chart" tray: excluded people (reversible) + anyone with no
+// reporting/influence connection. Keeps the canvas focused on the real org.
+function amTrayHtml(model){
+  const tray=model.nodes.map((n,i)=>({n,i})).filter(o=>!o.n.inChart);
+  if(!tray.length) return '';
+  const chips=tray.map(({n,i})=>{
+    const ex=n.excluded, cid=n.contactId?escapeHtml(n.contactId):'';
+    return `<div class="am-tray__chip${ex?' am-tray__chip--ex':''}" data-am-idx="${i}"${cid?` data-contact="${cid}"`:''} title="${ex?'Hidden from the org chart — click ↩ to restore':(n.title?escapeHtml(n.title):'Not connected on the chart')}">
+      <span class="am-tray__ava">${escapeHtml(n.initials||'?')}</span>
+      <span class="am-tray__nm">${escapeHtml(displayOrgName(n.name))}</span>
+      ${ex&&cid?`<button class="am-tray__act" type="button" data-am-restore="${cid}" title="Put back on the chart" aria-label="Restore to chart">↩</button>`:''}
+    </div>`;
+  }).join('');
+  const exCount=tray.filter(o=>o.n.excluded).length;
+  const sub = exCount ? `${exCount} hidden · ${tray.length-exCount} unconnected` : `${tray.length} not connected yet`;
+  return `<div class="am-tray" id="am-tray">
+    <div class="am-tray__head">Not in the org chart <span class="am-tray__count">${tray.length}</span><span class="am-tray__sub">${sub}</span></div>
+    <div class="am-tray__body">${chips}</div>
   </div>`;
 }
 
@@ -4209,8 +4288,9 @@ function amNodeHtml(n,i){
   const badgesHtml=badges?`<div class="am-node__badges">${badges}</div>`:'';
   const ownerHtml=n.owner?`<div class="am-node__owner"><span class="rel-owner__ico">◷</span>${escapeHtml(n.owner)}</div>`:'';
   const edit=n.contactId?`<button class="am-node__edit" type="button" data-contact="${escapeHtml(n.contactId)}" title="Edit relationship" aria-label="Edit relationship"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`:'';
+  const excl=n.contactId?`<button class="am-node__excl" type="button" data-am-exclude="${escapeHtml(n.contactId)}" title="Remove from the org chart" aria-label="Remove from the org chart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`:'';
   return `<div class="am-node ${cls}"${relAttr} data-am-idx="${i}"${n.contactId?` data-contact="${escapeHtml(n.contactId)}"`:''} style="left:${n.x}px;top:${n.y}px">
-    ${edit}
+    ${edit}${excl}
     <div class="am-node__top">
       <div class="am-node__avatar">${escapeHtml(n.initials||'?')}</div>
       <div class="am-node__idw"><div class="am-node__name">${escapeHtml(displayOrgName(n.name))}</div><div class="am-node__title">${escapeHtml(n.title||'')}</div></div>
@@ -4255,7 +4335,7 @@ function amApplyTransform(){
 function amSizeStage(){
   const stage=document.getElementById('am-stage'), svg=document.getElementById('am-edges'); if(!stage||!amModel) return;
   let maxX=600, maxY=400;
-  amModel.nodes.forEach(n=>{ maxX=Math.max(maxX,(n.x||0)+(n._w||AM_NODE_W)); maxY=Math.max(maxY,(n.y||0)+(n._h||70)); });
+  amModel.nodes.filter(n=>n.inChart).forEach(n=>{ maxX=Math.max(maxX,(n.x||0)+(n._w||AM_NODE_W)); maxY=Math.max(maxY,(n.y||0)+(n._h||70)); });
   maxX+=80; maxY+=80;
   stage.style.width=maxX+'px'; stage.style.height=maxY+'px';
   if(svg){ svg.setAttribute('width',maxX); svg.setAttribute('height',maxY); }
@@ -4274,9 +4354,9 @@ function amDrawEdges(){
     const p2=amBorderPoint(c2,c1,(b._w||AM_NODE_W)/2,(b._h||70)/2);
     return {p1,p2}; };
   const parts=['<defs><marker id="am-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#9999A8"/></marker><marker id="am-arrow-inf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#00BFFF"/></marker></defs>'];
-  amModel.reporting.forEach(e=>{ const a=byKey.get(e.from), b=byKey.get(e.to); if(!a||!b) return; const {p1,p2}=seg(a,b);
+  amModel.reporting.forEach(e=>{ const a=byKey.get(e.from), b=byKey.get(e.to); if(!a||!b||!a.inChart||!b.inChart) return; const {p1,p2}=seg(a,b);
     parts.push(`<line class="am-edge am-edge--report" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}" marker-end="url(#am-arrow)"/>`); });
-  amModel.influence.forEach((e,i)=>{ const a=byKey.get(e.from), b=byKey.get(e.to); if(!a||!b) return; const {p1,p2}=seg(a,b);
+  amModel.influence.forEach((e,i)=>{ const a=byKey.get(e.from), b=byKey.get(e.to); if(!a||!b||!a.inChart||!b.inChart) return; const {p1,p2}=seg(a,b);
     parts.push(`<line class="am-edge am-edge--influence" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}" marker-end="url(#am-arrow-inf)"/>`);
     parts.push(`<line class="am-edge-hit" data-am-inf="${i}" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}"><title>Influence: ${escapeHtml(a.name)} → ${escapeHtml(b.name)} (click to remove)</title></line>`); });
   svg.innerHTML=parts.join('');
@@ -4292,10 +4372,17 @@ function amWireCanvas(){
   on('am-zoom-fit',amFit);
   on('am-reset-layout',amResetLayout);
   on('am-automap-btn',amAutoMap);
+  on('am-tidy-btn',amTidyWithAI);
   on('am-export-btn',amExportSVG);
   const link=document.getElementById('am-link-btn'); if(link){ link.classList.toggle('am-btn--active',amLinkMode); link.onclick=amToggleLinkMode; }
   const sel=document.getElementById('am-co-select'); if(sel) sel.onchange=()=>navigate('account-map', sel.value);
   document.querySelectorAll('[data-am-filter]').forEach(b=>{ b.onclick=()=>amSetFilter(b.getAttribute('data-am-filter')); });
+  // Tray: restore excluded people, or click a chip to tag an unconnected one.
+  const tray=document.getElementById('am-tray');
+  if(tray) tray.onclick=(e)=>{
+    const rb=e.target.closest('[data-am-restore]'); if(rb){ e.preventDefault(); amRestoreContact(rb.getAttribute('data-am-restore')); return; }
+    const chip=e.target.closest('.am-tray__chip'); if(chip){ const cid=chip.getAttribute('data-contact'); if(cid) openRelEditor(cid); }
+  };
   const canvasEl=document.getElementById('am-canvas'); if(canvasEl){ canvasEl.classList.toggle('am-linking',amLinkMode); }
 }
 
@@ -4304,6 +4391,8 @@ function amPointerDown(e){
   const canvas=e.currentTarget;
   const editBtn=e.target.closest('.am-node__edit');
   if(editBtn){ e.preventDefault(); e.stopPropagation(); openRelEditor(editBtn.getAttribute('data-contact')); return; }
+  const exclBtn=e.target.closest('.am-node__excl');
+  if(exclBtn){ e.preventDefault(); e.stopPropagation(); amExcludeContact(exclBtn.getAttribute('data-am-exclude')); return; }
   const infHit=e.target.closest('[data-am-inf]');
   if(infHit){ e.preventDefault(); amRemoveInfluence(Number(infHit.getAttribute('data-am-inf'))); return; }
   const nodeEl=e.target.closest('.am-node');
@@ -4366,8 +4455,9 @@ function amZoomBy(f){
 }
 function amFit(){
   const canvas=document.getElementById('am-canvas'); if(!canvas||!amModel||!amModel.nodes.length) return;
+  const canv=amModel.nodes.filter(n=>n.inChart); if(!canv.length) return;
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-  amModel.nodes.forEach(n=>{ minX=Math.min(minX,n.x); minY=Math.min(minY,n.y); maxX=Math.max(maxX,n.x+(n._w||AM_NODE_W)); maxY=Math.max(maxY,n.y+(n._h||70)); });
+  canv.forEach(n=>{ minX=Math.min(minX,n.x); minY=Math.min(minY,n.y); maxX=Math.max(maxX,n.x+(n._w||AM_NODE_W)); maxY=Math.max(maxY,n.y+(n._h||70)); });
   const rect=canvas.getBoundingClientRect(); const w=(maxX-minX)+80, h=(maxY-minY)+80;
   const z=Math.min(1.6, Math.max(0.3, Math.min(rect.width/w, rect.height/h)));
   amZoom=z; amPanX=(rect.width-(maxX-minX)*z)/2 - (minX-40)*z; amPanY=(rect.height-(maxY-minY)*z)/2 - (minY-40)*z;
@@ -4591,6 +4681,106 @@ function amExportSVG(){
     setTimeout(()=>URL.revokeObjectURL(url),2000);
     if(typeof showToast==='function') showToast('Exported account map (SVG)');
   }catch(err){ console.error('[LeadCheck] export failed',err); if(typeof showToast==='function') showToast('Export failed'); }
+}
+// --- Org-chart membership: exclude / restore (persisted as inert Org_Chart rows) ---
+async function amExcludeContact(contactId){
+  const D=window.__DATA||{};
+  const c=(window.__INDEX.contactById||{})[contactId]; if(!c) return;
+  const already=(D.org_chart||[]).some(r=>r.contact_id===contactId && r.role_type==='excluded');
+  if(!already){
+    const data={node_id:genId('EX'), contact_id:contactId, role_type:'excluded', name:c.full_name||'', title:c.title||'', display_order:0};
+    try{ await postToSheet({action:'append', tab:'Org_Chart', data}); (D.org_chart||(D.org_chart=[])).push(data); }
+    catch(err){ console.error('[LeadCheck] exclude failed',err); if(typeof showToast==='function') showToast('Couldn’t hide contact'); return; }
+  }
+  if(typeof buildIndexes==='function') buildIndexes();
+  renderAccountMap(amCompanyId);
+  if(typeof showToast==='function') showToast(`${c.full_name||'Contact'} moved off the org chart`);
+}
+async function amRestoreContact(contactId){
+  const D=window.__DATA||{};
+  const rows=(D.org_chart||[]).filter(r=>r.contact_id===contactId && r.role_type==='excluded');
+  try{ for(const r of rows){ if(r.node_id) await postToSheet({action:'delete', tab:'Org_Chart', idColumn:'node_id', idValue:r.node_id}); } }
+  catch(err){ console.error('[LeadCheck] restore failed',err); if(typeof showToast==='function') showToast('Couldn’t restore'); return; }
+  if(Array.isArray(D.org_chart)) D.org_chart=D.org_chart.filter(r=>!(r.contact_id===contactId && r.role_type==='excluded'));
+  if(typeof buildIndexes==='function') buildIndexes();
+  renderAccountMap(amCompanyId);
+  const c=(window.__INDEX.contactById||{})[contactId];
+  if(typeof showToast==='function') showToast(`${(c&&c.full_name)||'Contact'} restored to the chart`);
+}
+
+// --- Tidy with AI: use Claude's stakeholder read of the notes + email-domain
+// signal to move off-org people (internal reps, partners) off the chart. ---
+const AM_FREE_DOMAINS=new Set(['gmail.com','googlemail.com','outlook.com','hotmail.com','live.com','yahoo.com','ymail.com','icloud.com','me.com','mac.com','aol.com','proton.me','protonmail.com','gmx.com','msn.com','comcast.net']);
+function amEmailDomain(c){ const m=String((c&&c.email)||'').toLowerCase().match(/@([^@\s]+)$/); return m?m[1]:''; }
+function amDominantDomain(contacts){
+  const counts={};
+  contacts.forEach(c=>{ const d=amEmailDomain(c); if(d && !AM_FREE_DOMAINS.has(d)) counts[d]=(counts[d]||0)+1; });
+  let best='',n=0; Object.keys(counts).forEach(d=>{ if(counts[d]>n){ n=counts[d]; best=d; } });
+  return n>=2?best:'';
+}
+// Pure + testable. Decides which contacts to hide/restore. Conservative:
+// Claude's stakeholders are always kept; only CONNECTED people on a foreign
+// corporate domain get hidden (unconnected noise is already trayed structurally).
+function amComputeTidy(contacts, stakeholderSet, domDomain, connectedIds, excludedIds){
+  const toExclude=[], toRestore=[], reasons={};
+  const isStake=(c)=>{
+    const nm=normalizeForMatch(c.full_name||''); if(!nm) return false;
+    if(stakeholderSet.has(nm)) return true;
+    const p=nm.split(' ').filter(Boolean); const f=p[0]||'', l=p.length>1?p[p.length-1]:'';
+    for(const k of stakeholderSet){ const kp=k.split(' ').filter(Boolean); const kf=kp[0]||'', kl=kp.length>1?kp[kp.length-1]:''; if(kl && kl===l && firstNamesMatch(kf,f)) return true; }
+    return false;
+  };
+  contacts.forEach(c=>{
+    const excluded=excludedIds.has(c.contact_id);
+    const stake=isStake(c);
+    if(stake){ if(excluded) toRestore.push(c.contact_id); return; }
+    if(excluded) return;
+    if(!connectedIds.has(c.contact_id)) return; // unconnected already tray; don't churn
+    const dom=amEmailDomain(c);
+    const internal = domDomain && dom && dom!==domDomain && !AM_FREE_DOMAINS.has(dom);
+    if(internal){ toExclude.push(c.contact_id); reasons[c.contact_id]='foreign corporate domain ('+dom+')'; }
+  });
+  return {toExclude, toRestore, reasons};
+}
+async function amTidyWithAI(){
+  if(!amModel) return;
+  const co=(window.__INDEX.companyById||{})[amCompanyId]||{};
+  const companyName=co.name||'';
+  const D=window.__DATA||{};
+  const contacts=(D.contacts||[]).filter(c=>c.company_id===amCompanyId && c.contact_id);
+  if(!contacts.length){ if(typeof showToast==='function') showToast('No contacts on this account'); return; }
+  if(!confirm(`Ask Claude to review this account's meeting notes and move people who aren't part of ${companyName||'this company'}'s buying org (internal reps, partners, noise) off the chart?\n\nEverything stays in the tray and is reversible.`)) return;
+  const btn=document.getElementById('am-tidy-btn'); const orig=btn?btn.textContent:'';
+  if(btn){ btn.disabled=true; btn.textContent='Reviewing…'; }
+  const stakeholderSet=new Set();
+  if(companyName && typeof fetchSyncedContactsFromSource==='function'){
+    try{
+      const settled=await Promise.allSettled(['syncOpportunities','syncPartners'].map(a=>fetchSyncedContactsFromSource(a, companyName)));
+      settled.forEach(s=>{ if(s.status==='fulfilled' && Array.isArray(s.value)) s.value.forEach(lc=>{ const nm=normalizeForMatch((lc&&(lc.name||lc.full_name))||''); if(nm) stakeholderSet.add(nm); }); });
+    }catch(err){ console.error('[LeadCheck] tidy LLM fetch failed',err); }
+  }
+  const domDomain=amDominantDomain(contacts);
+  const connectedIds=new Set(); amModel.nodes.forEach(n=>{ if(n.contactId && n.hasConn) connectedIds.add(n.contactId); });
+  const excludedIds=new Set(); amModel.nodes.forEach(n=>{ if(n.contactId && n.excluded) excludedIds.add(n.contactId); });
+  const {toExclude, toRestore}=amComputeTidy(contacts, stakeholderSet, domDomain, connectedIds, excludedIds);
+  if(!toExclude.length && !toRestore.length){ if(btn){ btn.disabled=false; btn.textContent=orig; } if(typeof showToast==='function') showToast('Chart looks clean — no off-org contacts found'); return; }
+  if(btn){ btn.textContent='Updating…'; }
+  let ex=0, re=0;
+  for(const cid of toExclude){
+    try{ const c=(window.__INDEX.contactById||{})[cid]; const data={node_id:genId('EX'), contact_id:cid, role_type:'excluded', name:(c&&c.full_name)||'', title:(c&&c.title)||'', display_order:0};
+      await postToSheet({action:'append', tab:'Org_Chart', data}); (D.org_chart||(D.org_chart=[])).push(data); ex++; }
+    catch(err){ console.error('[LeadCheck] tidy exclude failed',cid,err); }
+  }
+  for(const cid of toRestore){
+    try{ const rows=(D.org_chart||[]).filter(r=>r.contact_id===cid && r.role_type==='excluded');
+      for(const r of rows){ if(r.node_id) await postToSheet({action:'delete', tab:'Org_Chart', idColumn:'node_id', idValue:r.node_id}); }
+      D.org_chart=D.org_chart.filter(r=>!(r.contact_id===cid && r.role_type==='excluded')); re++; }
+    catch(err){ console.error('[LeadCheck] tidy restore failed',cid,err); }
+  }
+  if(typeof buildIndexes==='function') buildIndexes();
+  if(btn){ btn.disabled=false; btn.textContent=orig; }
+  renderAccountMap(amCompanyId);
+  if(typeof showToast==='function') showToast(`Tidied: ${ex} moved off the chart${re?`, ${re} restored`:''}${ex+re===0?' — nothing to change':''}`);
 }
 /* ========== End Account Map ========== */
 
@@ -7184,6 +7374,8 @@ document.getElementById('co-search-cancel').addEventListener('click', ()=>{
 document.querySelectorAll('.app-nav__tab').forEach(tab=>{
   tab.addEventListener('click', ()=>navigate(tab.dataset.nav));
 });
+// Company Search folded into the Companies view as a button.
+(function(){ const rb=document.getElementById('research-company-btn'); if(rb) rb.addEventListener('click', ()=>navigate('company-search')); })();
 
 /* ========== End Company Search ========== */
 
