@@ -354,6 +354,90 @@ main{flex:1;padding-bottom:var(--s-9)}
 .rel-seg__btn:hover{border-color:var(--border-strong);background:var(--bg-tint)}
 .rel-seg__btn.active{border-color:var(--primary);background:var(--primary);color:#fff}
 .rel-seg[data-rel-field="status"] .rel-seg__btn.active{background:var(--rel-c,var(--primary));border-color:var(--rel-c,var(--primary));color:#fff}
+/* compact relationship badge for narrow rows (side groups, per-contact panel) */
+.rel-rowbadge{display:inline-flex;align-items:center;gap:5px;margin-left:auto;flex-shrink:0}
+.rel-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.rel-rowchip{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-2);background:var(--bg-tint);border:1px solid var(--border);border-radius:3px;padding:1px 5px;white-space:nowrap}
+
+/* ===== Account Map canvas (100 Handshakes-style relationship map) ===== */
+.am-mount{width:100%}
+.am{display:flex;flex-direction:column;height:calc(100vh - 108px);min-height:520px}
+.am-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg)}
+.am-toolbar__group{display:flex;align-items:center;gap:6px;min-width:0}
+.am-toolbar__spacer{flex:1}
+.am-title{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.01em;white-space:nowrap}
+.am-co-select{max-width:230px}
+.am-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:6px 10px;border:1px solid var(--border);border-radius:var(--r-md);color:var(--ink-2);background:var(--bg);white-space:nowrap;transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
+.am-btn:hover{background:var(--bg-tint);border-color:var(--border-strong)}
+.am-btn svg{width:14px;height:14px}
+.am-btn--active{background:var(--primary);border-color:var(--primary);color:#fff}
+.am-btn--active:hover{background:var(--primary-700);color:#fff}
+.am-chip{font-size:11px;font-weight:600;padding:4px 9px;border-radius:20px;border:1px solid var(--border);color:var(--ink-3);background:var(--bg)}
+.am-chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.am-insights{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 20px;border-bottom:1px solid var(--border);background:var(--bg);font-size:12px}
+.am-insights__label{font-weight:700;color:var(--ink-2)}
+.am-seat{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:12px}
+.am-seat--filled{color:var(--green);background:var(--green-bg)}
+.am-seat--empty{color:var(--amber);background:var(--amber-bg)}
+.am-insights__stats{margin-left:auto;display:flex;flex-wrap:wrap;gap:10px;color:var(--ink-3)}
+.am-insights__stats b{color:var(--ink)}
+.am-insights__risk{color:var(--red);font-weight:600}
+.am-canvas{position:relative;flex:1;overflow:hidden;background:radial-gradient(circle, var(--border) 1px, transparent 1px) 0 0/22px 22px,var(--bg-tint);cursor:grab;touch-action:none}
+.am-canvas.am-panning{cursor:grabbing}
+.am-canvas.am-linking{cursor:crosshair}
+.am-stage{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
+.am-edges{position:absolute;top:0;left:0;overflow:visible;pointer-events:none}
+.am-edge{fill:none}
+.am-edge--report{stroke:var(--ink-4);stroke-width:1.6}
+.am-edge--influence{stroke:var(--cyan);stroke-width:1.7;stroke-dasharray:5 4}
+.am-edge-hit{stroke:rgba(0,0,0,0);stroke-width:14;fill:none;pointer-events:stroke;cursor:pointer}
+.am-node{position:absolute;width:176px;box-sizing:border-box;background:var(--bg);border:1.5px solid var(--border-strong);border-radius:var(--r-lg);box-shadow:var(--elev-1);padding:8px 10px 9px;cursor:grab;user-select:none;transition:box-shadow var(--t-fast) var(--ease)}
+.am-node:hover{box-shadow:var(--elev-2);z-index:3}
+.am-node--dragging{box-shadow:var(--elev-3);z-index:10;cursor:grabbing}
+.am-node--dim{opacity:.26}
+.am-node--link-src{outline:2px solid var(--primary);outline-offset:2px}
+.am-node__top{display:flex;align-items:center;gap:7px}
+.am-node__avatar{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;background:var(--ink-4)}
+.am-node--db .am-node__avatar{background:var(--primary)}
+.am-node__idw{min-width:0;flex:1}
+.am-node__name{font-size:12.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.am-node__title{font-size:10.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.am-node__badges{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.am-node__owner{font-size:9.5px;color:var(--ink-3);margin-top:4px;display:flex;align-items:center;gap:3px}
+.am-node--mentioned{border-style:dashed;border-color:var(--primary)}
+.am-node--researched{background:var(--bg-tint)}
+.am-node--researched .am-node__name{color:var(--ink-2)}
+.am-node[data-rel-status]{border-left-width:4px}
+.am-node[data-rel-status="champion"]{border-left-color:var(--green)}
+.am-node[data-rel-status="supporter"]{border-left-color:#3B8A4E}
+.am-node[data-rel-status="neutral"]{border-left-color:var(--ink-4)}
+.am-node[data-rel-status="detractor"]{border-left-color:var(--amber)}
+.am-node[data-rel-status="blocker"]{border-left-color:var(--red)}
+.am-node__edit{position:absolute;top:5px;right:6px;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-4);opacity:0;border-radius:3px;transition:opacity var(--t-fast) var(--ease),color var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
+.am-node:hover .am-node__edit{opacity:.7}
+.am-node__edit:hover{opacity:1;color:var(--primary);background:var(--bg-tint)}
+.am-node__edit svg{width:11px;height:11px}
+.am-zoombar{position:absolute;bottom:16px;right:16px;display:flex;flex-direction:column;gap:4px;z-index:4}
+.am-zoombar button{width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--elev-1);color:var(--ink-2);font-size:15px;font-weight:600}
+.am-zoombar button:hover{background:var(--bg-tint)}
+.am-legend{position:absolute;bottom:16px;left:16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--elev-1);padding:9px 11px;font-size:10.5px;color:var(--ink-2);z-index:4}
+.am-legend__title{font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4);font-size:9px;margin:7px 0 3px}
+.am-legend__title:first-child{margin-top:0}
+.am-legend__row{display:flex;align-items:center;gap:6px;margin-top:3px}
+.am-legend__sw{width:16px;height:0;border-top:2px solid var(--ink-4);flex-shrink:0}
+.am-legend__sw--inf{border-top:2px dashed var(--cyan)}
+.am-legend__dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.am-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;color:var(--ink-3);gap:14px;padding:40px}
+.am-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:24px;width:100%;max-width:1040px;margin:0 auto}
+.am-picker__card{text-align:left;border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;background:var(--bg);cursor:pointer;transition:box-shadow var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
+.am-picker__card:hover{box-shadow:var(--elev-2);border-color:var(--border-strong)}
+.am-picker__name{font-size:14px;font-weight:700;color:var(--ink)}
+.am-picker__meta{font-size:12px;color:var(--ink-3);margin-top:5px;display:flex;flex-wrap:wrap;gap:8px}
+.am-picker__head{font-size:18px;font-weight:700;color:var(--ink);padding:24px 24px 0;max-width:1040px;margin:0 auto;width:100%}
+@media print{
+  .app-header,.am-toolbar,.am-insights,.am-zoombar,.am-node__edit{display:none!important}
+  .am,.am-canvas{height:auto!important;overflow:visible!important}
+}
 .peer-detail{display:none;margin:4px 0 var(--s-2) 40px;padding:10px 14px;background:var(--bg-tint);border-left:3px solid var(--cyan);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:12px;color:var(--ink-2);line-height:1.55;font-style:italic}
 .peer-detail.open{display:block}
 .peer-detail a{color:var(--primary);font-style:normal;font-weight:500;display:inline-block;margin-top:4px}
@@ -743,6 +827,7 @@ main{flex:1;padding-bottom:var(--s-9)}
         <button class="app-nav__tab active" data-nav="home" type="button">Contacts</button>
         <button class="app-nav__tab" data-nav="company-search" type="button">Company Search</button>
         <button class="app-nav__tab" data-nav="titles-roles" type="button">Titles &amp; Roles</button>
+        <button class="app-nav__tab" data-nav="account-map" type="button">Account Map</button>
       </nav>
     </div>
     <div class="search-wrap">
@@ -1230,6 +1315,10 @@ Aaron</div>
         <div id="tr-mount"></div>
       </div>
     </div>
+  </section>
+
+  <section class="view" id="view-account-map">
+    <div id="am-mount" class="am-mount"></div>
   </section>
 </main>
 
@@ -1934,6 +2023,7 @@ function navigate(route,id){
   else if(route==='contact')location.hash='#/contact/'+(id||'C001');
   else if(route==='company-search')location.hash='#/company-search';
   else if(route==='titles-roles')location.hash='#/titles-roles';
+  else if(route==='account-map')location.hash='#/account-map';
 }
 function handleHash(){
   const hash=location.hash||'#/';
@@ -1941,6 +2031,7 @@ function handleHash(){
   if(parts[0]==='contact'){renderContactDetail(parts[1]||'C001');showView('contact');}
   else if(parts[0]==='company-search'){showView('company-search');}
   else if(parts[0]==='titles-roles'){showView('titles-roles');renderTitlesRoles();}
+  else if(parts[0]==='account-map'){showView('account-map');renderAccountMap(parts[1]||'');}
   else showView('home');
 }
 window.addEventListener('hashchange',handleHash);
@@ -2567,6 +2658,17 @@ function relNodeOverlay(contact){
   };
 }
 
+// Compact status dot + role chip for narrow rows (side groups, per-contact panel).
+function relRowBadge(contact){
+  if(!contact) return '';
+  const status=contactRelStatus(contact), role=contactDealRole(contact);
+  if(!status && !role) return '';
+  let h='<span class="rel-rowbadge">';
+  if(status){ const s=REL_STATUS[status]; h+=`<span class="rel-dot" title="${escapeHtml(s.label)}" style="background:${s.color}"></span>`; }
+  if(role){ h+=`<span class="rel-rowchip">${escapeHtml(DEAL_ROLES[role])}</span>`; }
+  return h+'</span>';
+}
+
 function orgSideRow(r,nameToContactId){
   const nameLower=String(r.name||'').toLowerCase().trim();
   const dbId=nameToContactId?nameToContactId.get(nameLower):null;
@@ -2574,9 +2676,11 @@ function orgSideRow(r,nameToContactId){
   const color=dbId?'avatar--blue':'avatar--gray';
   const tag=dbId?'button':'div';
   const attrs=dbId?` data-route="contact" data-id="${escapeHtml(dbId)}" type="button"`:'';
+  const contact=dbId?((window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[dbId])||null):null;
   return `<${tag} class="peer-row"${attrs} style="width:100%">
     <div class="avatar avatar--sm ${color}">${escapeHtml(init)}</div>
     <div class="peer-row__body"><div class="peer-row__name">${escapeHtml(displayOrgName(r.name||''))}</div><div class="peer-row__title">${escapeHtml(r.title||'')}</div></div>
+    ${relRowBadge(contact)}
   </${tag}>`;
 }
 
@@ -2945,10 +3049,14 @@ function orgPeerRowHtml(p,opts){
   const roleAttr=p.role_type?` data-org-role="${escapeHtml(p.role_type)}"`:'';
   const peerAttr=(hasDetail&&!editable)?' data-peer="1"':'';
   const detailHtml=(hasDetail&&!editable)?`<div class="peer-detail">${escapeHtml(p.note||'')}${p.source_url?` <a href="${escapeHtml(p.source_url)}" target="_blank" rel="noopener">Source →</a>`:''}</div>`:'';
+  const n2c=opts.nameToContactId;
+  const dbId=n2c?n2c.get(String(p.name||'').toLowerCase().trim()):null;
+  const relContact=dbId?((window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[dbId])||null):null;
+  const relBadge=(!editable)?relRowBadge(relContact):'';
   return `<div class="peer-row"${orgIdAttr}${roleAttr}${peerAttr}>
     <div class="avatar avatar--sm ${avatarColor}">${escapeHtml(init)}</div>
     <div class="peer-row__body"><div class="peer-row__name">${escapeHtml(p.name||'')}</div><div class="peer-row__title">${escapeHtml(p.title||'')}</div></div>
-    ${chipTxt?`<span class="pill ${chipCls}">${chipTxt}</span>`:''}
+    ${relBadge}${chipTxt?`<span class="pill ${chipCls}">${chipTxt}</span>`:''}
   </div>${detailHtml}`;
 }
 
@@ -2985,6 +3093,14 @@ function renderOrgPanel(raw, id){
     orgPanelContactId=id;
   }
   const IDX=window.__INDEX||{};
+  // Name→contactId map for this contact's company, so peer/report rows can show
+  // relationship badges when they match a real contact.
+  const orgPanelRaw=(IDX.contactById&&IDX.contactById[id])||{};
+  const orgPanelCoId=orgPanelRaw.company_id||'';
+  const orgPanelN2C=new Map();
+  ((window.__DATA&&window.__DATA.contacts)||[]).forEach(c=>{
+    if(c.company_id===orgPanelCoId && c.contact_id){ const n=String(c.full_name||'').toLowerCase().trim(); if(n) orgPanelN2C.set(n,c.contact_id); }
+  });
   const nodes=(IDX.byContact&&IDX.byContact.org_chart&&IDX.byContact.org_chart[id])||[];
   const byName=new Map();
   for(const n of nodes){
@@ -3080,7 +3196,7 @@ function renderOrgPanel(raw, id){
   const peerHtml=peerSectionVisible?`
     <div class="peer-section">
       <div class="peer-section__head">Peers · ${peers.length}</div>
-      ${peers.map(p=>orgPeerRowHtml(p,{editable:orgEditMode})).join('')}
+      ${peers.map(p=>orgPeerRowHtml(p,{editable:orgEditMode,nameToContactId:orgPanelN2C})).join('')}
       ${peerAddingHtml}
       ${orgEditMode && orgAddingKey!=='new:peer'?`<div class="org-add-row">${orgAddBtnHtml('peer')}</div>`:''}
     </div>`:'';
@@ -3090,7 +3206,7 @@ function renderOrgPanel(raw, id){
   const reportsHtml=reportSectionVisible?`
     <div class="peer-section">
       <div class="peer-section__head">Direct Reports · ${reports.length}</div>
-      ${reports.map(r=>orgPeerRowHtml(r,{editable:orgEditMode})).join('')}
+      ${reports.map(r=>orgPeerRowHtml(r,{editable:orgEditMode,nameToContactId:orgPanelN2C})).join('')}
       ${reportAddingHtml}
       ${orgEditMode && orgAddingKey!=='new:directReport'?`<div class="org-add-row">${orgAddBtnHtml('directReport')}</div>`:''}
     </div>`:'';
@@ -3685,6 +3801,10 @@ async function saveRelEditor(contactId){
     closeRelEditor();
     const cid=c.company_id;
     if(cid && typeof coOrgRefreshExpanded==='function') coOrgRefreshExpanded(cid);
+    // Keep the Account Map in sync when it's the active view.
+    if(typeof renderAccountMap==='function' && document.getElementById('view-account-map') && document.getElementById('view-account-map').classList.contains('active')){
+      renderAccountMap(amCompanyId);
+    }
     if(typeof showToast==='function') showToast('Relationship updated');
   }catch(err){
     console.error('[LeadCheck] saveRelEditor failed',err);
@@ -3866,6 +3986,531 @@ document.addEventListener('submit', async (e)=>{
 });
 
 /* ========== End Company-Level Org Chart ========== */
+
+/* ========== Account Map (100 Handshakes-style relationship canvas) ==========
+   A dedicated free-form canvas per account: drag people anywhere, draw
+   influence links, colour by relationship, spot buying-committee whitespace,
+   and export for QBRs. Reporting structure is derived from Org_Chart (same
+   primitives as the combined chart). Node positions persist to the new
+   Contacts.map_x/map_y columns; influence edges persist as Org_Chart rows with
+   role_type='influence' keyed by the real node_id column. */
+const AM_NODE_W=176;
+let amCompanyId='';
+let amRenderedCompany=null;
+let amZoom=1, amPanX=40, amPanY=28;
+let amModel=null;
+let amStatusFilter='all';      // all | champion | blocker | unowned
+let amLinkMode=false, amLinkSrcKey=null;
+let amGesture=null;            // active pan / node-drag gesture
+
+function amAccountList(){
+  const D=window.__DATA||{};
+  const counts={};
+  (D.contacts||[]).forEach(c=>{ if(c.company_id && c.contact_id) counts[c.company_id]=(counts[c.company_id]||0)+1; });
+  return (D.companies||[]).filter(co=>co && co.company_id && !co._placeholder && counts[co.company_id])
+    .map(co=>Object.assign({}, co, {_contactCount:counts[co.company_id]}))
+    .sort((a,b)=>(b._contactCount-a._contactCount) || String(a.name||'').localeCompare(String(b.name||'')));
+}
+
+// Build a clean {nodes, reporting, influence, contactsAtCo} graph for one account.
+// Self-contained (reuses orgKey/SYNC_NICKNAMES/SOURCE_PRIORITY/isJunkOrgNode) so it
+// never touches the shipped combined-chart renderer.
+function buildAccountGraph(companyId){
+  const D=window.__DATA||{}, IDX=window.__INDEX||{};
+  const contactsAtCo=(D.contacts||[]).filter(c=>c.company_id===companyId && c.contact_id);
+  const nameToContactId=new Map();
+  contactsAtCo.forEach(c=>{ const n=orgKey(c.full_name); if(n) nameToContactId.set(n,c.contact_id); });
+  const nodes=new Map(), aliases=new Map();
+  function resolveKey(raw){
+    if(aliases.has(raw)) return aliases.get(raw);
+    if(nodes.has(raw)) return raw;
+    const parts=raw.split(' ');
+    if(parts.length>=2){ const first=parts[0], rest=parts.slice(1).join(' '); const al=SYNC_NICKNAMES[first];
+      if(al){ for(const a of al){ const alt=a+' '+rest; if(nodes.has(alt)){ aliases.set(raw,alt); return alt; } } } }
+    return raw;
+  }
+  function dbIdForKey(k){
+    const direct=nameToContactId.get(k); if(direct) return direct;
+    const parts=k.split(' ');
+    if(parts.length>=2){ const first=parts[0], rest=parts.slice(1).join(' '); const al=SYNC_NICKNAMES[first];
+      if(al){ for(const a of al){ const id=nameToContactId.get(a+' '+rest); if(id) return id; } } }
+    return null;
+  }
+  function ensure(name,title,source,initials){
+    const raw=orgKey(name); if(!raw) return null;
+    const k=resolveKey(raw);
+    const src=(SOURCE_PRIORITY[String(source||'').toUpperCase()]?String(source).toUpperCase():'RESEARCHED');
+    let n=nodes.get(k);
+    if(!n){ n={key:k,name:name||'',title:title||'',source:src,dbContactId:dbIdForKey(k),initials:String(initials||'').trim()}; nodes.set(k,n); if(raw!==k) aliases.set(raw,k); }
+    else { if(title&&!n.title)n.title=title; if(SOURCE_PRIORITY[src]>SOURCE_PRIORITY[n.source])n.source=src; if(initials&&!n.initials)n.initials=String(initials).trim(); if(!n.dbContactId){const id=dbIdForKey(k); if(id)n.dbContactId=id;} }
+    if(n.dbContactId && SOURCE_PRIORITY[n.source]<SOURCE_PRIORITY.DATABASE) n.source='DATABASE';
+    return n;
+  }
+  const reporting=[], influence=[];
+  const chainRoles=new Set(['topExec','functionHead','manager','target']);
+  contactsAtCo.forEach(c=>{
+    const rows=((IDX.byContact&&IDX.byContact.org_chart&&IDX.byContact.org_chart[c.contact_id])||[]).slice()
+      .sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
+    let prev=null;
+    rows.filter(r=>chainRoles.has(r.role_type) && !isJunkOrgNode(r)).forEach(r=>{
+      const n=ensure(r.name,r.title,r.source,r.initials); if(!n) return;
+      if(r.role_type==='target'){ n.dbContactId=n.dbContactId||c.contact_id; n.source='DATABASE'; }
+      if(prev && prev.key!==n.key) reporting.push({from:prev.key,to:n.key});
+      prev=n;
+    });
+    const self=ensure(c.full_name,c.title,'DATABASE',c.initials);
+    if(self){ self.dbContactId=self.dbContactId||c.contact_id; self.source='DATABASE'; }
+    rows.forEach(r=>{
+      if(isJunkOrgNode(r)) return;
+      if(r.role_type==='directReport'){
+        const rep=ensure(r.name,r.title,r.source||'DATABASE',r.initials);
+        if(rep){ if(r.linked_contact_id && !rep.dbContactId){ rep.dbContactId=r.linked_contact_id; rep.source='DATABASE'; } if(self && rep.key!==self.key) reporting.push({from:self.key,to:rep.key}); }
+      } else if(r.role_type==='peer'){
+        ensure(r.name,r.title,r.source,r.initials);
+      } else if(r.role_type==='influence'){
+        const to=ensure(r.name,r.title,r.source,r.initials);
+        if(to){ if(r.linked_contact_id && !to.dbContactId){ to.dbContactId=r.linked_contact_id; to.source='DATABASE'; } if(self && to.key!==self.key) influence.push({from:self.key,to:to.key,note:r.note||'',node_id:r.node_id||''}); }
+      }
+    });
+  });
+  nodes.forEach(n=>{
+    const c=n.dbContactId?((IDX.contactById&&IDX.contactById[n.dbContactId])||null):null;
+    n.contactId=n.dbContactId||null;
+    n.status=c?contactRelStatus(c):'';
+    n.role=c?contactDealRole(c):'';
+    n.owner=c?contactRelOwner(c):'';
+    n.initials=n.initials||(c?((c.initials&&String(c.initials).trim())||deriveInitials(c.full_name)):deriveInitials(n.name));
+    const mx=c?Number(c.map_x):NaN, my=c?Number(c.map_y):NaN;
+    n.x=(c && c.map_x!=null && c.map_x!=='' && !isNaN(mx))?mx:null;
+    n.y=(c && c.map_y!=null && c.map_y!=='' && !isNaN(my))?my:null;
+  });
+  const dedupe=(arr)=>{ const s=new Set(); return arr.filter(e=>{ const k=e.from+'>'+e.to; if(s.has(k))return false; s.add(k); return true; }); };
+  return { companyId, nodes:[...nodes.values()], reporting:dedupe(reporting).filter(e=>e.from!==e.to), influence:dedupe(influence).filter(e=>e.from!==e.to), contactsAtCo };
+}
+
+// Assign x/y to any node lacking a saved position, via a tidy layered layout.
+function amLayout(model){
+  const NODE_H=70, COLGAP=44, ROWGAP=86;
+  const indeg=new Map(model.nodes.map(n=>[n.key,0]));
+  model.reporting.forEach(e=>{ if(indeg.has(e.to)) indeg.set(e.to, indeg.get(e.to)+1); });
+  const kids=new Map(model.nodes.map(n=>[n.key,[]]));
+  model.reporting.forEach(e=>{ if(kids.has(e.from)) kids.get(e.from).push(e.to); });
+  const depth=new Map(); const seen=new Set();
+  const queue=model.nodes.filter(n=>indeg.get(n.key)===0).map(n=>{ depth.set(n.key,0); seen.add(n.key); return n.key; });
+  let guard=0;
+  while(queue.length && guard++<20000){ const k=queue.shift(); const d=depth.get(k)||0;
+    (kids.get(k)||[]).forEach(ch=>{ const nd=Math.max((depth.get(ch)||0), d+1); depth.set(ch,nd); if(!seen.has(ch)){ seen.add(ch); queue.push(ch); } }); }
+  model.nodes.forEach(n=>{ if(!depth.has(n.key)) depth.set(n.key,0); });
+  const layers={}; model.nodes.forEach(n=>{ const d=depth.get(n.key); (layers[d]||(layers[d]=[])).push(n); });
+  const depths=Object.keys(layers).map(Number).sort((a,b)=>a-b);
+  let maxW=0; depths.forEach(d=>{ maxW=Math.max(maxW, layers[d].length*(AM_NODE_W+COLGAP)); });
+  depths.forEach(d=>{
+    const layer=layers[d]; const total=layer.length*(AM_NODE_W+COLGAP); const startX=Math.max(0,(maxW-total)/2);
+    layer.forEach((n,i)=>{
+      const ax=Math.round(startX + i*(AM_NODE_W+COLGAP) + 20), ay=Math.round(40 + Number(d)*(NODE_H+ROWGAP));
+      if(n.x==null) n.x=ax; if(n.y==null) n.y=ay;
+    });
+  });
+  model._byKey=new Map(model.nodes.map(n=>[n.key,n]));
+  return model;
+}
+
+function amCenter(n){ return { x:(n.x||0)+(n._w||AM_NODE_W)/2, y:(n.y||0)+(n._h||70)/2 }; }
+function amBorderPoint(c, toward, hw, hh){
+  const dx=toward.x-c.x, dy=toward.y-c.y;
+  if(dx===0 && dy===0) return {x:c.x,y:c.y};
+  const sx = dx!==0 ? hw/Math.abs(dx) : Infinity;
+  const sy = dy!==0 ? hh/Math.abs(dy) : Infinity;
+  const s=Math.min(sx,sy);
+  return { x:c.x+dx*s, y:c.y+dy*s };
+}
+function amNodeByIdx(i){ return amModel && amModel.nodes[i]; }
+
+function renderAccountMap(companyId){
+  const mount=document.getElementById('am-mount'); if(!mount) return;
+  const D=window.__DATA;
+  if(!D || !Array.isArray(D.contacts)){ mount.innerHTML='<div class="am-empty">Loading live data…</div>'; return; }
+  if(companyId) amCompanyId=companyId;
+  const companies=amAccountList();
+  if(!amCompanyId || !companies.some(c=>c.company_id===amCompanyId)){
+    if(companies.length===1){ amCompanyId=companies[0].company_id; }
+    else {
+      mount.innerHTML=amPickerHtml(companies);
+      mount.querySelectorAll('[data-am-open]').forEach(b=>{ b.onclick=()=>navigate('account-map', b.getAttribute('data-am-open')); });
+      amRenderedCompany=null;
+      return;
+    }
+  }
+  const isNewCompany = amRenderedCompany!==amCompanyId;
+  if(isNewCompany){ amZoom=1; amPanX=40; amPanY=28; amLinkMode=false; amLinkSrcKey=null; }
+  amRenderedCompany=amCompanyId;
+  amModel=amLayout(buildAccountGraph(amCompanyId));
+  mount.innerHTML=amCanvasHtml(amCompanyId, companies);
+  amApplyTransform();
+  amMeasureAndDrawEdges();
+  amWireCanvas();
+  amApplyFilter();
+  if(isNewCompany) amFit();
+}
+
+function amPickerHtml(companies){
+  if(!companies.length) return `<div class="am-empty"><b>No accounts with contacts yet</b><div>Add contacts on the Contacts tab, then map their buying committee here.</div></div>`;
+  const cards=companies.map(co=>{
+    const g=buildAccountGraph(co.company_id);
+    let champ=0,block=0; g.contactsAtCo.forEach(c=>{ const s=contactRelStatus(c); if(s==='champion')champ++; else if(s==='blocker')block++; });
+    return `<button class="am-picker__card" type="button" data-am-open="${escapeHtml(co.company_id)}">
+      <div class="am-picker__name">${escapeHtml(co.name||co.company_id)}</div>
+      <div class="am-picker__meta"><span>${co._contactCount} contact${co._contactCount===1?'':'s'}</span>${champ?`<span style="color:var(--green)">${champ} champion${champ===1?'':'s'}</span>`:''}${block?`<span style="color:var(--red)">${block} blocker${block===1?'':'s'}</span>`:''}</div>
+    </button>`;
+  }).join('');
+  return `<div class="am-picker__head">Account Map</div><div class="am-picker">${cards}</div>`;
+}
+
+function amCanvasHtml(companyId, companies){
+  const coOptions=companies.map(c=>`<option value="${escapeHtml(c.company_id)}"${c.company_id===companyId?' selected':''}>${escapeHtml(c.name||c.company_id)} · ${c._contactCount}</option>`).join('');
+  const filters=[['all','All'],['champion','Champions'],['blocker','Blockers'],['unowned','Unowned']]
+    .map(([k,l])=>`<button type="button" class="am-chip${amStatusFilter===k?' active':''}" data-am-filter="${k}">${escapeHtml(l)}</button>`).join('');
+  const nodesHtml=amModel.nodes.map((n,i)=>amNodeHtml(n,i)).join('');
+  return `<div class="am">
+    <div class="am-toolbar">
+      <div class="am-toolbar__group"><span class="am-title">Account Map</span></div>
+      <div class="am-toolbar__group"><select class="select am-co-select" id="am-co-select" aria-label="Choose account">${coOptions}</select></div>
+      <div class="am-toolbar__group"><button class="am-btn" id="am-automap-btn" title="Infer relationship status & committee roles from meeting notes">✨ Auto-map</button></div>
+      <div class="am-toolbar__spacer"></div>
+      <div class="am-toolbar__group">${filters}</div>
+      <div class="am-toolbar__group">
+        <button class="am-btn" id="am-link-btn" title="Draw an influence link between two people">↔ Influence link</button>
+        <button class="am-btn" id="am-export-btn" title="Export as SVG for QBR decks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>
+      </div>
+    </div>
+    ${amInsightsHtml(amModel)}
+    <div class="am-canvas" id="am-canvas">
+      <div class="am-stage" id="am-stage">
+        <svg class="am-edges" id="am-edges"></svg>
+        ${nodesHtml}
+      </div>
+      <div class="am-legend">${amLegendHtml()}</div>
+      <div class="am-zoombar">
+        <button type="button" id="am-zoom-in" aria-label="Zoom in">+</button>
+        <button type="button" id="am-zoom-out" aria-label="Zoom out">&minus;</button>
+        <button type="button" id="am-zoom-fit" aria-label="Fit to view" title="Fit to view"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
+        <button type="button" id="am-reset-layout" aria-label="Reset to auto layout" title="Reset to auto layout"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function amNodeHtml(n,i){
+  const cls = n.source==='DATABASE'?'am-node--db':(n.source==='MENTIONED'?'am-node--mentioned':'am-node--researched');
+  const relAttr=n.status?` data-rel-status="${escapeHtml(n.status)}"`:'';
+  let badges='';
+  if(n.status){ const s=REL_STATUS[n.status]; badges+=`<span class="rel-badge rel-badge--status" style="--rel-c:${s.color};--rel-bg:${REL_STATUS_BG[n.status]}">${escapeHtml(s.label)}</span>`; }
+  if(n.role){ badges+=`<span class="rel-badge rel-badge--role">${escapeHtml(DEAL_ROLES[n.role])}</span>`; }
+  const badgesHtml=badges?`<div class="am-node__badges">${badges}</div>`:'';
+  const ownerHtml=n.owner?`<div class="am-node__owner"><span class="rel-owner__ico">◷</span>${escapeHtml(n.owner)}</div>`:'';
+  const edit=n.contactId?`<button class="am-node__edit" type="button" data-contact="${escapeHtml(n.contactId)}" title="Edit relationship" aria-label="Edit relationship"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`:'';
+  return `<div class="am-node ${cls}"${relAttr} data-am-idx="${i}"${n.contactId?` data-contact="${escapeHtml(n.contactId)}"`:''} style="left:${n.x}px;top:${n.y}px">
+    ${edit}
+    <div class="am-node__top">
+      <div class="am-node__avatar">${escapeHtml(n.initials||'?')}</div>
+      <div class="am-node__idw"><div class="am-node__name">${escapeHtml(displayOrgName(n.name))}</div><div class="am-node__title">${escapeHtml(n.title||'')}</div></div>
+    </div>
+    ${badgesHtml}${ownerHtml}
+  </div>`;
+}
+
+function amLegendHtml(){
+  return `<div class="am-legend__title">Relationship</div>
+    ${REL_STATUS_ORDER.map(k=>`<div class="am-legend__row"><span class="am-legend__dot" style="background:${REL_STATUS[k].color}"></span>${escapeHtml(REL_STATUS[k].label)}</div>`).join('')}
+    <div class="am-legend__title">Links</div>
+    <div class="am-legend__row"><span class="am-legend__sw"></span>Reports to</div>
+    <div class="am-legend__row"><span class="am-legend__sw am-legend__sw--inf"></span>Influences</div>`;
+}
+
+function amInsightsHtml(model){
+  const seats={}; COMMITTEE_SEATS.forEach(s=>seats[s]=0);
+  let champions=0,blockers=0,owned=0,total=0;
+  model.contactsAtCo.forEach(c=>{
+    total++;
+    const st=contactRelStatus(c); if(st==='champion')champions++; else if(st==='blocker')blockers++;
+    if(contactRelOwner(c))owned++;
+    const r=contactDealRole(c); if(r in seats)seats[r]++;
+  });
+  const seatsHtml=COMMITTEE_SEATS.map(s=>{ const f=seats[s]>0; return `<span class="am-seat am-seat--${f?'filled':'empty'}">${f?'✓':'○'} ${escapeHtml(DEAL_ROLES[s])}</span>`; }).join('');
+  const risks=[];
+  if(!champions) risks.push('No champion identified');
+  else if(champions===1) risks.push('Single-threaded on one champion');
+  if(seats['economic-buyer']===0) risks.push('No economic buyer mapped');
+  const stats=[];
+  if(champions)stats.push(`<span><b>${champions}</b> champion${champions===1?'':'s'}</span>`);
+  if(blockers)stats.push(`<span class="am-insights__risk"><b>${blockers}</b> blocker${blockers===1?'':'s'}</span>`);
+  stats.push(`<span><b>${owned}</b>/${total} owned</span>`);
+  const riskHtml=risks.length?`<span class="am-insights__risk">&#9888; ${risks.map(escapeHtml).join(' · ')}</span>`:'';
+  return `<div class="am-insights"><span class="am-insights__label">Buying committee</span>${seatsHtml}${riskHtml}<span class="am-insights__stats">${stats.join('')}</span></div>`;
+}
+
+function amApplyTransform(){
+  const stage=document.getElementById('am-stage'); if(stage) stage.style.transform=`translate(${amPanX}px,${amPanY}px) scale(${amZoom})`;
+}
+function amSizeStage(){
+  const stage=document.getElementById('am-stage'), svg=document.getElementById('am-edges'); if(!stage||!amModel) return;
+  let maxX=600, maxY=400;
+  amModel.nodes.forEach(n=>{ maxX=Math.max(maxX,(n.x||0)+(n._w||AM_NODE_W)); maxY=Math.max(maxY,(n.y||0)+(n._h||70)); });
+  maxX+=80; maxY+=80;
+  stage.style.width=maxX+'px'; stage.style.height=maxY+'px';
+  if(svg){ svg.setAttribute('width',maxX); svg.setAttribute('height',maxY); }
+}
+function amMeasureAndDrawEdges(){
+  const stage=document.getElementById('am-stage'); if(!stage||!amModel) return;
+  amModel.nodes.forEach((n,i)=>{ const el=stage.querySelector(`.am-node[data-am-idx="${i}"]`); if(el){ n._w=el.offsetWidth; n._h=el.offsetHeight; } });
+  amSizeStage();
+  amDrawEdges();
+}
+function amDrawEdges(){
+  const svg=document.getElementById('am-edges'); if(!svg||!amModel) return;
+  const byKey=amModel._byKey||(amModel._byKey=new Map(amModel.nodes.map(n=>[n.key,n])));
+  const seg=(a,b)=>{ const c1=amCenter(a), c2=amCenter(b);
+    const p1=amBorderPoint(c1,c2,(a._w||AM_NODE_W)/2,(a._h||70)/2);
+    const p2=amBorderPoint(c2,c1,(b._w||AM_NODE_W)/2,(b._h||70)/2);
+    return {p1,p2}; };
+  const parts=['<defs><marker id="am-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#9999A8"/></marker><marker id="am-arrow-inf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#00BFFF"/></marker></defs>'];
+  amModel.reporting.forEach(e=>{ const a=byKey.get(e.from), b=byKey.get(e.to); if(!a||!b) return; const {p1,p2}=seg(a,b);
+    parts.push(`<line class="am-edge am-edge--report" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}" marker-end="url(#am-arrow)"/>`); });
+  amModel.influence.forEach((e,i)=>{ const a=byKey.get(e.from), b=byKey.get(e.to); if(!a||!b) return; const {p1,p2}=seg(a,b);
+    parts.push(`<line class="am-edge am-edge--influence" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}" marker-end="url(#am-arrow-inf)"/>`);
+    parts.push(`<line class="am-edge-hit" data-am-inf="${i}" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}"><title>Influence: ${escapeHtml(a.name)} → ${escapeHtml(b.name)} (click to remove)</title></line>`); });
+  svg.innerHTML=parts.join('');
+}
+
+function amWireCanvas(){
+  const canvas=document.getElementById('am-canvas'); if(!canvas) return;
+  canvas.onpointerdown=amPointerDown;
+  canvas.onwheel=amWheel;
+  const on=(id,fn)=>{ const el=document.getElementById(id); if(el) el.onclick=fn; };
+  on('am-zoom-in',()=>amZoomBy(1.15));
+  on('am-zoom-out',()=>amZoomBy(1/1.15));
+  on('am-zoom-fit',amFit);
+  on('am-reset-layout',amResetLayout);
+  on('am-automap-btn',amAutoMap);
+  on('am-export-btn',amExportSVG);
+  const link=document.getElementById('am-link-btn'); if(link){ link.classList.toggle('am-btn--active',amLinkMode); link.onclick=amToggleLinkMode; }
+  const sel=document.getElementById('am-co-select'); if(sel) sel.onchange=()=>navigate('account-map', sel.value);
+  document.querySelectorAll('[data-am-filter]').forEach(b=>{ b.onclick=()=>amSetFilter(b.getAttribute('data-am-filter')); });
+  const canvasEl=document.getElementById('am-canvas'); if(canvasEl){ canvasEl.classList.toggle('am-linking',amLinkMode); }
+}
+
+function amPointerDown(e){
+  if(e.button!==0 || !amModel) return;
+  const canvas=e.currentTarget;
+  const editBtn=e.target.closest('.am-node__edit');
+  if(editBtn){ e.preventDefault(); e.stopPropagation(); openRelEditor(editBtn.getAttribute('data-contact')); return; }
+  const infHit=e.target.closest('[data-am-inf]');
+  if(infHit){ e.preventDefault(); amRemoveInfluence(Number(infHit.getAttribute('data-am-inf'))); return; }
+  const nodeEl=e.target.closest('.am-node');
+  if(nodeEl){
+    const idx=Number(nodeEl.getAttribute('data-am-idx')); const node=amModel.nodes[idx];
+    if(amLinkMode){ e.preventDefault(); amHandleLinkClick(node); return; }
+    amGesture={type:'node', idx, node, el:nodeEl, startX:e.clientX, startY:e.clientY, moved:false, ox:node.x, oy:node.y};
+    try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
+    window.addEventListener('pointermove', amPointerMove);
+    window.addEventListener('pointerup', amPointerUp);
+    e.preventDefault(); return;
+  }
+  if(amLinkMode){ amLinkSrcKey=null; amRefreshLinkVisual(); }
+  amGesture={type:'pan', startX:e.clientX, startY:e.clientY, opx:amPanX, opy:amPanY};
+  canvas.classList.add('am-panning');
+  try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
+  window.addEventListener('pointermove', amPointerMove);
+  window.addEventListener('pointerup', amPointerUp);
+}
+function amPointerMove(e){
+  if(!amGesture) return;
+  const dx=e.clientX-amGesture.startX, dy=e.clientY-amGesture.startY;
+  if(amGesture.type==='pan'){ amPanX=amGesture.opx+dx; amPanY=amGesture.opy+dy; amApplyTransform(); return; }
+  if(!amGesture.moved && (Math.abs(dx)+Math.abs(dy))>4){ amGesture.moved=true; amGesture.el.classList.add('am-node--dragging'); }
+  if(amGesture.moved){
+    amGesture.node.x=Math.round(amGesture.ox + dx/amZoom);
+    amGesture.node.y=Math.round(amGesture.oy + dy/amZoom);
+    amGesture.el.style.left=amGesture.node.x+'px';
+    amGesture.el.style.top=amGesture.node.y+'px';
+    amDrawEdges();
+  }
+}
+function amPointerUp(){
+  window.removeEventListener('pointermove', amPointerMove);
+  window.removeEventListener('pointerup', amPointerUp);
+  const canvas=document.getElementById('am-canvas'); if(canvas) canvas.classList.remove('am-panning');
+  const g=amGesture; amGesture=null; if(!g) return;
+  if(g.type==='node'){
+    if(g.el) g.el.classList.remove('am-node--dragging');
+    if(!g.moved){ if(g.node.contactId) openRelEditor(g.node.contactId); }
+    else { amSizeStage(); if(g.node.contactId) amPersistPosition(g.node.contactId, g.node.x, g.node.y); }
+  }
+}
+function amWheel(e){
+  if(!amModel) return;
+  e.preventDefault();
+  const rect=e.currentTarget.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  const wx=(mx-amPanX)/amZoom, wy=(my-amPanY)/amZoom;
+  amZoom=Math.min(2.2, Math.max(0.3, amZoom*(e.deltaY<0?1.1:1/1.1)));
+  amPanX=mx-wx*amZoom; amPanY=my-wy*amZoom;
+  amApplyTransform();
+}
+function amZoomBy(f){
+  const canvas=document.getElementById('am-canvas'); if(!canvas) return;
+  const rect=canvas.getBoundingClientRect(); const mx=rect.width/2, my=rect.height/2;
+  const wx=(mx-amPanX)/amZoom, wy=(my-amPanY)/amZoom;
+  amZoom=Math.min(2.2, Math.max(0.3, amZoom*f));
+  amPanX=mx-wx*amZoom; amPanY=my-wy*amZoom; amApplyTransform();
+}
+function amFit(){
+  const canvas=document.getElementById('am-canvas'); if(!canvas||!amModel||!amModel.nodes.length) return;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  amModel.nodes.forEach(n=>{ minX=Math.min(minX,n.x); minY=Math.min(minY,n.y); maxX=Math.max(maxX,n.x+(n._w||AM_NODE_W)); maxY=Math.max(maxY,n.y+(n._h||70)); });
+  const rect=canvas.getBoundingClientRect(); const w=(maxX-minX)+80, h=(maxY-minY)+80;
+  const z=Math.min(1.6, Math.max(0.3, Math.min(rect.width/w, rect.height/h)));
+  amZoom=z; amPanX=(rect.width-(maxX-minX)*z)/2 - (minX-40)*z; amPanY=(rect.height-(maxY-minY)*z)/2 - (minY-40)*z;
+  amApplyTransform();
+}
+async function amResetLayout(){
+  if(!amModel) return;
+  if(!confirm('Reset positions to an automatic layout? This clears saved positions for this account.')) return;
+  const cids=amModel.nodes.filter(n=>n.contactId).map(n=>n.contactId);
+  cids.forEach(id=>{ const c=(window.__INDEX.contactById||{})[id]; if(c){ c.map_x=''; c.map_y=''; } });
+  renderAccountMap(amCompanyId);
+  for(const id of cids){ try{ await postToSheet({action:'update',tab:'Contacts',idColumn:'contact_id',idValue:id,data:{map_x:'',map_y:''}}); }catch(_){} }
+}
+async function amPersistPosition(contactId,x,y){
+  const c=(window.__INDEX&&window.__INDEX.contactById&&window.__INDEX.contactById[contactId]); if(!c) return;
+  c.map_x=String(x); c.map_y=String(y);
+  try{ await postToSheet({action:'update',tab:'Contacts',idColumn:'contact_id',idValue:contactId,data:{map_x:x,map_y:y}}); }
+  catch(err){ console.error('[LeadCheck] map position save failed',err); if(typeof showToast==='function') showToast('Couldn’t save position'); }
+}
+function amSetFilter(f){ amStatusFilter=f; document.querySelectorAll('[data-am-filter]').forEach(b=>b.classList.toggle('active', b.getAttribute('data-am-filter')===f)); amApplyFilter(); }
+function amApplyFilter(){
+  if(!amModel) return;
+  document.querySelectorAll('.am-node').forEach(el=>{
+    const n=amModel.nodes[Number(el.getAttribute('data-am-idx'))]; if(!n) return;
+    let dim=false;
+    if(amStatusFilter==='champion') dim=n.status!=='champion';
+    else if(amStatusFilter==='blocker') dim=n.status!=='blocker';
+    else if(amStatusFilter==='unowned') dim=!(n.contactId && !n.owner);
+    el.classList.toggle('am-node--dim', dim);
+  });
+}
+function amToggleLinkMode(){
+  amLinkMode=!amLinkMode; amLinkSrcKey=null;
+  const canvas=document.getElementById('am-canvas'); if(canvas) canvas.classList.toggle('am-linking',amLinkMode);
+  const btn=document.getElementById('am-link-btn'); if(btn) btn.classList.toggle('am-btn--active',amLinkMode);
+  amRefreshLinkVisual();
+  if(amLinkMode && typeof showToast==='function') showToast('Click a person, then the person they influence');
+}
+function amRefreshLinkVisual(){
+  document.querySelectorAll('.am-node').forEach(el=>{ const n=amModel&&amModel.nodes[Number(el.getAttribute('data-am-idx'))]; el.classList.toggle('am-node--link-src', !!(n && amLinkSrcKey && n.key===amLinkSrcKey)); });
+}
+function amHandleLinkClick(node){
+  if(!node.contactId){ if(typeof showToast==='function') showToast('Only database contacts can be linked'); return; }
+  if(!amLinkSrcKey){ amLinkSrcKey=node.key; amRefreshLinkVisual(); return; }
+  if(amLinkSrcKey===node.key){ amLinkSrcKey=null; amRefreshLinkVisual(); return; }
+  const src=amModel.nodes.find(n=>n.key===amLinkSrcKey); amLinkSrcKey=null; amRefreshLinkVisual();
+  if(src && src.contactId) amAddInfluence(src, node);
+}
+async function amAddInfluence(src,dst){
+  if(amModel.influence.some(e=>e.from===src.key && e.to===dst.key)){ if(typeof showToast==='function') showToast('That link already exists'); return; }
+  const node_id=genId('IN');
+  const data={node_id, contact_id:src.contactId, role_type:'influence', name:dst.name||'', title:dst.title||'', linked_contact_id:dst.contactId, display_order:0, note:''};
+  try{
+    await postToSheet({action:'append', tab:'Org_Chart', data});
+    (window.__DATA.org_chart||(window.__DATA.org_chart=[])).push(data);
+    if(typeof buildIndexes==='function') buildIndexes();
+    amModel.influence.push({from:src.key, to:dst.key, note:'', node_id});
+    amDrawEdges();
+    if(typeof showToast==='function') showToast(`${src.name} → influences → ${dst.name}`);
+  }catch(err){ console.error('[LeadCheck] add influence failed',err); if(typeof showToast==='function') showToast('Couldn’t save link — '+(err.message||'unknown error')); }
+}
+async function amRemoveInfluence(i){
+  const e=amModel.influence[i]; if(!e) return;
+  const a=amModel.nodes.find(n=>n.key===e.from), b=amModel.nodes.find(n=>n.key===e.to);
+  if(!confirm(`Remove influence link${a&&b?`: ${a.name} → ${b.name}`:''}?`)) return;
+  const D=window.__DATA||{};
+  let nodeId=e.node_id;
+  if(!nodeId){ const row=(D.org_chart||[]).find(r=>r.role_type==='influence' && r.contact_id===(a&&a.contactId) && r.linked_contact_id===(b&&b.contactId)); nodeId=row&&row.node_id; }
+  try{
+    if(nodeId) await postToSheet({action:'delete', tab:'Org_Chart', idColumn:'node_id', idValue:nodeId});
+    if(Array.isArray(D.org_chart) && nodeId){ const ix=D.org_chart.findIndex(r=>r.node_id===nodeId); if(ix>=0) D.org_chart.splice(ix,1); }
+    if(typeof buildIndexes==='function') buildIndexes();
+    amModel.influence.splice(i,1);
+    amDrawEdges();
+    if(typeof showToast==='function') showToast('Influence link removed');
+  }catch(err){ console.error('[LeadCheck] remove influence failed',err); if(typeof showToast==='function') showToast('Couldn’t remove link'); }
+}
+async function amAutoMap(){
+  if(!amModel) return;
+  const D=window.__DATA||{};
+  const contacts=(D.contacts||[]).filter(c=>c.company_id===amCompanyId && c.contact_id);
+  const todo=[];
+  contacts.forEach(c=>{
+    const data={};
+    if(!normRelStatus(c.relationship_status)){ const s=contactRelStatus(c); if(s) data.relationship_status=s; }
+    if(!normDealRole(c.deal_role)){ const r=contactDealRole(c); if(r) data.deal_role=r; }
+    if(Object.keys(data).length) todo.push({c,data});
+  });
+  if(!todo.length){ if(typeof showToast==='function') showToast('Nothing new to infer — every contact is already tagged'); return; }
+  if(!confirm(`Auto-tag ${todo.length} contact${todo.length===1?'':'s'} from meeting notes? You can adjust any afterward.`)) return;
+  const btn=document.getElementById('am-automap-btn'); if(btn){ btn.disabled=true; btn.textContent='Tagging…'; }
+  let ok=0;
+  for(const t of todo){
+    try{ await postToSheet({action:'update',tab:'Contacts',idColumn:'contact_id',idValue:t.c.contact_id,data:t.data}); Object.assign(t.c,t.data); ok++; }
+    catch(err){ console.error('[LeadCheck] auto-map failed for',t.c.contact_id,err); }
+  }
+  if(typeof buildIndexes==='function') buildIndexes();
+  renderAccountMap(amCompanyId);
+  if(typeof showToast==='function') showToast(`Auto-tagged ${ok} contact${ok===1?'':'s'} from meeting notes`);
+}
+function amExportSVG(){
+  if(!amModel || !amModel.nodes.length) return;
+  const co=(window.__INDEX.companyById||{})[amCompanyId]||{};
+  const byKey=amModel._byKey||new Map(amModel.nodes.map(n=>[n.key,n]));
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  amModel.nodes.forEach(n=>{ minX=Math.min(minX,n.x); minY=Math.min(minY,n.y); maxX=Math.max(maxX,n.x+(n._w||AM_NODE_W)); maxY=Math.max(maxY,n.y+(n._h||70)); });
+  const pad=40, headH=54;
+  const ox=pad-minX, oy=pad-minY+headH, W=(maxX-minX)+pad*2, H=(maxY-minY)+pad*2+headH;
+  const seg=(a,b)=>{ const c1={x:amCenter(a).x+ox,y:amCenter(a).y+oy}, c2={x:amCenter(b).x+ox,y:amCenter(b).y+oy};
+    return {p1:amBorderPoint(c1,c2,(a._w||AM_NODE_W)/2,(a._h||70)/2), p2:amBorderPoint(c2,c1,(b._w||AM_NODE_W)/2,(b._h||70)/2)}; };
+  const esc=(s)=>escapeHtml(s);
+  let e='';
+  amModel.reporting.forEach(ed=>{ const a=byKey.get(ed.from), b=byKey.get(ed.to); if(!a||!b)return; const {p1,p2}=seg(a,b);
+    e+=`<line x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}" stroke="#9999A8" stroke-width="1.6" marker-end="url(#ar)"/>`; });
+  amModel.influence.forEach(ed=>{ const a=byKey.get(ed.from), b=byKey.get(ed.to); if(!a||!b)return; const {p1,p2}=seg(a,b);
+    e+=`<line x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}" stroke="#00BFFF" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#ari)"/>`; });
+  let nodesSvg='';
+  amModel.nodes.forEach(n=>{ const x=n.x+ox, y=n.y+oy, w=n._w||AM_NODE_W, h=n._h||70;
+    const stroke=n.source==='DATABASE'?'#1a1a7e':(n.source==='MENTIONED'?'#0000CC':'#D8D8E0');
+    const fill=n.source==='RESEARCHED'?'#F5F5F9':'#FFFFFF';
+    const bar=n.status?REL_STATUS[n.status].color:'';
+    nodesSvg+=`<g><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`;
+    if(bar) nodesSvg+=`<rect x="${x}" y="${y}" width="4" height="${h}" rx="2" fill="${bar}"/>`;
+    nodesSvg+=`<text x="${x+12}" y="${y+22}" font-size="12.5" font-weight="700" fill="#15151F">${esc((displayOrgName(n.name)||'').slice(0,24))}</text>`;
+    nodesSvg+=`<text x="${x+12}" y="${y+38}" font-size="10.5" fill="#6B6B7A">${esc((n.title||'').slice(0,28))}</text>`;
+    let ly=y+54; if(n.status){ nodesSvg+=`<text x="${x+12}" y="${ly}" font-size="9" font-weight="700" fill="${REL_STATUS[n.status].color}">${esc(REL_STATUS[n.status].label.toUpperCase())}${n.role?'  ·  '+esc(DEAL_ROLES[n.role].toUpperCase()):''}</text>`; }
+    else if(n.role){ nodesSvg+=`<text x="${x+12}" y="${ly}" font-size="9" font-weight="700" fill="#3A3A48">${esc(DEAL_ROLES[n.role].toUpperCase())}</text>`; }
+    nodesSvg+='</g>'; });
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Inter, system-ui, sans-serif">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#9999A8"/></marker><marker id="ari" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#00BFFF"/></marker></defs>
+    <rect x="0" y="0" width="${W}" height="${H}" fill="#FFFFFF"/>
+    <text x="${pad}" y="34" font-size="18" font-weight="700" fill="#15151F">${esc(co.name||'Account')} — Relationship Map</text>
+    ${e}${nodesSvg}</svg>`;
+  try{
+    const blob=new Blob([svg],{type:'image/svg+xml'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`account-map-${String(co.name||'account').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.svg`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+    if(typeof showToast==='function') showToast('Exported account map (SVG)');
+  }catch(err){ console.error('[LeadCheck] export failed',err); if(typeof showToast==='function') showToast('Export failed'); }
+}
+/* ========== End Account Map ========== */
 
 function templateColorClass(color){
   const c=String(color||'').toLowerCase();
