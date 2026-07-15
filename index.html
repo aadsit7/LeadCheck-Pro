@@ -550,6 +550,8 @@ main{flex:1;padding-bottom:var(--s-9)}
 .dedup-pair__vs{color:var(--ink-4);font-weight:700}
 .dedup-pair__acts{display:flex;gap:8px;margin-top:10px}
 .dedup-row .btn,.dedup-pair__acts .btn{padding:5px 12px;font-size:12px}
+.dedup-row__acts{display:flex;gap:8px;flex-shrink:0}
+.dedup-row__acts .btn[data-busy]{opacity:.6;cursor:default}
 .dedup-empty{text-align:center;color:var(--ink-3);font-size:13px;padding:24px 0}
 .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(15,15,30,.45);z-index:100;align-items:center;justify-content:center;padding:var(--s-4);backdrop-filter:blur(4px)}
 .modal-backdrop.open{display:flex;animation:fadeIn var(--t-med) var(--ease)}
@@ -1831,6 +1833,16 @@ async function promoteOpportunityPlaceholders(placeholders){
 
 function buildIndexes(){
   const D = window.__DATA || {};
+  // Hard-merged duplicates carry a `merged_into` marker persisted to the Sheet.
+  // Fold them out of the live contact set here — the single choke point every
+  // view reads from — so a merged person vanishes everywhere (contact list,
+  // account map, org chart, Titles & Roles) and can never resurface for review.
+  // The rows aren't destroyed, just set aside, so the decision stays recoverable.
+  if(Array.isArray(D.contacts)){
+    const live=[], merged=[];
+    D.contacts.forEach(c=>{ if(c && String(c.merged_into||'').trim()) merged.push(c); else live.push(c); });
+    if(merged.length){ D.contacts=live; D._mergedContacts=(D._mergedContacts||[]).concat(merged); }
+  }
   const idx = {
     contactById: {},
     companyById: {},
@@ -2287,7 +2299,7 @@ function dedupReviewHtml(){
       const p=dedupContactLabel(g.primaryId);
       const rows=g.memberIds.map(mid=>{
         const m=dedupContactLabel(mid);
-        return `<div class="dedup-row"><div class="dedup-row__info"><div class="dedup-row__name">${escapeHtml(m.name)}${m.sub?` <span class="dedup-row__sub">· ${escapeHtml(m.sub)}</span>`:''}</div><div class="dedup-row__why">${escapeHtml(dq.reasonOf.get(mid)||g.reason||'')}</div></div><button class="btn btn--sm btn--ghost" type="button" data-dedup-separate="${escapeHtml(mid)}">Keep separate</button></div>`;
+        return `<div class="dedup-row"><div class="dedup-row__info"><div class="dedup-row__name">${escapeHtml(m.name)}${m.sub?` <span class="dedup-row__sub">· ${escapeHtml(m.sub)}</span>`:''}</div><div class="dedup-row__why">${escapeHtml(dq.reasonOf.get(mid)||g.reason||'')}</div></div><div class="dedup-row__acts"><button class="btn btn--sm btn--primary" type="button" data-dedup-confirm="${escapeHtml(g.primaryId)}|${escapeHtml(mid)}" title="Confirm the same person — fold into ${escapeHtml(p.name)} and stop showing this">Merge</button><button class="btn btn--sm btn--ghost" type="button" data-dedup-separate="${escapeHtml(mid)}">Keep separate</button></div></div>`;
       }).join('');
       body+=`<div class="dedup-group"><div class="dedup-group__head"><span class="dedup-group__badge">Kept</span><span class="dedup-row__name">${escapeHtml(p.name)}</span>${p.sub?`<span class="dedup-row__sub">${escapeHtml(p.sub)}</span>`:''}</div>${rows}</div>`;
     });
@@ -2340,6 +2352,61 @@ function dedupKeepSeparate(memberId){
   dedupSaveOverrides(o);
 }
 
+// Fields folded from a merged duplicate into the surviving primary. Only BLANK
+// primary fields are filled, so merging never overwrites better data on the
+// record we keep. Array-valued fields (themes/certifications) are left out —
+// they'd need pipe-serialisation to round-trip through the Sheet.
+const DEDUP_FOLD_FIELDS=['title','email','email_confidence','linkedin_url','location','education','background','decision_role','outreach_angle','overall_confidence','relationship_status','deal_role','relationship_owner','verified'];
+
+// Of two contact ids, choose the more complete record as the one to KEEP.
+function dedupPickPrimary(a,b){
+  const IDX=window.__INDEX||{};
+  const ca=(IDX.contactById||{})[a], cb=(IDX.contactById||{})[b];
+  const sa=ca?dedupFeatures(ca).complete:-1, sb=cb?dedupFeatures(cb).complete:-1;
+  return sa>=sb ? {primaryId:a, memberId:b} : {primaryId:b, memberId:a};
+}
+
+// Confirm two records are the SAME person and hard-merge `memberId` into
+// `primaryId`: fold any fields the primary is missing, stamp `merged_into` on the
+// duplicate so it disappears from every view and is never re-reviewed, and write
+// both changes back to the Google Sheet. In-memory state is updated regardless so
+// the merge is consistent for the session even if the backend write fails.
+async function dedupHardMerge(primaryId, memberId, btn){
+  const D=window.__DATA||{}, IDX=window.__INDEX||{};
+  if(!primaryId || !memberId || primaryId===memberId) return;
+  const primary=(IDX.contactById||{})[primaryId] || (D.contacts||[]).find(c=>c.contact_id===primaryId);
+  const member=(IDX.contactById||{})[memberId] || (D.contacts||[]).find(c=>c.contact_id===memberId);
+  if(!primary || !member) return;
+  if(btn){ btn.disabled=true; btn.dataset.busy='1'; btn.textContent='Merging…'; }
+
+  // 1) Fold blank primary fields from the duplicate.
+  const filled={};
+  DEDUP_FOLD_FIELDS.forEach(f=>{ if(!String(primary[f]||'').trim() && String(member[f]||'').trim()) filled[f]=member[f]; });
+
+  // 2) Persist: fill the primary, then mark the duplicate as merged into it.
+  const today=(new Date()).toISOString().slice(0,10);
+  let saved=true;
+  try{
+    if(Object.keys(filled).length) await postToSheet({action:'update', tab:'Contacts', idColumn:'contact_id', idValue:primaryId, data:Object.assign({}, filled, {last_updated:today})});
+    await postToSheet({action:'update', tab:'Contacts', idColumn:'contact_id', idValue:memberId, data:{merged_into:primaryId, last_updated:today}});
+  }catch(err){ saved=false; console.error('[LeadCheck] merge write-back failed', err); }
+
+  // 3) Reflect in memory whether or not the Sheet write succeeded.
+  Object.assign(primary, filled);
+  member.merged_into=primaryId;
+  // Drop any prior separate/merge override for this pair so it can't fight the marker.
+  try{ const o=dedupLoadOverrides(); const key=dedupPairKey(primaryId,memberId);
+    o.separate=(o.separate||[]).filter(k=>k!==key); o.merge=(o.merge||[]).filter(k=>k!==key);
+    localStorage.setItem(DEDUP_OVERRIDES_KEY, JSON.stringify(o)); }catch(e){}
+
+  if(typeof buildIndexes==='function') buildIndexes();   // drops the merged row from every view
+  invalidateDuplicateIndex();
+  if(typeof showToast==='function') showToast(saved
+    ? ('Merged “'+(member.full_name||'contact')+'” into '+(primary.full_name||'the kept record'))
+    : 'Merged for this session — couldn’t save to the sheet (backend offline)');
+  refreshDedupReview();
+}
+
 document.addEventListener('click',e=>{
   // The merged badge sits inside a [data-route] contact row, so swallow the
   // event before the row's navigate handler (registered later on document) runs.
@@ -2348,8 +2415,12 @@ document.addEventListener('click',e=>{
   if(e.target.closest('[data-dedup-close]')){ stop(); closeDedupReview(); return; }
   const sep=e.target.closest('[data-dedup-separate]');
   if(sep){ stop(); dedupKeepSeparate(sep.getAttribute('data-dedup-separate')); if(typeof showToast==='function') showToast('Kept as a separate contact'); refreshDedupReview(); return; }
+  // Confirm a cross-referenced pair as the same person → hard-merge + write-back.
+  const conf=e.target.closest('[data-dedup-confirm]');
+  if(conf){ stop(); if(conf.dataset.busy) return; const [p,m]=conf.getAttribute('data-dedup-confirm').split('|'); dedupHardMerge(p, m, conf); return; }
+  // "Same person — merge" on a suggested pair: keep the more complete record.
   const mrg=e.target.closest('[data-dedup-merge]');
-  if(mrg){ stop(); const [a,b]=mrg.getAttribute('data-dedup-merge').split('|'); dedupAddOverride('merge',a,b); if(typeof showToast==='function') showToast('Merged as the same person'); refreshDedupReview(); return; }
+  if(mrg){ stop(); if(mrg.dataset.busy) return; const [a,b]=mrg.getAttribute('data-dedup-merge').split('|'); const {primaryId,memberId}=dedupPickPrimary(a,b); dedupHardMerge(primaryId, memberId, mrg); return; }
   const ns=e.target.closest('[data-dedup-notsame]');
   if(ns){ stop(); const [a,b]=ns.getAttribute('data-dedup-notsame').split('|'); dedupAddOverride('separate',a,b); if(typeof showToast==='function') showToast('Marked as different people'); refreshDedupReview(); return; }
 });
