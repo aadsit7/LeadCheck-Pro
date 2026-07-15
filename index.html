@@ -4861,6 +4861,11 @@ function renderAccountMap(companyId){
     }
   }
   const isNewCompany = amRenderedCompany!==amCompanyId;
+  // How many people were on the chart in the previous render of THIS account, so
+  // we can auto-fit when the chart transitions from empty → populated (e.g. after
+  // Infer org / Deep infer / the first manual link). Without this the freshly
+  // laid-out nodes render outside the current viewport and the canvas looks empty.
+  const prevInChart = (!isNewCompany && amModel) ? amModel.nodes.filter(n=>n.inChart).length : 0;
   if(isNewCompany){ amZoom=1; amPanX=40; amPanY=28; amLinkMode=false; amLinkSrcKey=null; }
   // A pending inferred-org preview only applies to the account it was made on —
   // switching accounts discards the unsaved staging rows so they don't leak.
@@ -4876,7 +4881,11 @@ function renderAccountMap(companyId){
   amMeasureAndDrawEdges();
   amWireCanvas();
   amApplyFilter();
-  if(isNewCompany) amFit();
+  // Fit on the first render of an account, and whenever the org chart just went
+  // from empty to populated — otherwise the newly placed nodes sit off-screen and
+  // the map appears blank even though the model (and the preview bar) say it's full.
+  const curInChart = amModel.nodes.filter(n=>n.inChart).length;
+  if(isNewCompany || (prevInChart===0 && curInChart>0)) amFit();
 }
 
 function amPickerHtml(companies){
@@ -5537,6 +5546,7 @@ function amInferReporting(){
   amInferPreview={companyId:amCompanyId, rows, stats:{count:fresh.length, avg, coverage:Math.round(coverage*100)}};
   if(typeof buildIndexes==='function') buildIndexes();
   renderAccountMap(amCompanyId);
+  amFit();   // frame the freshly proposed tree even if the chart already had nodes
 }
 
 // --- Deep infer (AI): research every contact online, then reason the org ------
@@ -5671,6 +5681,7 @@ async function amDeepInferReporting(){
   }};
   if(typeof buildIndexes==='function') buildIndexes();
   renderAccountMap(amCompanyId);
+  amFit();   // frame the freshly proposed tree even if the chart already had nodes
   if(typeof showToast==='function') showToast('Researched '+researched+' contact'+(researched===1?'':'s')+' · proposed '+fresh.length+' reporting line'+(fresh.length===1?'':'s')+(aborted?' (stopped early)':''));
 }
 
