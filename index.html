@@ -868,6 +868,100 @@ main{flex:1;padding-bottom:var(--s-9)}
 .org-tree .org-node[data-co-drag]{cursor:grab}
 .org-tree .org-node[data-co-drag]:active{cursor:grabbing}
 .org-tree .org-node[data-co-drag]:hover::after{content:'⋮⋮';position:absolute;top:6px;right:6px;font-size:9px;color:var(--ink-4);letter-spacing:-1px;pointer-events:none}
+
+/* ========================================================================
+   Contact Overview — the modern "contact card" shown first on click.
+   Leads with identity, buying role, recent LinkedIn activity, reporting
+   line and notes; every claim carries a verification chip so nothing
+   reads as fact unless it's sourced. Built on the existing tokens. */
+.ov{display:flex;flex-direction:column;gap:var(--s-3)}
+
+/* Verification chips — the trust language of the whole card */
+.vchip{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 7px;border-radius:100px;white-space:nowrap;line-height:1.4}
+.vchip svg{width:10px;height:10px}
+.vchip--verified{background:var(--green-bg);color:var(--green)}
+.vchip--inferred{background:var(--amber-bg);color:var(--amber)}
+.vchip--unverified{background:var(--bg-tint);color:var(--ink-4)}
+.vchip--pattern{background:var(--primary-100);color:var(--primary)}
+
+/* Identity grid — name / title / company / email / tenure / location / links */
+.ov-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--elev-1)}
+.ov-card__head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:11px var(--s-4);background:var(--bg-tint);border-bottom:1px solid var(--border)}
+.ov-card__title{font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:7px}
+.ov-card__title svg{width:13px;height:13px;opacity:.85}
+.ov-card__meta{font-size:11px;color:var(--ink-3);font-weight:500}
+.ov-card__body{padding:var(--s-4)}
+.ov-card__link{font-size:12px;font-weight:600;color:var(--primary);display:inline-flex;align-items:center;gap:4px}
+.ov-card__link:hover{text-decoration:underline}
+.ov-card__link svg{width:12px;height:12px}
+
+.ov-facts{display:grid;grid-template-columns:1fr;gap:1px;background:var(--border);border-radius:var(--r-md);overflow:hidden;border:1px solid var(--border)}
+@media(min-width:560px){.ov-facts{grid-template-columns:1fr 1fr}}
+.ov-fact{background:var(--bg);padding:10px 13px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.ov-fact__label{font-size:10px;font-weight:700;color:var(--ink-4);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px}
+.ov-fact__label svg{width:12px;height:12px;opacity:.7}
+.ov-fact__value{font-size:14px;font-weight:600;color:var(--ink);line-height:1.35;display:flex;align-items:center;gap:8px;flex-wrap:wrap;word-break:break-word}
+.ov-fact__value a{color:var(--primary)}
+.ov-fact__value a:hover{text-decoration:underline}
+.ov-fact__value--muted{color:var(--ink-4);font-weight:500;font-style:italic}
+.ov-fact__sub{font-size:11px;color:var(--ink-3);font-weight:500}
+
+/* ICP / buying role band */
+.ov-icp{display:flex;flex-direction:column;gap:10px}
+.ov-icp__row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.icp-badge{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;letter-spacing:-.01em;padding:5px 12px;border-radius:100px;color:#fff}
+.icp-badge svg{width:13px;height:13px}
+.icp-badge--none{background:var(--bg-tint);color:var(--ink-3);border:1px dashed var(--border-strong)}
+.rel-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:4px 11px;border-radius:100px}
+.rel-badge__dot{width:7px;height:7px;border-radius:50%}
+.ov-icp__reason{font-size:13px;color:var(--ink-2);line-height:1.55}
+.ov-icp__reason b{color:var(--ink);font-weight:600}
+.ov-icp__owner{font-size:12px;color:var(--ink-3)}
+.ov-icp__owner b{color:var(--ink-2);font-weight:600}
+
+/* Recent LinkedIn / public posts (top 3) */
+.ov-post{display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)}
+.ov-post:first-child{padding-top:2px}
+.ov-post:last-child{border-bottom:0;padding-bottom:2px}
+.ov-post__rank{width:22px;height:22px;border-radius:var(--r-sm);background:var(--primary-100);color:var(--primary);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-variant-numeric:tabular-nums}
+.ov-post__body{flex:1;min-width:0}
+.ov-post__text{font-size:13px;color:var(--ink);line-height:1.5}
+.ov-post__text b{font-weight:600}
+.ov-post__foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px;font-size:11px;color:var(--ink-4)}
+.ov-post__tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--primary);background:var(--primary-100);padding:1px 7px;border-radius:100px;text-transform:uppercase;letter-spacing:.03em}
+.ov-post__tag svg{width:10px;height:10px}
+.ov-post__foot a{color:var(--primary);font-weight:600}
+.ov-post__foot a:hover{text-decoration:underline}
+
+/* Reporting-line snapshot (compact org chain) */
+.ov-chain{display:flex;flex-direction:column;align-items:stretch;gap:0}
+.ov-chain__node{display:flex;align-items:center;gap:11px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg)}
+.ov-chain__node--target{background:var(--primary);border-color:var(--primary)}
+.ov-chain__node--target .ov-chain__name{color:#fff}
+.ov-chain__node--target .ov-chain__role{color:rgba(255,255,255,.75)}
+.ov-chain__av{width:30px;height:30px;font-size:11px}
+.ov-chain__body{flex:1;min-width:0}
+.ov-chain__name{font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ov-chain__role{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ov-chain__link{display:flex;justify-content:center;height:16px}
+.ov-chain__link::before{content:'';width:1px;height:16px;background-image:linear-gradient(to bottom,var(--border-strong) 50%,transparent 50%);background-size:1px 4px}
+.ov-chain__counts{display:flex;gap:var(--s-3);margin-top:11px;font-size:12px;color:var(--ink-3)}
+.ov-chain__counts b{color:var(--ink);font-weight:700}
+
+/* Notes */
+.ov-notes{font-size:13px;color:var(--ink-2);line-height:1.6;white-space:pre-wrap}
+
+/* Methodology / provenance footer */
+.ov-method{background:var(--bg-tint);border:1px solid var(--border);border-radius:var(--r-md)}
+.ov-method__grid{display:grid;grid-template-columns:1fr;gap:7px}
+@media(min-width:560px){.ov-method__grid{grid-template-columns:1fr 1fr}}
+.ov-src{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-3)}
+.ov-src__mark{width:15px;height:15px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:700}
+.ov-src__mark--on{background:var(--green-bg);color:var(--green)}
+.ov-src__mark--off{background:var(--bg);color:var(--ink-4);border:1px solid var(--border)}
+.ov-src--on{color:var(--ink-2)}
+.ov-method__note{font-size:11px;color:var(--ink-4);line-height:1.5;margin-top:11px;padding-top:11px;border-top:1px solid var(--border)}
+.ov-empty{font-size:13px;color:var(--ink-4);font-style:italic;padding:2px 0}
 </style>
 </head>
 <body>
@@ -956,6 +1050,7 @@ main{flex:1;padding-bottom:var(--s-9)}
           <div class="contact-head__name-row">
             <span class="contact-head__name" id="contact-name">Jane Smith</span>
             <span class="pill pill--green" id="contact-verified">Verified</span>
+            <span class="rel-badge" id="contact-icp" style="display:none"></span>
           </div>
           <div class="contact-head__title" id="contact-title">Director of End User Computing · Acme Technologies</div>
           <div class="contact-head__meta" id="contact-meta">
@@ -980,13 +1075,16 @@ main{flex:1;padding-bottom:var(--s-9)}
       </div>
 
       <nav class="tabs">
-        <button class="tab active" data-tab="profile">Profile</button>
+        <button class="tab active" data-tab="overview">Overview</button>
+        <button class="tab" data-tab="profile">Profile</button>
         <button class="tab" data-tab="company">Company</button>
         <button class="tab" data-tab="org">Org</button>
         <button class="tab" data-tab="playbook">Playbook</button>
       </nav>
 
-      <div class="panel active" data-panel="profile">
+      <div class="panel active" data-panel="overview"></div>
+
+      <div class="panel" data-panel="profile">
         <div class="section">
           <div class="section__head"><span class="section__title">Pre-Call Briefing</span></div>
           <div class="section__body">
@@ -2356,7 +2454,7 @@ function dedupKeepSeparate(memberId){
 // primary fields are filled, so merging never overwrites better data on the
 // record we keep. Array-valued fields (themes/certifications) are left out —
 // they'd need pipe-serialisation to round-trip through the Sheet.
-const DEDUP_FOLD_FIELDS=['title','email','email_confidence','linkedin_url','location','education','background','decision_role','outreach_angle','overall_confidence','relationship_status','deal_role','relationship_owner','verified'];
+const DEDUP_FOLD_FIELDS=['title','email','email_confidence','linkedin_url','location','education','background','tenure','notes','decision_role','outreach_angle','overall_confidence','relationship_status','deal_role','relationship_owner','verified'];
 
 // Of two contact ids, choose the more complete record as the one to KEEP.
 function dedupPickPrimary(a,b){
@@ -3191,6 +3289,287 @@ function activityIcon(type){
   return SVG_DOC;
 }
 
+/* ================= Contact Overview card =================
+   The modern "contact card" surfaced the moment a contact is opened.
+   It leads with the facts a seller asks for first — name, email, company,
+   title, tenure, buying role, recent LinkedIn activity, reporting line and
+   notes — and, per the LeadCheck sourcing methodology, tags every claim with
+   a verification chip so nothing reads as fact unless it is publicly sourced.
+   Missing data is labelled, never invented. */
+
+const OV_ICON={
+  id:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  mail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>',
+  building:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M6 21V4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v17"/><path d="M15 21V9h3a1 1 0 0 1 1 1v11"/><path d="M9 7h1M9 11h1M9 15h1"/></svg>',
+  briefcase:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+  linkedin:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg>',
+  target:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+  org:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="16" y="16" width="6" height="6" rx="1"/><path d="M12 8v4M5 16v-2h14v2"/></svg>',
+  note:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'
+};
+
+// Committee-seat colours for the ICP badge (buying-committee role).
+const DEAL_ROLE_COLOR={
+  'economic-buyer':'#0000CC','decision-maker':'#0F7A3F','technical-evaluator':'#0E7490',
+  'influencer':'#B57500','coach':'#3B8A4E','user':'#6B6B7A','blocker':'#C42020'
+};
+
+// Verification chip. state ∈ verified | inferred | unverified | pattern
+function ovChip(state, labelOverride){
+  const map={
+    verified:['vchip--verified','Verified'],
+    inferred:['vchip--inferred','Inferred'],
+    unverified:['vchip--unverified','Unverified'],
+    pattern:['vchip--pattern','Pattern-matched']
+  };
+  const m=map[state]||map.unverified;
+  return `<span class="vchip ${m[0]}">${labelOverride?escapeHtml(labelOverride):m[1]}</span>`;
+}
+
+// email_confidence → verification state for the email fact.
+function ovEmailState(conf){
+  const v=String(conf||'').toUpperCase();
+  if(v==='HIGH') return 'verified';
+  if(v==='MEDIUM') return 'pattern';
+  return 'unverified';
+}
+
+// Years with company. Explicit structured fields win and are marked Verified;
+// otherwise we make a conservative inference from the bio and clearly label it
+// Inferred. Returns {text, state} or null when nothing is available.
+function ovTenure(raw){
+  const nowY=new Date().getFullYear();
+  const explicit=String(raw.tenure||raw.years_with_company||raw.time_with_company||'').trim();
+  if(explicit) return {text:explicit, state:'verified'};
+  const start=String(raw.start_date||raw.company_start_date||'').trim();
+  if(start){
+    const y=parseInt(String(start).slice(0,4),10);
+    if(y>=1970 && y<=nowY){
+      const yrs=nowY-y;
+      return {text:(yrs<=0?'< 1 yr':yrs+' yr'+(yrs===1?'':'s'))+' · since '+y, state:'verified'};
+    }
+  }
+  const bg=String(raw.background||'');
+  let m=bg.match(/\b(?:joined|started (?:at|with)|has been (?:at|with)|been (?:at|with)[^.]*?since)[^.]*?\b((?:19|20)\d\d)\b/i)
+     || bg.match(/\b(?:since|joined in)\s+((?:19|20)\d\d)\b/i);
+  if(m){
+    const y=parseInt(m[1],10);
+    const yrs=nowY-y;
+    if(yrs>=0 && yrs<80) return {text:'~'+(yrs<=0?'<1':yrs)+' yr'+(yrs===1?'':'s')+' · since '+y, state:'inferred'};
+  }
+  m=bg.match(/\b(\d{1,2})\s*[- ]?year(?:s)?\b[^.]{0,24}\b(?:with|at)\s+(?:the\s+)?(?:company|firm|organi[sz]ation|[A-Z])/i);
+  if(m){ const n=parseInt(m[1],10); if(n>0&&n<80) return {text:'~'+n+' yr'+(n===1?'':'s'), state:'inferred'}; }
+  return null;
+}
+
+// Recent public posts (top N). LinkedIn / posts are ranked first, then recency.
+function ovRecentPosts(id, limit){
+  const IDX=window.__INDEX||{};
+  const acts=((IDX.byContact&&IDX.byContact.activities&&IDX.byContact.activities[id])||[]).slice();
+  const scored=acts.filter(a=>a && (a.title||a.description||a.url)).map(a=>{
+    const type=String(a.activity_type||'').toLowerCase();
+    const url=String(a.url||'').toLowerCase();
+    const isLinkedIn=url.includes('linkedin.com')||/\b(post|linkedin|update|status)\b/.test(type);
+    return {a, isLinkedIn, t:Date.parse(a.date||'')||0};
+  });
+  scored.sort((x,y)=> x.isLinkedIn!==y.isLinkedIn ? (x.isLinkedIn?-1:1) : (y.t-x.t));
+  return scored.slice(0, limit||3);
+}
+
+// Reporting-line snapshot from the org_chart rows for this contact.
+function ovOrgChain(id){
+  const IDX=window.__INDEX||{};
+  const nodes=(IDX.byContact&&IDX.byContact.org_chart&&IDX.byContact.org_chart[id])||[];
+  const byRole={}; const peers=[]; const reports=[];
+  nodes.forEach(n=>{
+    const rt=n.role_type;
+    if(rt==='peer') peers.push(n);
+    else if(rt==='directReport') reports.push(n);
+    else if(rt && !byRole[rt]) byRole[rt]=n;
+  });
+  const chain=['topExec','functionHead','manager','target'].map(r=>byRole[r]).filter(Boolean);
+  return {chain, peers, reports, total:nodes.length};
+}
+
+// org_chart confidence text → verification state.
+function ovNodeState(node){
+  const k=String(node&&node.confidence||'').toLowerCase();
+  if(node&&node.role_type==='target') return 'verified';
+  if(k==='confirmed') return 'verified';
+  if(k==='inferred') return 'inferred';
+  return 'unverified';
+}
+
+// The single strongest buying-role signal for the hero badge.
+function ovPrimaryRole(raw){
+  const rel=contactRelStatus(raw);
+  const deal=contactDealRole(raw);
+  if(rel==='champion') return {label:'Champion', color:REL_STATUS.champion.color};
+  if(rel==='blocker') return {label:'Blocker', color:REL_STATUS.blocker.color};
+  if(deal) return {label:DEAL_ROLES[deal], color:DEAL_ROLE_COLOR[deal]||'#6B6B7A'};
+  if(rel) return {label:REL_STATUS[rel].label, color:REL_STATUS[rel].color};
+  return null;
+}
+
+function renderOverviewPanel(raw, id, ctx){
+  const panel=document.querySelector('.panel[data-panel="overview"]');
+  if(!panel) return;
+  const IDX=window.__INDEX||{};
+  ctx=ctx||{};
+  const name=ctx.name||raw.full_name||'';
+  const initials=ctx.initials||deriveInitials(name);
+  const companyName=ctx.companyName||'';
+  const email=String(raw.email||'').trim();
+  const title=String(raw.title||'').trim();
+  const location=String(raw.location||'').trim();
+  const links=(IDX.byContact&&IDX.byContact.contact_links&&IDX.byContact.contact_links[id])||[];
+  const liLink=links.find(l=>String(l.link_type||'').toLowerCase().includes('linkedin'))||(raw.linkedin_url?{url:raw.linkedin_url}:null);
+  const nameVerified=String(raw.verified||'').toUpperCase()==='TRUE';
+
+  /* ---- Identity facts ---- */
+  const facts=[];
+  facts.push(`<div class="ov-fact"><div class="ov-fact__label">${OV_ICON.id}Name</div><div class="ov-fact__value">${escapeHtml(name)||'<span class="ov-fact__value--muted">Unknown</span>'} ${name?ovChip(nameVerified?'verified':'unverified'):''}</div></div>`);
+
+  const roleVal=title?`${escapeHtml(title)} ${ovChip(nameVerified?'verified':'unverified')}`:`<span class="ov-fact__value--muted">No title on file</span>`;
+  facts.push(`<div class="ov-fact"><div class="ov-fact__label">${OV_ICON.briefcase}Title / Role</div><div class="ov-fact__value">${roleVal}</div></div>`);
+
+  facts.push(`<div class="ov-fact"><div class="ov-fact__label">${OV_ICON.building}Company</div><div class="ov-fact__value">${companyName?escapeHtml(companyName):'<span class="ov-fact__value--muted">Not linked</span>'}</div></div>`);
+
+  const emailVal=email
+    ? `<a href="mailto:${escapeHtml(email)}" class="mono">${escapeHtml(email)}</a> ${ovChip(ovEmailState(raw.email_confidence))}`
+    : `<span class="ov-fact__value--muted">Not found</span>`;
+  facts.push(`<div class="ov-fact"><div class="ov-fact__label">${OV_ICON.mail}Email</div><div class="ov-fact__value">${emailVal}</div></div>`);
+
+  const tenure=ovTenure(raw);
+  const tenureVal=tenure
+    ? `${escapeHtml(tenure.text)} ${ovChip(tenure.state)}`
+    : `<span class="ov-fact__value--muted">Not available</span>`;
+  facts.push(`<div class="ov-fact"><div class="ov-fact__label">${OV_ICON.clock}Years with company</div><div class="ov-fact__value">${tenureVal}</div></div>`);
+
+  const contactBits=[];
+  if(location) contactBits.push(`<span>${escapeHtml(location)}</span>`);
+  if(liLink&&liLink.url) contactBits.push(`<a href="${escapeHtml(liLink.url)}" target="_blank" rel="noopener">LinkedIn profile ↗</a>`);
+  facts.push(`<div class="ov-fact"><div class="ov-fact__label">${OV_ICON.pin}Location &amp; links</div><div class="ov-fact__value" style="font-weight:500;font-size:13px">${contactBits.length?contactBits.join(' · '):'<span class="ov-fact__value--muted">—</span>'}</div></div>`);
+
+  const identityCard=`<div class="ov-card">
+    <div class="ov-card__head"><span class="ov-card__title">${OV_ICON.id}Identity</span><span class="ov-card__meta">${nameVerified?'Verified profile':'Verification pending'}</span></div>
+    <div class="ov-card__body"><div class="ov-facts">${facts.join('')}</div></div>
+  </div>`;
+
+  /* ---- ICP / buying role ---- */
+  const rel=contactRelStatus(raw);
+  const deal=contactDealRole(raw);
+  const dealStored=!!normDealRole(raw.deal_role);
+  const relStored=!!normRelStatus(raw.relationship_status);
+  const owner=contactRelOwner(raw);
+  const icpParts=[];
+  if(deal){
+    const col=DEAL_ROLE_COLOR[deal]||'#6B6B7A';
+    icpParts.push(`<span class="icp-badge" style="background:${col}">${OV_ICON.target}${escapeHtml(DEAL_ROLES[deal])}</span>${ovChip(dealStored?'verified':'inferred', dealStored?'Tagged':'Inferred')}`);
+  }
+  if(rel){
+    const rc=REL_STATUS[rel];
+    icpParts.push(`<span class="rel-badge" style="background:${REL_STATUS_BG[rel]};color:${rc.color}"><span class="rel-badge__dot" style="background:${rc.color}"></span>${escapeHtml(rc.label)}</span>${ovChip(relStored?'verified':'inferred', relStored?'Tagged':'Inferred')}`);
+  }
+  if(!deal && !rel) icpParts.push(`<span class="icp-badge icp-badge--none">Buying role not yet mapped</span>`);
+  const reasonTxt=String(raw.decision_role||'').trim();
+  const icpCard=`<div class="ov-card">
+    <div class="ov-card__head"><span class="ov-card__title">${OV_ICON.target}ICP / Buying Role</span><button class="ov-card__link" type="button" data-ov-tab="org">Map role ${OV_ICON.target}</button></div>
+    <div class="ov-card__body"><div class="ov-icp">
+      <div class="ov-icp__row">${icpParts.join('')}</div>
+      ${reasonTxt?`<div class="ov-icp__reason">${escapeHtml(reasonTxt)}</div>`:`<div class="ov-empty">No decision-making authority captured yet — tag this contact or run research to fill it in.</div>`}
+      ${owner?`<div class="ov-icp__owner">Owned by <b>${escapeHtml(owner)}</b> on our side</div>`:''}
+    </div></div>
+  </div>`;
+
+  /* ---- Recent LinkedIn / public posts (top 3) ---- */
+  const posts=ovRecentPosts(id, 3);
+  const postsHtml=posts.map((p,i)=>{
+    const a=p.a;
+    const txt=escapeHtml(a.title||a.description||'');
+    const extra=(a.title&&a.description)?' — '+escapeHtml(a.description):'';
+    const foot=[];
+    if(p.isLinkedIn) foot.push(`<span class="ov-post__tag">${OV_ICON.linkedin}LinkedIn</span>`);
+    else if(a.activity_type) foot.push(`<span class="ov-post__tag" style="background:var(--bg-tint);color:var(--ink-3)">${escapeHtml(a.activity_type)}</span>`);
+    if(a.date) foot.push(`<span>${escapeHtml(a.date)}</span>`);
+    if(a.url) foot.push(`<a href="${escapeHtml(a.url)}" target="_blank" rel="noopener">${escapeHtml(a.source_name||'View post ↗')}</a>`);
+    return `<div class="ov-post">
+      <div class="ov-post__rank">${i+1}</div>
+      <div class="ov-post__body">
+        <div class="ov-post__text">${txt}${extra}</div>
+        ${foot.length?`<div class="ov-post__foot">${foot.join('')}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  const postsCard=`<div class="ov-card">
+    <div class="ov-card__head"><span class="ov-card__title">${OV_ICON.linkedin}Recent Public Posts</span><span class="ov-card__meta">LinkedIn &amp; published content · top 3</span></div>
+    <div class="ov-card__body">${posts.length?postsHtml:`<div class="ov-empty">No public posts found yet. Research pulls recent LinkedIn posts, articles and talks.</div>`}</div>
+  </div>`;
+
+  /* ---- Reporting line snapshot ---- */
+  const org=ovOrgChain(id);
+  const chainHtml=org.chain.map((n,i)=>{
+    const isTarget=n.role_type==='target';
+    const init=(n.initials&&String(n.initials).trim())||deriveInitials(n.name);
+    const av=isTarget?'avatar--blue':(ovNodeState(n)==='verified'?'avatar--green':(ovNodeState(n)==='inferred'?'avatar--amber':'avatar--gray'));
+    const chip=isTarget?'':ovChip(ovNodeState(n));
+    return `${i>0?'<div class="ov-chain__link"></div>':''}<div class="ov-chain__node${isTarget?' ov-chain__node--target':''}">
+      <div class="avatar ov-chain__av ${av}">${escapeHtml(init)}</div>
+      <div class="ov-chain__body"><div class="ov-chain__name">${escapeHtml(n.name||'')}</div><div class="ov-chain__role">${escapeHtml(n.title||'')}</div></div>
+      ${chip}
+    </div>`;
+  }).join('');
+  const countsHtml=(org.peers.length||org.reports.length)
+    ? `<div class="ov-chain__counts">${org.peers.length?`<span><b>${org.peers.length}</b> peer${org.peers.length===1?'':'s'}</span>`:''}${org.reports.length?`<span><b>${org.reports.length}</b> direct report${org.reports.length===1?'':'s'}</span>`:''}</div>`
+    : '';
+  const orgCard=`<div class="ov-card">
+    <div class="ov-card__head"><span class="ov-card__title">${OV_ICON.org}Reporting Line</span><button class="ov-card__link" type="button" data-ov-tab="org">Full org ${OV_ICON.org}</button></div>
+    <div class="ov-card__body">${org.chain.length?`<div class="ov-chain">${chainHtml}</div>${countsHtml}`:`<div class="ov-empty">No reporting structure mapped yet. Use Deep infer on the Account Map or research to build it.</div>`}</div>
+  </div>`;
+
+  /* ---- Notes ---- */
+  const notes=String(raw.notes||raw.note||'').trim();
+  const notesCard=notes?`<div class="ov-card">
+    <div class="ov-card__head"><span class="ov-card__title">${OV_ICON.note}Notes</span></div>
+    <div class="ov-card__body"><div class="ov-notes">${escapeHtml(notes)}</div></div>
+  </div>`:'';
+
+  /* ---- Methodology / provenance ---- */
+  const sources=((IDX.byContact&&IDX.byContact.sources&&IDX.byContact.sources[id])||[]);
+  const srcBlob=sources.map(s=>String((s.label||'')+' '+(s.url||'')).toLowerCase()).join(' ');
+  const has=re=>re.test(srcBlob);
+  const methodItems=[
+    ['LinkedIn profile &amp; posts', has(/linkedin/) || !!(liLink&&liLink.url)],
+    ['Company leadership / newsroom', has(/leadership|team|about|newsroom|press|company|\.com\/(about|team|leadership)/)],
+    ['Org-chart DBs (The Org, Official Board)', has(/theorg|the-org|officialboard|official board/) || org.chain.some(n=>ovNodeState(n)==='verified')],
+    ['Corporate registries (OpenCorporates)', has(/opencorporates|registry|companies house|sec\.gov|edgar/)],
+    ['Press releases &amp; news', has(/prnewswire|businesswire|press|news|reuters|bloomberg|techcrunch/)],
+    ['Crunchbase', has(/crunchbase/)],
+    ['SEC filings', has(/sec\.gov|edgar|10-k|8-k|proxy/)],
+    ['Search-engine cross-check', sources.length>0]
+  ];
+  const methodGrid=methodItems.map(([label,on])=>`<div class="ov-src${on?' ov-src--on':''}"><span class="ov-src__mark ${on?'ov-src__mark--on':'ov-src__mark--off'}">${on?'✓':''}</span>${label}</div>`).join('');
+  const methodCard=`<div class="ov-card ov-method">
+    <div class="ov-card__head"><span class="ov-card__title">${OV_ICON.shield}How this was researched</span><button class="ov-card__link" type="button" data-ov-sources="1">${sources.length} source${sources.length===1?'':'s'} ↓</button></div>
+    <div class="ov-card__body">
+      <div class="ov-method__grid">${methodGrid}</div>
+      <div class="ov-method__note">First-party sources are prioritised, then corroborated independently. Reporting lines and role ownership are shown as fact only when publicly verifiable — everything else is tagged <b>Inferred</b> or <b>Unverified</b>. A fresh conflict check runs on each Refresh.</div>
+    </div>
+  </div>`;
+
+  panel.innerHTML=`<div class="ov">
+    ${identityCard}
+    ${icpCard}
+    ${postsCard}
+    ${orgCard}
+    ${notesCard}
+    ${methodCard}
+  </div>`;
+}
+
 function renderContactDetail(id){
   const IDX=window.__INDEX||{contactById:{},companyById:{},byContact:{sources:{}}};
   // A merged duplicate resolves to its canonical record so stale links and
@@ -3215,13 +3594,28 @@ function renderContactDetail(id){
   const verified=document.getElementById('contact-verified');
   if(verified) verified.style.display=c.verified?'':'none';
 
+  // Buying-role badge in the hero — the single strongest ICP signal.
+  const icpEl=document.getElementById('contact-icp');
+  if(icpEl){
+    const pr=ovPrimaryRole(raw);
+    if(pr){
+      icpEl.textContent=pr.label;
+      icpEl.style.background='transparent';
+      icpEl.style.color=pr.color;
+      icpEl.style.boxShadow='inset 0 0 0 1.5px '+pr.color;
+      icpEl.style.display='';
+    } else { icpEl.style.display='none'; }
+  }
+
   const meta=document.getElementById('contact-meta');
   if(meta){
     const location=raw.location||'';
     const stale=formatStale(raw.last_updated);
+    const tenure=ovTenure(raw);
     const sourceCount=((IDX.byContact&&IDX.byContact.sources&&IDX.byContact.sources[c.id])||[]).length;
     const parts=[];
     if(location) parts.push(`<span>${SVG_PIN}${escapeHtml(location)}</span>`);
+    if(tenure) parts.push(`<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${escapeHtml(tenure.text)}${tenure.state==='inferred'?' (inferred)':''}</span>`);
     if(stale) parts.push(`<span>${SVG_CLOCK}Updated ${escapeHtml(stale)}</span>`);
     parts.push(`<span>${SVG_DOC}${sourceCount} source${sourceCount===1?'':'s'}</span>`);
     meta.innerHTML=parts.join('');
@@ -3234,7 +3628,12 @@ function renderContactDetail(id){
     else { emailBtn.removeAttribute('href'); emailBtn.style.display='none'; }
   }
 
+  // Always land on the Overview card — the modern at-a-glance view.
+  document.querySelectorAll('#view-contact .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='overview'));
+  document.querySelectorAll('#view-contact .panel').forEach(p=>p.classList.toggle('active',p.dataset.panel==='overview'));
+
   renderActionBar(raw);
+  renderOverviewPanel(raw, c.id, {name:c.name, initials:c.initials, companyName});
   renderProfilePanel(raw, c.id);
   renderCompanyPanel(raw, c.id);
   renderOrgPanel(raw, c.id);
@@ -6158,6 +6557,20 @@ document.querySelectorAll('.tab').forEach(tab=>{
 
 // Delegated handlers — panel HTML is re-rendered on each contact view.
 document.addEventListener('click',e=>{
+  // Overview card → jump to a deeper tab (Org, etc.)
+  const ovTabBtn=e.target.closest('[data-ov-tab]');
+  if(ovTabBtn){
+    const target=ovTabBtn.dataset.ovTab;
+    document.querySelectorAll('#view-contact .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===target));
+    document.querySelectorAll('#view-contact .panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===target));
+    return;
+  }
+  // Overview card → open & reveal the source log.
+  if(e.target.closest('[data-ov-sources]')){
+    const sl=document.getElementById('source-log');
+    if(sl){ sl.classList.add('open'); sl.scrollIntoView({behavior:'smooth',block:'center'}); }
+    return;
+  }
   const box=e.target.closest('.step__box');
   if(box){
     const state=((Number(box.dataset.state)||0)+1)%3;
@@ -6371,6 +6784,8 @@ function buildContactUpdateFields(researchResult, existingContact){
   if(hasResearchValue(r.education)) fields.education=r.education;
   if(Array.isArray(r.certifications) && r.certifications.length) fields.certifications=r.certifications.filter(Boolean).join('|');
   if(hasResearchValue(r.background)) fields.background=r.background;
+  if(hasResearchValue(r.tenure)) fields.tenure=r.tenure;
+  if(hasResearchValue(r.notes)) fields.notes=r.notes;
   if(hasResearchValue(r.decision_role)) fields.decision_role=r.decision_role;
   if(hasResearchValue(r.outreach_angle)) fields.outreach_angle=r.outreach_angle;
   if(Array.isArray(r.themes) && r.themes.length) fields.themes=r.themes.filter(Boolean).join('|');
@@ -6881,7 +7296,7 @@ Target person: ${name}
 Target company: ${companyTarget}
 
 RESEARCH STEPS
-1. Search LinkedIn for "${name}"${companyKnown?` at "${company}"`:''}. Capture exact current title, location, education, certifications, LinkedIn URL${companyKnown?'':', and the exact canonical name of their current employer'}.
+1. Search LinkedIn for "${name}"${companyKnown?` at "${company}"`:''}. Capture exact current title, location, education, certifications, LinkedIn URL${companyKnown?'':', and the exact canonical name of their current employer'}. Also capture how long they've been at the company (tenure) if the profile shows a start date or duration — put a concise value in "tenure" (e.g. "3 yrs · since 2021"); leave it empty if not stated. Put any short human-readable context a seller should know (working style, mutual connections, caveats) in "notes".
    IMPORTANT: also search common nickname/full-name variants (e.g. Bill↔William, Bob↔Robert, Mike↔Michael, Jim↔James, Tom↔Thomas, Kate↔Katherine, Liz↔Elizabeth, Chris↔Christopher, Tony↔Anthony, Rob↔Robert, Dave↔David, Joe↔Joseph, Dan↔Daniel, Tim↔Timothy, Steve↔Steven, Pat↔Patrick, Dick/Rick↔Richard, Ben↔Benjamin, Andy↔Andrew, Ed/Ted↔Edward, Charlie/Chuck↔Charles, Greg↔Gregory, Frank↔Francis, Fred↔Frederick, Sam↔Samuel, Pete↔Peter, Phil↔Philip, Ray↔Raymond, Ron↔Ronald). If a nickname-variant profile turns up (e.g. "William Francesconi" for "Bill Francesconi"), treat it as the same person and surface what you find — don't discard partial matches.
 2. Search the company website and ${companyKnown?`"${company}"`:"the identified company's"} leadership/team pages.
 3. Google the person with terms like "article", "blog", "podcast", "webinar", "keynote", "speaker" to surface recent public content. Also check ZoomInfo, RocketReach, Crunchbase, and The Org for confirmed title/role.
@@ -6921,7 +7336,9 @@ Use the exact shape below:
   "certifications": [],
   "verified": false,
   "overall_confidence": 0,
+  "tenure": "",
   "background": "",
+  "notes": "",
   "decision_role": "",
   "outreach_angle": "",
   "themes": [],
