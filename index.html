@@ -174,7 +174,7 @@ main{flex:1;padding-bottom:var(--s-9)}
 .avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius-tile);font-weight:700;flex-shrink:0;letter-spacing:-.02em;font-feature-settings:'tnum'}
 .avatar--sm{width:28px;height:28px;font-size:11px}
 .avatar--md{width:40px;height:40px;font-size:14px}
-.avatar--lg{width:52px;height:52px;font-size:17px}
+.avatar--lg{width:56px;height:56px;font-size:18px}
 .avatar--blue{background:var(--primary);color:#fff}
 .avatar--amber{background:var(--amber);color:#fff}
 .avatar--gray{background:var(--border);color:var(--ink-3)}
@@ -225,11 +225,17 @@ main{flex:1;padding-bottom:var(--s-9)}
 .back-link:hover{color:var(--ink)}
 .back-link svg{width:14px;height:14px}
 
-.contact-head{display:flex;gap:var(--s-4);align-items:flex-start;padding:var(--s-2) 0 var(--s-4);flex-wrap:wrap}
+.contact-head{display:flex;gap:var(--s-4);align-items:flex-start;padding:var(--s-2) 0 var(--s-5);flex-wrap:wrap}
 .contact-head__body{flex:1;min-width:200px}
 .contact-head__name-row{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap}
-.contact-head__name{font-size:22px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
-.contact-head__title{font-size:14px;color:var(--ink-2);margin-top:2px}
+.contact-head__name{font-size:28px;font-weight:700;letter-spacing:-.015em;color:var(--ink)}
+.contact-head__title{font-size:15px;color:var(--ink-2);margin-top:2px}
+/* R4 · Contact detail — blue accent, roomier rhythm */
+#view-contact .avatar--amber{background:var(--primary-100);color:var(--primary)}
+#view-contact .section{margin-bottom:var(--s-6)}
+#view-contact .ov{gap:var(--s-4)}
+#view-contact .action-bar{padding-bottom:var(--s-6)}
+#view-contact .tabs{margin-bottom:var(--s-6)}
 .contact-head__meta{display:flex;flex-wrap:wrap;gap:var(--s-3);margin-top:var(--s-2);font-size:12px;color:var(--ink-3)}
 .contact-head__meta span{display:inline-flex;align-items:center;gap:4px}
 .contact-head__meta svg{width:12px;height:12px;opacity:.6}
@@ -648,7 +654,7 @@ main{flex:1;padding-bottom:var(--s-9)}
 .preview-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--cyan)}
 
 @media(max-width:540px){
-  .contact-head__name{font-size:19px}
+  .contact-head__name{font-size:22px}
   .action-bar .btn span{display:none}
   .action-bar .btn{padding:8px 10px}
   .action-bar--confirming .btn span{display:inline}
@@ -1645,7 +1651,7 @@ Aaron</div>
     <div class="modal__foot">
       <span class="save-status" id="save-status"></span>
       <button class="btn btn--ghost" id="modal-cancel" type="button">Cancel</button>
-      <button class="btn btn--primary" id="modal-save" type="button">Save Contact</button>
+      <button class="btn btn--primary" id="modal-save" type="button">Save contact</button>
     </div>
   </div>
 </div>
@@ -4132,7 +4138,7 @@ function renderOrgPanel(raw, id){
       <div class="section__head">
         <div class="org-section-head">
           <span class="section__title">Reporting Line</span>
-          <button type="button" class="org-edit-toggle${orgEditMode?' active':''}" data-org-toggle>${orgEditMode?'Done':'Edit Org'}</button>
+          <button type="button" class="org-edit-toggle${orgEditMode?' active':''}" data-org-toggle>${orgEditMode?'Done':'Edit org'}</button>
         </div>
       </div>
       <div class="${bodyCls}">
