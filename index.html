@@ -135,6 +135,17 @@ main{flex:1;padding-bottom:var(--s-9)}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 .list-section{padding:var(--s-4) 0}
+/* R4 · Home — hairline-separated rows, roomy padding, one blue accent */
+#view-home .list-section{padding:0}
+#view-home .list-section + .list-section{border-top:1px solid var(--hairline)}
+#view-home #list-mount>.list-section:first-child,
+#view-home .dedup-banner + .list-section{border-top:0}
+#view-home .company-card{padding:var(--s-5) var(--s-3)}
+#view-home .contact-list{gap:0}
+#view-home .contact-list .contact-item{padding:var(--s-4) var(--s-3)}
+#view-home .contact-list .contact-item + .contact-item{border-top:1px solid var(--hairline)}
+#view-home .dedup-banner{margin:var(--s-3) 0 var(--s-4)}
+#view-home .avatar--amber{background:var(--primary-100);color:var(--primary)}
 .list-section__head{font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;padding:var(--s-2) 0;margin-bottom:var(--s-2)}
 .list-section__head--co{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);width:100%;cursor:pointer;padding:var(--s-2) var(--s-3);margin:0 calc(var(--s-3) * -1) var(--s-2);border-radius:var(--r-md);text-align:left;transition:background var(--t-fast) var(--ease)}
 .list-section__head--co:hover{background:var(--bg-tint)}
@@ -1015,8 +1026,8 @@ main{flex:1;padding-bottom:var(--s-9)}
     <div class="filter-row" id="filter-row">
       <div class="filter-chips">
         <button class="chip" data-filter="all">All<span class="chip__count">5</span></button>
-        <button class="chip active" data-filter="company">By Company</button>
-        <button class="chip" data-filter="high">High Confidence<span class="chip__count">3</span></button>
+        <button class="chip active" data-filter="company">By company</button>
+        <button class="chip" data-filter="high">High confidence<span class="chip__count">3</span></button>
       </div>
       <div class="sort">
         <button class="btn btn--sm btn--ghost" id="research-company-btn" type="button" title="Research any company and add it to your database">
@@ -1036,8 +1047,8 @@ main{flex:1;padding-bottom:var(--s-9)}
       </div>
     </div>
     <nav class="acct-tabs" id="acct-tabs" role="tablist" aria-label="Account type">
-      <button class="acct-tab active" type="button" data-acct-tab="customer" role="tab" aria-selected="true">Opportunity Accounts<span class="acct-tab__count" id="acct-count-customer">0</span></button>
-      <button class="acct-tab" type="button" data-acct-tab="partner" role="tab" aria-selected="false">Partner Accounts<span class="acct-tab__count" id="acct-count-partner">0</span></button>
+      <button class="acct-tab active" type="button" data-acct-tab="customer" role="tab" aria-selected="true">Opportunity accounts<span class="acct-tab__count" id="acct-count-customer">0</span></button>
+      <button class="acct-tab" type="button" data-acct-tab="partner" role="tab" aria-selected="false">Partner accounts<span class="acct-tab__count" id="acct-count-partner">0</span></button>
     </nav>
   </div>
 </header>
@@ -2852,12 +2863,12 @@ function renderCompanyExpanded(companyId){
   const listItems=dedupCollapseViewList(getContactsForList().filter(c=>c.companyId===companyId));
   const syncBtn=`<button class="btn btn--sm btn--ghost" onclick="syncOpportunityContacts('${companyId}')" id="sync-btn-${companyId}" style="font-size:12px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2.5 11.5a10 10 0 0 1 18.17-4.5M21.5 12.5a10 10 0 0 1-18.17 4.5"/></svg>
-          Sync Contacts
+          Sync contacts
         </button>`;
   const contactsHtml=`
     <div class="section">
       <div class="section__head" style="display:flex;align-items:center;gap:8px">
-        <span class="section__title">All Contacts · ${listItems.length}</span>
+        <span class="section__title">All contacts · ${listItems.length}</span>
         ${syncBtn}
       </div>
       ${listItems.length?`<div class="section__body" style="padding:8px">${listItems.map(itemHTML).join('')}</div>`:''}
