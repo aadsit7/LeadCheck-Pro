@@ -736,12 +736,16 @@ main{flex:1;padding-bottom:var(--s-9)}
 .app-nav__tab:hover{background:var(--bg-tint)}
 .app-nav__tab.active{color:var(--primary);font-weight:600}
 
-/* Company Search View */
-.co-search{padding:var(--s-6) 0}
-.co-search__header{margin-bottom:var(--s-5)}
-.co-search__title{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:6px}
-.co-search__desc{font-size:13px;color:var(--ink-3)}
+/* Company Search View — R4: teal accent, page-headline scale */
+#view-company-search{--primary:var(--teal);--primary-700:#2CA2B7;--primary-100:rgba(48,176,199,.13);--primary-50:rgba(48,176,199,.08)}
+.co-search{padding:var(--s-8) 0}
+.co-search__header{margin-bottom:var(--s-7);padding-bottom:var(--s-6);border-bottom:1px solid var(--hairline)}
+.co-search__kicker{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:6px}
+.co-search__title{font-size:40px;font-weight:700;letter-spacing:-.015em;color:var(--ink);margin-bottom:10px}
+.co-search__desc{font-size:17px;color:var(--gray);line-height:1.5}
+@media(max-width:540px){.co-search__title{font-size:32px}}
 .co-search__form{display:flex;gap:8px;align-items:center;margin-bottom:var(--s-4)}
+@media(max-width:540px){.co-search__form{flex-direction:column;align-items:stretch}.co-search__form .btn{justify-content:center}}
 .co-search__input{flex:1;padding:10px 14px;background:var(--bg);border:1px solid var(--hairline);border-radius:12px;font-size:16px;color:var(--ink);transition:border-color var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease)}
 .co-search__input::placeholder{color:var(--ink-4)}
 .co-search__input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-100)}
@@ -749,11 +753,15 @@ main{flex:1;padding-bottom:var(--s-9)}
 .co-result{margin-top:var(--s-4)}
 .co-result__actions{display:flex;gap:8px;margin-top:var(--s-4);flex-wrap:wrap}
 
-/* Titles & Roles Dashboard */
-.tr-view{padding:var(--s-5) 0}
-.tr-head{margin-bottom:var(--s-4)}
-.tr-head__title{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:4px}
-.tr-head__desc{font-size:13px;color:var(--ink-3)}
+/* Titles & Roles Dashboard — R4: indigo accent, page-headline scale */
+#view-titles-roles{--primary:var(--indigo);--primary-700:#514FC5;--primary-100:rgba(88,86,214,.13);--primary-50:rgba(88,86,214,.08)}
+#view-titles-roles .avatar--amber{background:var(--primary-100);color:var(--primary)}
+.tr-view{padding:var(--s-8) 0}
+.tr-head{margin-bottom:var(--s-6);padding-bottom:var(--s-6);border-bottom:1px solid var(--hairline)}
+.tr-head__kicker{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:6px}
+.tr-head__title{font-size:40px;font-weight:700;letter-spacing:-.015em;color:var(--ink);margin-bottom:10px}
+.tr-head__desc{font-size:17px;color:var(--gray);line-height:1.5}
+@media(max-width:540px){.tr-head__title{font-size:32px}}
 .tr-controls{display:flex;flex-direction:column;gap:var(--s-3);margin-bottom:var(--s-4)}
 .tr-controls .acct-tabs{margin:0}
 .tr-empty{padding:var(--s-6);text-align:center;color:var(--ink-3);font-size:13px;background:var(--bg-tint);border-radius:var(--r-md)}
@@ -763,8 +771,8 @@ main{flex:1;padding-bottom:var(--s-9)}
 .pyramid__row{display:flex;align-items:center;justify-content:center;border-radius:var(--r-md);color:#fff;font-weight:700;padding:14px var(--s-4);min-height:56px;box-shadow:var(--elev-1);transition:transform var(--t-fast) var(--ease)}
 .pyramid__row:hover{transform:translateY(-1px)}
 .pyramid__row--exec{width:38%;background:var(--primary);min-width:140px}
-.pyramid__row--mgmt{width:62%;background:#3742C4;min-width:200px}
-.pyramid__row--ops{width:88%;background:#5B68DC;min-width:240px}
+.pyramid__row--mgmt{width:62%;background:#706EDD;min-width:200px}
+.pyramid__row--ops{width:88%;background:#8987E5;min-width:240px}
 .pyramid__row--empty{background:var(--bg-tint);color:var(--ink-4);box-shadow:none;border:1px dashed var(--border-strong)}
 .pyramid__row-inner{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;justify-content:center}
 .pyramid__row-label{font-size:13px;letter-spacing:.02em;text-transform:uppercase}
@@ -787,8 +795,8 @@ main{flex:1;padding-bottom:var(--s-9)}
 .tr-card__row--ops{width:90%}
 .tr-card__row--filled{color:#fff}
 .tr-card__row--exec.tr-card__row--filled{background:var(--primary)}
-.tr-card__row--mgmt.tr-card__row--filled{background:#3742C4}
-.tr-card__row--ops.tr-card__row--filled{background:#5B68DC}
+.tr-card__row--mgmt.tr-card__row--filled{background:#706EDD}
+.tr-card__row--ops.tr-card__row--filled{background:#8987E5}
 .tr-card__coverage{margin-top:8px;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .tr-card__coverage--gap{color:var(--red)}
 .tr-card__coverage--full{color:var(--green)}
@@ -798,8 +806,8 @@ main{flex:1;padding-bottom:var(--s-9)}
 .tr-tier__head{display:flex;align-items:center;gap:var(--s-3);padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:var(--s-2)}
 .tr-tier__swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0}
 .tr-tier__swatch--exec{background:var(--primary)}
-.tr-tier__swatch--mgmt{background:#3742C4}
-.tr-tier__swatch--ops{background:#5B68DC}
+.tr-tier__swatch--mgmt{background:#706EDD}
+.tr-tier__swatch--ops{background:#8987E5}
 .tr-tier__swatch--unknown{background:var(--ink-4);border:1px dashed var(--border-strong)}
 .tr-tier__label{font-size:12px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.05em}
 .tr-tier__count{font-size:11px;font-weight:600;color:var(--ink-3);background:var(--bg-tint);padding:1px 7px;border-radius:100px;margin-left:auto}
@@ -1458,7 +1466,8 @@ Aaron</div>
     <div class="container">
       <div class="co-search">
         <div class="co-search__header">
-          <h2 class="co-search__title">Company Lookup</h2>
+          <div class="co-search__kicker">Research</div>
+          <h2 class="co-search__title">Company lookup.</h2>
           <p class="co-search__desc">Research any company and add it to your database — no contact required.</p>
         </div>
         <div class="co-search__form">
@@ -1487,7 +1496,8 @@ Aaron</div>
     <div class="container">
       <div class="tr-view">
         <div class="tr-head">
-          <h2 class="tr-head__title">Titles &amp; Roles</h2>
+          <div class="tr-head__kicker">Coverage</div>
+          <h2 class="tr-head__title">Titles &amp; roles.</h2>
           <p class="tr-head__desc">Engagement pyramid across the opportunities and partners you're working. Where are we strong, where are we thin?</p>
         </div>
         <div class="tr-controls">
@@ -9146,8 +9156,8 @@ function trRenderOverallPyramid(scope){
       <div class="pyramid">${html}</div>
       <div class="pyramid__legend">
         <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:var(--primary)"></span>Executive</span>
-        <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:#3742C4"></span>Management</span>
-        <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:#5B68DC"></span>Influencers / Admins</span>
+        <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:#706EDD"></span>Management</span>
+        <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:#8987E5"></span>Influencers / Admins</span>
         <span class="pyramid__legend-item"><span class="pyramid__legend-swatch" style="background:var(--green)"></span>Engaged = active Target in the org chart</span>
       </div>
     </div>
