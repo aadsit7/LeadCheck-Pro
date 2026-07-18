@@ -15,6 +15,37 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 a{color:inherit;text-decoration:none}
 input,textarea,select{font:inherit;color:inherit}
 
+/* ============================================================
+   Design tokens — Apple-inspired design language.
+   Single source of truth for the restyle (R1).
+   NOTE: during migration, the legacy :root block below intentionally
+   wins for the overlapping names (--ink, --green, --red, --bg) until
+   later restyle layers remap the components that use them.
+   ============================================================ */
+:root{
+  /* Neutrals */
+  --ink:#1D1D1F;          /* primary text, headlines */
+  --gray:#6E6E73;         /* body & secondary text */
+  --gray-light:#86868B;   /* captions, footers, labels */
+  --hairline:#D2D2D7;     /* 1px dividers only */
+  --card:#F5F5F7;         /* card & section backgrounds */
+  --bg:#FFFFFF;           /* page background — always white */
+
+  /* Accents (use ONE per view as the primary accent) */
+  --blue:#007AFF;   --green:#34C759;  --orange:#FF9500;
+  --purple:#AF52DE; --indigo:#5856D6; --teal:#30B0C7;
+  --pink:#FF2D55;
+  --red:#FF3B30;    /* semantic: destructive & error states */
+
+  /* Shape & space */
+  --radius-card:14px;
+  --radius-tile:24%;      /* icon tiles */
+  --radius-pill:980px;    /* buttons */
+  --space-1:8px; --space-2:16px; --space-3:24px;
+  --space-4:40px; --space-5:64px; --space-6:96px;
+  --content-max:1024px;
+}
+
 :root{
   --primary:#0000CC;--primary-700:#0000A8;--primary-50:#F0F0FE;--primary-100:rgba(0,0,204,.08);
   --cyan:#00BFFF;
