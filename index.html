@@ -407,6 +407,9 @@ main{flex:1;padding-bottom:var(--s-9)}
 .rel-rowchip{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-2);background:var(--bg-tint);border:1px solid var(--border);border-radius:3px;padding:1px 5px;white-space:nowrap}
 
 /* ===== Account Map canvas (100 Handshakes-style relationship map) ===== */
+/* R4 — purple accent for this view, scoped like the other pages */
+#view-account-map{--primary:var(--purple);--primary-700:#A14BCC;--primary-100:rgba(175,82,222,.13);--primary-50:rgba(175,82,222,.08)}
+#view-account-map .avatar--amber{background:var(--primary-100);color:var(--primary)}
 .am-mount{width:100%}
 .am{display:flex;flex-direction:column;height:calc(100vh - 108px);min-height:520px}
 .am-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg)}
@@ -433,7 +436,7 @@ main{flex:1;padding-bottom:var(--s-9)}
 .am-infer-bar__ico{font-size:14px}
 .am-infer-bar__txt{flex:1}.am-infer-bar__txt b{color:var(--ink)}
 .am-infer-bar .am-btn{padding:4px 12px}
-.am-canvas{position:relative;flex:1;overflow:hidden;background:radial-gradient(circle, var(--border) 1px, transparent 1px) 0 0/22px 22px,var(--bg-tint);cursor:grab;touch-action:none}
+.am-canvas{position:relative;flex:1;overflow:hidden;background:var(--card);cursor:grab;touch-action:none}
 .am-canvas.am-panning{cursor:grabbing}
 .am-canvas.am-linking{cursor:crosshair}
 .am-stage{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
@@ -492,7 +495,10 @@ main{flex:1;padding-bottom:var(--s-9)}
 .am-picker__card:hover{background:#EFEFF1}
 .am-picker__name{font-size:14px;font-weight:700;color:var(--ink)}
 .am-picker__meta{font-size:12px;color:var(--ink-3);margin-top:5px;display:flex;flex-wrap:wrap;gap:8px}
-.am-picker__head{font-size:18px;font-weight:700;color:var(--ink);padding:24px 24px 0;max-width:1040px;margin:0 auto;width:100%}
+.am-picker__head{font-size:40px;font-weight:700;letter-spacing:-.015em;color:var(--ink);padding:40px 24px 0;max-width:1040px;margin:0 auto;width:100%}
+.am-picker__kicker{font-size:13px;font-weight:700;color:var(--primary);padding:40px 24px 0;max-width:1040px;margin:0 auto;width:100%}
+.am-picker__kicker+.am-picker__head{padding-top:6px}
+@media(max-width:540px){.am-picker__head{font-size:32px}}
 .am-node__excl{position:absolute;top:5px;right:24px;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink-4);opacity:0;border-radius:3px;transition:opacity var(--t-fast) var(--ease),color var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
 .am-node:hover .am-node__excl{opacity:.55}
 .am-node__excl:hover{opacity:1;color:var(--red);background:var(--bg-tint)}
@@ -1029,7 +1035,7 @@ main{flex:1;padding-bottom:var(--s-9)}
       <nav class="app-nav" id="app-nav">
         <button class="app-nav__tab active" data-nav="home" type="button">Companies</button>
         <button class="app-nav__tab" data-nav="contacts" type="button">Contacts</button>
-        <button class="app-nav__tab" data-nav="account-map" type="button">Account Map</button>
+        <button class="app-nav__tab" data-nav="account-map" type="button">Account map</button>
       </nav>
     </div>
     <div class="search-wrap">
@@ -5438,7 +5444,7 @@ function amPickerHtml(companies){
       <div class="am-picker__meta"><span>${co._contactCount} contact${co._contactCount===1?'':'s'}</span>${champ?`<span style="color:var(--green)">${champ} champion${champ===1?'':'s'}</span>`:''}${block?`<span style="color:var(--red)">${block} blocker${block===1?'':'s'}</span>`:''}</div>
     </button>`;
   }).join('');
-  return `<div class="am-picker__head">Account Map</div><div class="am-picker">${cards}</div>`;
+  return `<div class="am-picker__kicker">Relationships</div><div class="am-picker__head">Account map.</div><div class="am-picker">${cards}</div>`;
 }
 
 function amCanvasHtml(companyId, companies){
@@ -5448,7 +5454,7 @@ function amCanvasHtml(companyId, companies){
   const nodesHtml=amModel.nodes.map((n,i)=>n.inChart?amNodeHtml(n,i):'').join('');
   return `<div class="am">
     <div class="am-toolbar">
-      <div class="am-toolbar__group"><span class="am-title">Account Map</span></div>
+      <div class="am-toolbar__group"><span class="am-title">Account map</span></div>
       <div class="am-toolbar__group"><select class="select am-co-select" id="am-co-select" aria-label="Choose account">${coOptions}</select></div>
       <div class="am-toolbar__group"><button class="am-btn" id="am-automap-btn" title="Infer relationship status & committee roles from meeting notes">✨ Auto-map</button><button class="am-btn" id="am-infer-btn" title="Infer the likely reporting structure from job titles & functions">⚡ Infer org</button><button class="am-btn" id="am-deep-infer-btn" title="Research each contact online, then reason the reporting structure with AI + comparable companies of similar size">🧠 Deep infer</button><button class="am-btn" id="am-tidy-btn" title="Use Claude to move off-org contacts (internal reps, partners, noise) off the chart">✦ Tidy</button></div>
       <div class="am-toolbar__spacer"></div>
