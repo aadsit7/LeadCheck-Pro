@@ -26,6 +26,18 @@ const SYNC_EXTRACTION_MODEL = 'claude-opus-4-8';
 // inside the model's context window.
 const SYNC_MAX_NOTE_CHARS = 120000;
 
+// Version stamp mixed into every account's change signature. Bump this when the
+// note-gathering logic changes (new tabs read, different formatting) so every
+// account re-analyzes once against the new, richer notes.
+const SYNC_SIGNATURE_VERSION = '2';
+
+// Sync-state columns the backend is allowed to auto-create on the Companies
+// tab. `sync_signature` stores the source-content signature captured when an
+// account's notes were last fully analyzed; `sync_checked` stores when. The
+// front-end compares the stored signature against `listSourceAccounts` output
+// to decide — with no AI cost — whether anything new needs analyzing.
+const SYNC_STATE_COLUMNS = ['sync_signature', 'sync_checked'];
+
 // ============================================================
 // MAIN ENTRY POINT — handles all POST requests
 // ============================================================
@@ -59,6 +71,10 @@ function doPost(e) {
       return doListPartnerCompanies();
     }
 
+    if (payload.action === 'listSourceAccounts') {
+      return doListSourceAccounts();
+    }
+
     var tab = payload.tab;
     var data = payload.data;
     var ss = SpreadsheetApp.openById(SHEET_ID);
@@ -66,6 +82,12 @@ function doPost(e) {
     if (!sheet) throw new Error('Tab not found: ' + tab);
 
     var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    // The sync-state columns are created on demand the first time the front-end
+    // persists a signature, so no manual sheet edit is needed after deploying.
+    if (tab === 'Companies') {
+      headers = lcEnsureSyncColumns_(sheet, headers, data);
+    }
 
     if (payload.action === 'append') {
       // ---- Server-side duplicate guards -----------------------------------
@@ -227,18 +249,25 @@ function doSyncOpportunities(companyName) {
   if (!companyName) return lcSync_emptyContacts_();
 
   var ss = SpreadsheetApp.openById(OPP_SHEET_ID);
-  var opps = lcSync_sheetObjects_(ss, 'Opportunities');
+  var notes = lcSync_oppNotesForAccount_(ss, companyName);
+  if (!notes) return lcSync_emptyContacts_();
 
+  return lcSync_extractContacts_(companyName, 'opportunity (prospective customer)', notes);
+}
+
+// All opportunity-side notes for one account, exactly as the extraction sees
+// them. This is the SINGLE shared path used by both doSyncOpportunities and
+// doListSourceAccounts, so the change signature is always computed over the
+// same text the analysis would receive — if this function's output changes,
+// the signature changes, and the account re-analyzes.
+function lcSync_oppNotesForAccount_(ss, companyName) {
+  var opps = lcSync_sheetObjects_(ss, 'Opportunities');
   var matched = opps.filter(function (o) {
     return lcSync_accountMatches_(companyName, o.customer_name) ||
            lcSync_accountMatches_(companyName, o.deal_name);
   });
-  if (!matched.length) return lcSync_emptyContacts_();
-
-  var notes = lcSync_gatherOpportunityNotes_(ss, matched);
-  if (!notes) return lcSync_emptyContacts_();
-
-  return lcSync_extractContacts_(companyName, 'opportunity (prospective customer)', notes);
+  if (!matched.length) return '';
+  return lcSync_gatherOpportunityNotes_(ss, companyName, matched);
 }
 
 // ============================================================
@@ -288,13 +317,22 @@ function doSyncPartners(companyName) {
   if (!companyName) return lcSync_emptyContacts_();
 
   var ss = SpreadsheetApp.openById(OPP_SHEET_ID);
-  var partners = lcSync_sheetObjects_(ss, 'Partners');
+  var notes = lcSync_partnerNotesForAccount_(ss, companyName);
+  if (!notes) return lcSync_emptyContacts_();
 
+  return lcSync_extractContacts_(companyName, 'channel partner', notes);
+}
+
+// All partner-side notes for one account, exactly as the extraction sees them.
+// Shared by doSyncPartners and doListSourceAccounts — see the invariant note on
+// lcSync_oppNotesForAccount_.
+function lcSync_partnerNotesForAccount_(ss, companyName) {
+  var partners = lcSync_sheetObjects_(ss, 'Partners');
   var matchedPartners = partners.filter(function (p) {
     return lcSync_accountMatches_(companyName, p.display_name) ||
            lcSync_accountMatches_(companyName, p.username);
   });
-  if (!matchedPartners.length) return lcSync_emptyContacts_();
+  if (!matchedPartners.length) return '';
 
   var partnerIds = {};
   matchedPartners.forEach(function (p) {
@@ -302,24 +340,128 @@ function doSyncPartners(companyName) {
     if (id) partnerIds[id] = true;
   });
 
-  var notes = lcSync_gatherPartnerNotes_(ss, companyName, partnerIds);
-  if (!notes) return lcSync_emptyContacts_();
+  return lcSync_gatherPartnerNotes_(ss, companyName, partnerIds);
+}
 
-  return lcSync_extractContacts_(companyName, 'channel partner', notes);
+// ============================================================
+// LIST SOURCE ACCOUNTS — the near-live change feed.
+// One cheap call returns every partner & opportunity account in the source
+// spreadsheet together with a content signature over ALL of that account's
+// notes, documents, transcripts and attached-file records. The front-end
+// compares each signature with the one saved on the Companies row after the
+// last successful analysis:
+//   • name not in Companies            → new account  → add + analyze
+//   • signature differs from saved     → new content  → re-analyze
+//   • signature matches                → nothing new  → skip (no AI cost)
+// Signatures are computed over the EXACT text the extraction would receive
+// (same gather functions), so "signature unchanged" always means "an analysis
+// run would see identical input".
+// ============================================================
+
+function doListSourceAccounts() {
+  var ss = SpreadsheetApp.openById(OPP_SHEET_ID);
+
+  // Union of account names, mirroring doListOpportunityCompanies (customer_name)
+  // and doListPartnerCompanies (display_name → customer_name → partner_name).
+  var byKey = {};
+  var order = [];
+  function addName(raw, source) {
+    var name = String(raw == null ? '' : raw).trim();
+    if (!name) return;
+    var key = name.toLowerCase();
+    if (!byKey[key]) {
+      byKey[key] = { name: name, opportunity: false, partner: false };
+      order.push(key);
+    }
+    byKey[key][source] = true;
+  }
+  lcSync_sheetObjects_(ss, 'Opportunities').forEach(function (o) {
+    addName(o.customer_name, 'opportunity');
+  });
+  lcSync_sheetObjects_(ss, 'Partners').forEach(function (p) {
+    var name = String(p.display_name == null ? '' : p.display_name).trim() ||
+               String(p.customer_name == null ? '' : p.customer_name).trim() ||
+               String(p.partner_name == null ? '' : p.partner_name).trim();
+    addName(name, 'partner');
+  });
+
+  order.sort(function (a, b) { return byKey[a].name.localeCompare(byKey[b].name); });
+
+  var accounts = order.map(function (key) {
+    var a = byKey[key];
+    // Both sides are gathered unconditionally because the front-end's contact
+    // sync always runs BOTH syncOpportunities and syncPartners for a company —
+    // e.g. a partner can also appear as a customer on a deal.
+    var oppNotes = lcSync_oppNotesForAccount_(ss, a.name);
+    var partnerNotes = lcSync_partnerNotesForAccount_(ss, a.name);
+    return {
+      name: a.name,
+      opportunity: a.opportunity,
+      partner: a.partner,
+      signature: lcSync_signature_(oppNotes, partnerNotes),
+      note_chars: oppNotes.length + partnerNotes.length
+    };
+  });
+
+  return jsonResponse({
+    ok: true,
+    signature_version: SYNC_SIGNATURE_VERSION,
+    accounts: accounts
+  });
+}
+
+// Stable MD5 hex signature over an account's full note text (both sides), with
+// the gathering-logic version mixed in so improved gathering re-triggers one
+// analysis per account.
+function lcSync_signature_(oppNotes, partnerNotes) {
+  var text = 'v' + SYNC_SIGNATURE_VERSION + '\u0001' +
+             String(oppNotes == null ? '' : oppNotes) + '\u0001' +
+             String(partnerNotes == null ? '' : partnerNotes);
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, text, Utilities.Charset.UTF_8);
+  var hex = '';
+  for (var i = 0; i < bytes.length; i++) {
+    var b = (bytes[i] + 256) % 256;
+    hex += (b < 16 ? '0' : '') + b.toString(16);
+  }
+  return hex;
+}
+
+// Auto-create the whitelisted sync-state columns on the Companies tab the
+// first time a write carries them, then return the refreshed header row. Only
+// SYNC_STATE_COLUMNS can ever be created — arbitrary payload keys still map
+// onto existing headers only.
+function lcEnsureSyncColumns_(sheet, headers, data) {
+  if (!data) return headers;
+  var missing = SYNC_STATE_COLUMNS.filter(function (c) {
+    return data[c] !== undefined && headers.indexOf(c) === -1;
+  });
+  if (!missing.length) return headers;
+  missing.forEach(function (c) {
+    var col = sheet.getLastColumn() + 1;
+    if (sheet.getMaxColumns() < col) {
+      sheet.insertColumnsAfter(sheet.getMaxColumns(), col - sheet.getMaxColumns());
+    }
+    sheet.getRange(1, col).setValue(c);
+  });
+  return sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 }
 
 // ------------------------------------------------------------
 // Contact-sync note gathering
 // ------------------------------------------------------------
 
-// All of an opportunity account's description notes. Reads BOTH places the
+// All of an opportunity account's description notes. Reads EVERY place the
 // portal stores them, so nothing is missed:
 //   (a) the inline `description` + `notes` columns on the matched Opportunities
-//       rows, and
+//       rows,
 //   (b) every `Opportunity_Descriptions.description_text` row keyed to those
 //       opportunity_ids — the full history of meeting recaps / documents (there
-//       are typically several per deal).
-function lcSync_gatherOpportunityNotes_(ss, rows) {
+//       are typically several per deal), and
+//   (c) every `Opportunity_Documents` row for those deals — the files attached
+//       to the opportunity (name/type/date metadata; the file bodies live in
+//       Drive), so a newly attached file both informs the analysis and changes
+//       the account's change signature.
+function lcSync_gatherOpportunityNotes_(ss, companyName, rows) {
   var oppIds = {};
   rows.forEach(function (o) {
     var id = String(o.opportunity_id == null ? '' : o.opportunity_id).trim();
@@ -328,10 +470,33 @@ function lcSync_gatherOpportunityNotes_(ss, rows) {
 
   var parts = [
     lcSync_inlineOppNotes_(rows),
-    lcSync_oppDescriptionNotes_(ss, oppIds)
+    lcSync_oppDescriptionNotes_(ss, oppIds),
+    lcSync_oppDocumentNotes_(ss, companyName, oppIds)
   ].filter(Boolean);
 
   return lcSync_capNotes_(parts.join('\n\n'));
+}
+
+// Attached-file records from the Opportunity_Documents tab, matched by
+// opportunity_id (with a customer_name fallback so a document row whose deal
+// link is broken is still counted for the right account).
+function lcSync_oppDocumentNotes_(ss, companyName, oppIdSet) {
+  var parts = [];
+  lcSync_sheetObjects_(ss, 'Opportunity_Documents').forEach(function (d) {
+    var id = String(d.opportunity_id == null ? '' : d.opportunity_id).trim();
+    var byId = id && oppIdSet && oppIdSet[id];
+    var byName = lcSync_accountMatches_(companyName, d.customer_name);
+    if (!byId && !byName) return;
+
+    var name = String(d.file_name == null ? '' : d.file_name).trim();
+    if (!name) return;
+    var bits = ['File: ' + name];
+    if (d.mime_type)     bits.push('Type: ' + d.mime_type);
+    if (d.date_added)    bits.push('Added: ' + d.date_added);
+    if (d.customer_name) bits.push('Customer: ' + d.customer_name);
+    parts.push('=== OPPORTUNITY ATTACHED FILE ===\n' + bits.join(' | '));
+  });
+  return parts.join('\n\n');
 }
 
 // The `description` + `notes` columns stored directly on the Opportunities rows.
@@ -397,6 +562,55 @@ function lcSync_gatherPartnerNotes_(ss, companyName, partnerIds) {
       (head.length ? head.join(' | ') + '\n' : '') + body);
   });
 
+  // 1b. Meeting_Index rows for this partner — structured recaps of those
+  //     conversations with the strongest contact signal of all: an explicit
+  //     attendees list, plus summary / key decisions / topics.
+  lcSync_sheetObjects_(ss, 'Meeting_Index').forEach(function (m) {
+    var id = String(m.partner_id == null ? '' : m.partner_id).trim();
+    var byId = id && partnerIds[id];
+    var byName = lcSync_accountMatches_(companyName, m.partner_name);
+    if (!byId && !byName) return;
+
+    var head = [];
+    if (m.meeting_title) head.push('Meeting: ' + m.meeting_title);
+    if (m.partner_name)  head.push('Partner: ' + m.partner_name);
+    if (m.meeting_date)  head.push('Date: ' + m.meeting_date);
+    var lines = [];
+    var attendees = lcSync_htmlToText_(m.attendees);
+    var summary = lcSync_htmlToText_(m.summary);
+    var decisions = lcSync_htmlToText_(m.key_decisions);
+    var topics = lcSync_htmlToText_(m.topics_discussed);
+    if (attendees) lines.push('Attendees: ' + attendees);
+    if (summary)   lines.push('Summary: ' + summary);
+    if (decisions) lines.push('Key decisions: ' + decisions);
+    if (topics)    lines.push('Topics: ' + topics);
+    if (!lines.length) return;
+    parts.push('=== PARTNER MEETING SUMMARY ===\n' +
+      (head.length ? head.join(' | ') + '\n' : '') + lines.join('\n'));
+  });
+
+  // 1c. Partner_Documents for this partner — enablement plans, joint business
+  //     plans etc. whose full HTML body is stored right in the sheet, so the
+  //     document text itself is analyzed (and signature-tracked), not just its
+  //     title.
+  lcSync_sheetObjects_(ss, 'Partner_Documents').forEach(function (d) {
+    var id = String(d.partner_id == null ? '' : d.partner_id).trim();
+    var byId = id && partnerIds[id];
+    var byName = lcSync_accountMatches_(companyName, d.partner_name);
+    if (!byId && !byName) return;
+
+    var body = lcSync_htmlToText_(d.html_content);
+    var head = [];
+    if (d.title)      head.push('Document: ' + d.title);
+    if (d.doc_type)   head.push('Type: ' + d.doc_type);
+    if (d.partner_name) head.push('Partner: ' + d.partner_name);
+    if (d.updated_at) head.push('Updated: ' + d.updated_at);
+    else if (d.created_at) head.push('Created: ' + d.created_at);
+    if (!body && !d.title) return;
+    parts.push('=== PARTNER DOCUMENT ===\n' +
+      (head.length ? head.join(' | ') + '\n' : '') + (body || '[Document has no text content.]'));
+  });
+
   // 2. Deals where this partner is ALSO the customer (i.e. the partner buying
   //    for itself) — those notes describe the partner's own people, and we pull
   //    both the inline columns and the full Opportunity_Descriptions history.
@@ -421,6 +635,8 @@ function lcSync_gatherPartnerNotes_(ss, companyName, partnerIds) {
     });
     var hist = lcSync_oppDescriptionNotes_(ss, ids);
     if (hist) parts.push(hist);
+    var docs = lcSync_oppDocumentNotes_(ss, companyName, ids);
+    if (docs) parts.push(docs);
   }
 
   return lcSync_capNotes_(parts.join('\n\n'));
@@ -488,7 +704,7 @@ function lcSync_hasTextBlock_(raw) {
 
 function lcSync_buildPrompt_(companyName, sideLabel, notesText) {
   return [
-'You are a meticulous B2B sales-operations analyst. Read ALL of the meeting notes, transcripts and deal descriptions below and extract EVERY real, named person who works at the target account, so they can be added to a CRM contact database.',
+'You are a meticulous B2B sales-operations analyst. Read ALL of the meeting notes, transcripts, deal descriptions, meeting summaries, partner documents and attached-file records below and extract EVERY real, named person who works at the target account, so they can be added to a CRM contact database.',
 '',
 'TARGET ACCOUNT: "' + companyName + '"  (this is a ' + sideLabel + ' account).',
 '',
@@ -504,6 +720,8 @@ function lcSync_buildPrompt_(companyName, sideLabel, notesText) {
 '',
 '=== HOW TO REASON ===',
 '- Read every note in full. The same person may appear several times — sometimes by first name only, later by full name. MERGE those into a single entry using the most complete name and the union of everything said about them.',
+'- "=== PARTNER MEETING SUMMARY ===" blocks include an explicit Attendees list — a strong signal for who exists — but attendees may belong to EITHER side; use the exclusion rules to keep only people at the target account.',
+'- "=== OPPORTUNITY ATTACHED FILE ===" blocks describe files by name/metadata only. You cannot see the file contents, so NEVER invent people from a file name; use these records only as context.',
 '- Many notes end with a "People" section that labels each person\'s side (e.g. "James – Manager – Customer company", "Aaron – Recast"). Treat those labels as the strongest signal for whether someone belongs to "' + companyName + '" versus the vendor or another org.',
 '- Derive every field ONLY from the notes. If the notes do not support a field, leave it as an empty string (or an empty array for priorities). Never fabricate titles, emails, or reporting lines.',
 '',
@@ -534,11 +752,21 @@ notesText
 
 // Read a worksheet into an array of row objects keyed by header name. Blank rows
 // are skipped. Returns [] if the tab is missing or has only a header.
+//
+// Results are memoized for the lifetime of the execution (Apps Script globals
+// reset on every request, so this can never go stale across requests). The
+// sync/list actions only READ these source tabs, and doListSourceAccounts
+// gathers notes for every account in one request — without the memo it would
+// re-read each tab once per account.
+var LC_TAB_CACHE_ = Object.create(null);
 function lcSync_sheetObjects_(ss, name) {
+  var cacheKey = ss.getId() + '::' + name;
+  if (LC_TAB_CACHE_[cacheKey]) return LC_TAB_CACHE_[cacheKey];
+
   var sh = ss.getSheetByName(name);
-  if (!sh) return [];
+  if (!sh) return (LC_TAB_CACHE_[cacheKey] = []);
   var values = sh.getDataRange().getValues();
-  if (values.length < 2) return [];
+  if (values.length < 2) return (LC_TAB_CACHE_[cacheKey] = []);
 
   var headers = values[0].map(function (h) { return String(h == null ? '' : h).trim(); });
   var out = [];
@@ -553,20 +781,29 @@ function lcSync_sheetObjects_(ss, name) {
     }
     if (any) out.push(obj);
   }
+  LC_TAB_CACHE_[cacheKey] = out;
   return out;
 }
 
 // Normalise a company/account name for tolerant comparison: lower-cased, with
 // punctuation and common legal-entity suffixes removed so "Insight",
 // "Insight Enterprises" and "Insight Enterprises, Inc." all reduce to "insight".
+// Memoized per execution — doListSourceAccounts compares every account against
+// every source row, so the same strings normalize thousands of times.
+var LC_NORM_CACHE_ = Object.create(null);
 function lcSync_normalizeAccount_(s) {
-  return String(s == null ? '' : s)
+  var raw = String(s == null ? '' : s);
+  var hit = LC_NORM_CACHE_[raw];
+  if (hit !== undefined) return hit;
+  var norm = raw
     .toLowerCase()
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\b(inc|incorporated|llc|ltd|limited|corp|corporation|co|company|plc|gmbh|ag|sa|nv|bv|pty|group|holdings|enterprises|the)\b/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+  LC_NORM_CACHE_[raw] = norm;
+  return norm;
 }
 
 // True when two account names refer to the same company. Layered from strict to

@@ -1909,6 +1909,14 @@ function sourcesToAccountType(src){
   return '';
 }
 
+// Canonical key for matching an account name between the source sheets and the
+// Companies tab: case- and whitespace-insensitive, so "Acme  Inc" matches
+// "Acme Inc" instead of spawning a duplicate. Every source↔company lookup in
+// the sync path MUST use this one helper so they can never disagree.
+function accountNameKey(n){
+  return String(n||'').trim().toLowerCase().replace(/\s+/g,' ');
+}
+
 async function loadAllData(){
   window.__DATA = {};
   for(const k of Object.values(TAB_KEY)) window.__DATA[k] = [];
@@ -2005,6 +2013,68 @@ async function fetchCompanyNamesFromAction(action){
 function fetchOpportunityCompanies(){ return fetchCompanyNamesFromAction('listOpportunityCompanies'); }
 function fetchPartnerCompanies(){ return fetchCompanyNamesFromAction('listPartnerCompanies'); }
 
+// Near-live source feed: one backend call returns every partner & opportunity
+// account PLUS a content signature over all of that account's notes,
+// transcripts, documents and attached-file records. Comparing an account's
+// signature with the one stored on its Companies row (saved after the last
+// successful analysis) tells us — with zero AI cost — whether the source has
+// anything new that still needs to be analyzed and written to the database.
+//
+// Falls back to the two legacy name-only list actions when the deployed Apps
+// Script doesn't have `listSourceAccounts` yet; everything then behaves
+// exactly as before this feature (signatures:false → only contact-less
+// accounts are auto-analyzed).
+async function fetchSourceAccounts(){
+  try{
+    const resp = await fetch(CONFIG.WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'listSourceAccounts' })
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    let data;
+    try { data = JSON.parse(await resp.text()); }
+    catch(e){ throw new Error('non-JSON response'); }
+    if(!data || data.ok !== true || !Array.isArray(data.accounts)){
+      throw new Error((data && data.error) || 'listSourceAccounts not available');
+    }
+    const accounts = [];
+    const seen = new Set();
+    for(const a of data.accounts){
+      const name = String((a && a.name) || '').trim();
+      if(!name) continue;
+      const k = accountNameKey(name);
+      if(seen.has(k)) continue;
+      seen.add(k);
+      accounts.push({
+        name,
+        opportunity: !!a.opportunity,
+        partner: !!a.partner,
+        signature: String(a.signature || '')
+      });
+    }
+    console.log('[LeadCheck] listSourceAccounts:', accounts.length, 'accounts, signature v' + (data.signature_version || '?'));
+    return { accounts, signatures: true };
+  }catch(err){
+    console.warn('[LeadCheck] listSourceAccounts unavailable — falling back to name-only lists.', err);
+    const [oppNames, partnerNames] = await Promise.all([
+      fetchOpportunityCompanies(),
+      fetchPartnerCompanies()
+    ]);
+    const byKey = new Map();
+    const add = (n, src) => {
+      const t = String(n||'').trim();
+      if(!t) return;
+      const k = accountNameKey(t);
+      let a = byKey.get(k);
+      if(!a){ a = { name: t, opportunity: false, partner: false, signature: '' }; byKey.set(k, a); }
+      a[src] = true;
+    };
+    oppNames.forEach(n => add(n, 'opportunity'));
+    partnerNames.forEach(n => add(n, 'partner'));
+    return { accounts: Array.from(byKey.values()), signatures: false };
+  }
+}
+
 function opportunityPlaceholderId(name){
   const slug = String(name||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
   return 'OPP-' + (slug || 'unknown');
@@ -2021,9 +2091,10 @@ function applyAccountPlaceholders(opts){
   const partnerNames = (opts && opts.partnerNames) || [];
   const D = window.__DATA || {};
   const existing = D.companies || [];
-  // Name keys are case- AND whitespace-insensitive so "Acme  Inc" in a source
-  // sheet matches an existing "Acme Inc" row instead of spawning a duplicate.
-  const nameKey = n => String(n||'').trim().toLowerCase().replace(/\s+/g,' ');
+  // Name keys come from accountNameKey() — case- AND whitespace-insensitive so
+  // "Acme  Inc" in a source sheet matches an existing "Acme Inc" row instead
+  // of spawning a duplicate.
+  const nameKey = accountNameKey;
   const byNameLower = new Map();
   existing.forEach(co => {
     if(co && co.name) byNameLower.set(nameKey(co.name), co);
@@ -6723,19 +6794,26 @@ async function syncAccountsFromSheets(opts){
       return;
     }
 
-    // 2. Ask the backend which companies appear in the Opportunities and
-    //    Partners sheets. These are name-only lists — cheap compared to the
-    //    per-company Anthropic extraction in step 4.
-    showAutoSyncStatus('Checking Opportunities & Partners…');
-    const [oppNames, partnerNames] = await Promise.all([
-      fetchOpportunityCompanies(),
-      fetchPartnerCompanies()
-    ]);
+    // 2. Ask the backend for every account in the Opportunities and Partners
+    //    sheets along with a content signature over ALL of each account's
+    //    notes/documents/transcripts — one cheap call that tells us exactly
+    //    which accounts have something new, before any AI cost is incurred.
+    showAutoSyncStatus('Checking Opportunities & Partners for changes…');
+    const source = await fetchSourceAccounts();
+    const oppNames = source.accounts.filter(a => a.opportunity).map(a => a.name);
+    const partnerNames = source.accounts.filter(a => a.partner).map(a => a.name);
+    window.__SOURCE_ACCOUNTS = {
+      byKey: new Map(source.accounts.map(a => [accountNameKey(a.name), a])),
+      signatures: source.signatures,
+      fetchedAt: Date.now()
+    };
 
     // 3. Tag existing Companies rows with their source(s); promote any name
     //    that isn't in the Companies sheet yet to a real row (this also
     //    writes account_type so the classification persists). This is what
-    //    surfaces newly-added partner accounts on open.
+    //    surfaces newly-added partner accounts & opportunities immediately on
+    //    open — they're visible in the UI as soon as this step renders, before
+    //    any AI analysis starts.
     const applied = applyAccountPlaceholders({ opportunityNames: oppNames, partnerNames });
     let promotedIds = [];
     if(applied.placeholders.length){
@@ -6748,13 +6826,16 @@ async function syncAccountsFromSheets(opts){
     populateCompanySelect();
     renderList();
 
-    // 4. Extract contacts for every opportunity/partner company that doesn't
-    //    have any saved contacts yet. autoSyncOpportunityCompanies already
-    //    skips companies that already have contacts and runs Anthropic for
-    //    the rest, writing new Contacts rows back to the sheet.
-    const allIds = applied.realIds.concat(promotedIds);
-    if(allIds.length){
-      await autoSyncOpportunityCompanies(allIds);
+    // 4. Analyze & write back everything that's actually new:
+    //      • brand-new accounts (just promoted)            → first analysis
+    //      • accounts whose source signature changed       → re-analysis
+    //      • accounts never signature-checked before       → one-time check
+    //    Accounts whose signature matches are skipped outright, so this is
+    //    near-free when nothing changed. All writes go through the existing
+    //    merge + duplicate guards, so re-analysis can never duplicate data.
+    const plan = buildAutoSyncPlan(applied, promotedIds, source);
+    if(plan.length){
+      await autoSyncOpportunityCompanies(plan);
     } else {
       hideAutoSyncStatus();
     }
@@ -6780,7 +6861,88 @@ async function syncAccountsFromSheets(opts){
   }
 }
 
+// Decide which companies need an analysis pass this sync, and why.
+// Reasons (also drive the status text and the processing order):
+//   'new'      — account was just promoted into Companies this run
+//   'first'    — existing account with no saved contacts yet (legacy trigger)
+//   'changed'  — stored signature differs from the source's current signature:
+//                something new was added to the account's notes/documents
+//   'backfill' — account has contacts but was never signature-checked; one
+//                full pass guarantees nothing historic was missed, after which
+//                it gets a signature and only re-checks on real changes
+// With signatures unavailable (older backend deploy), only 'first' entries are
+// produced — i.e. exactly the pre-signature behavior.
+function buildAutoSyncPlan(applied, promotedIds, source){
+  const D = window.__DATA || {};
+  const IDX = window.__INDEX || {};
+  const contactsByCompany = new Set(
+    (D.contacts || [])
+      .filter(c => c && c.contact_id && c.company_id)
+      .map(c => c.company_id)
+  );
+  const plan = [];
+  const planned = new Set();
+  const push = (id, reason) => {
+    if(id && !planned.has(id)){ planned.add(id); plan.push({ id, reason }); }
+  };
+
+  for(const id of (promotedIds || [])) push(id, 'new');
+
+  for(const id of ((applied && applied.realIds) || [])){
+    if(planned.has(id)) continue;
+    const co = IDX.companyById && IDX.companyById[id];
+    if(!co) continue;
+    const hasContacts = contactsByCompany.has(id);
+    if(source && source.signatures){
+      const acct = window.__SOURCE_ACCOUNTS && window.__SOURCE_ACCOUNTS.byKey.get(accountNameKey(co.name));
+      const current = acct ? String(acct.signature || '') : '';
+      const stored = String(co.sync_signature || '').trim();
+      if(!current){
+        // Matched by name but no signature came back — treat like legacy.
+        if(!hasContacts) push(id, 'first');
+        continue;
+      }
+      if(!stored){ push(id, hasContacts ? 'backfill' : 'first'); continue; }
+      if(stored !== current){ push(id, 'changed'); }
+      // stored === current → fully analyzed already; skip.
+    } else {
+      if(!hasContacts) push(id, 'first');
+    }
+  }
+
+  // New accounts surface first (near-live priority), then first syncs, then
+  // changed accounts, then the one-time backfills.
+  const rank = { 'new': 0, 'first': 1, 'changed': 2, 'backfill': 3 };
+  plan.sort((a, b) => (rank[a.reason] ?? 9) - (rank[b.reason] ?? 9));
+  return plan;
+}
+
 document.getElementById('refresh-contacts-btn').addEventListener('click',()=>{ syncAccountsFromSheets(); });
+
+// --- Near-live source watching --------------------------------------------
+// The on-open sync catches everything that changed while the app was closed.
+// These two hooks keep it near-live while the app stays open: a re-check the
+// moment the user comes back to the tab, plus a gentle background poll. Both
+// funnel into syncAccountsFromSheets, whose guards (running flag, cross-tab
+// lock, signature comparison) make overlapping or redundant checks no-ops —
+// the expensive AI analysis only ever runs for accounts whose source content
+// actually changed, so a quiet check costs a couple of fetches and nothing
+// else.
+const NEAR_LIVE_MIN_GAP_MS = 60 * 1000;        // never re-check within 60s of a sync
+const NEAR_LIVE_POLL_MS   = 3 * 60 * 1000;     // background poll while the tab is open
+function nearLiveSyncCheck(trigger){
+  if(document.hidden) return;
+  if(__autoSyncRunning) return;
+  const btn = document.getElementById('refresh-contacts-btn');
+  if(btn && btn.disabled) return;   // a sync is mid-flight
+  if(__lastSyncedAt && (Date.now() - __lastSyncedAt) < NEAR_LIVE_MIN_GAP_MS) return;
+  console.log('[LeadCheck] Near-live source check (' + trigger + ')');
+  syncAccountsFromSheets({ initial: true });
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden) nearLiveSyncCheck('tab-focus');
+});
+setInterval(()=>nearLiveSyncCheck('poll'), NEAR_LIVE_POLL_MS);
 
 let searchTimer;
 const searchInput=document.getElementById('search-input');
@@ -8535,11 +8697,13 @@ async function syncOpportunityContacts(companyId, opts){
 
     if(btn) btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2.5 11.5a10 10 0 0 1 18.17-4.5M21.5 12.5a10 10 0 0 1-18.17 4.5"/></svg> Adding '+newContacts.length+' contact'+(newContacts.length===1?'':'s')+'…';
 
+    let writeFailures = 0;
     for(const u of updates){
       try{
         await postToSheet({action:'update',tab:'Contacts',idColumn:'contact_id',idValue:u.row.contact_id,data:u.data});
         Object.assign(u.row, u.data);
       }catch(e){
+        writeFailures++;
         console.error('[LeadCheck Sync] update failed for', u.row.contact_id, e);
       }
       await new Promise(r=>setTimeout(r,200));
@@ -8616,7 +8780,7 @@ async function syncOpportunityContacts(companyId, opts){
         try{
           await postToSheet({action:'update',tab:'Org_Chart',idColumn:'org_id',idValue:row.org_id,data:{source:'DATABASE'}});
           row.source='DATABASE';
-        }catch(e){ console.error('[LeadCheck Sync] org node upgrade failed',row.org_id,e); }
+        }catch(e){ writeFailures++; console.error('[LeadCheck Sync] org node upgrade failed',row.org_id,e); }
         await new Promise(r=>setTimeout(r,150));
       }
     }
@@ -8654,8 +8818,40 @@ async function syncOpportunityContacts(companyId, opts){
       try{
         await postToSheet({action:'append',tab:'Org_Chart',data:newRow});
         allOrgRows.push(newRow);
-      }catch(e){ console.error('[LeadCheck Sync] MENTIONED node creation failed',cc.reportsTo,e); }
+      }catch(e){ writeFailures++; console.error('[LeadCheck Sync] MENTIONED node creation failed',cc.reportsTo,e); }
       await new Promise(r=>setTimeout(r,200));
+    }
+
+    // Record that this account's source content has now been fully analyzed by
+    // saving its change signature onto the Companies row. The near-live checks
+    // compare against this to skip unchanged accounts entirely. Rules that keep
+    // it 100% accurate:
+    //   • Only when BOTH sync sources responded — a failed source means notes
+    //     may not have been seen, so the account must stay "needs analysis".
+    //   • The signature saved is the one captured when the source was LISTED
+    //     (never re-fetched now): if new notes arrived mid-analysis, the saved
+    //     signature is stale, the next check sees a mismatch, and the account
+    //     re-analyzes. Staleness can only cause an extra re-check, never a
+    //     missed change.
+    //   • Saving after a 0-new-contacts run is correct — the signature records
+    //     "these notes were analyzed", not "contacts were added".
+    //   • Any failed enrichment write above also blocks the save — everything
+    //     the analysis produced must be in the sheet before the account can be
+    //     considered fully synced.
+    if(!sourceErrors.length && !writeFailures && window.__SOURCE_ACCOUNTS && window.__SOURCE_ACCOUNTS.signatures){
+      const acct = window.__SOURCE_ACCOUNTS.byKey.get(accountNameKey(companyName));
+      const sig = acct ? String(acct.signature||'') : '';
+      if(sig && String(co.sync_signature||'') !== sig){
+        try{
+          await postToSheet({ action:'update', tab:'Companies', idColumn:'company_id', idValue:companyId,
+            data:{ sync_signature: sig, sync_checked: new Date().toISOString() } });
+          co.sync_signature = sig;
+        }catch(e){
+          // Non-fatal: without a saved signature the account simply re-checks
+          // on the next pass.
+          console.warn('[LeadCheck Sync] could not save sync signature for', companyName, e);
+        }
+      }
     }
 
     buildIndexes();
@@ -8710,11 +8906,12 @@ function hideAutoSyncStatus(){
   if(el) el.remove();
 }
 
-// Sequentially run syncOpportunityContacts for each company sourced from the
-// Opportunities or Partners sheets that already has a real Companies row.
-// Placeholders are listed but not synced (they have no real company_id to
-// attach contacts to).
-async function autoSyncOpportunityCompanies(companyIds){
+// Sequentially run syncOpportunityContacts for each planned company (see
+// buildAutoSyncPlan for the entry shapes/reasons). Placeholders are never
+// planned (they have no real company_id to attach contacts to). Also accepts a
+// plain array of company-id strings, which behaves like the legacy auto-sync:
+// analyze only if the company has no saved contacts yet.
+async function autoSyncOpportunityCompanies(entries){
   if(__autoSyncRunning) return;
   // Duplicate-safety: never run the per-company contact extraction when the
   // Contacts/Companies baseline failed to load — "no contacts yet" would be
@@ -8724,33 +8921,47 @@ async function autoSyncOpportunityCompanies(companyIds){
     hideAutoSyncStatus();
     return;
   }
-  const ids = (companyIds||[]).filter(Boolean);
-  if(!ids.length){ hideAutoSyncStatus(); return; }
+  const plan = (entries||[])
+    .map(e => (typeof e === 'string') ? { id: e, reason: 'first' } : e)
+    .filter(e => e && e.id);
+  if(!plan.length){ hideAutoSyncStatus(); return; }
   __autoSyncRunning = true;
   try {
-    // Skip companies that already have at least one saved contact — those
-    // were synced on a prior page load and the contacts persist in the
-    // Contacts sheet. Users can still click "Sync Contacts" on a card to
-    // re-run the AI extraction manually (e.g. after adding a new transcript).
+    // 'first'-reason entries only ever analyze contact-less companies — same
+    // rule the legacy auto-sync applied to everything. 'changed'/'backfill'
+    // entries intentionally re-analyze companies WITH contacts: their source
+    // notes have (or may have) content the database hasn't seen, and the
+    // merge + duplicate guards in syncOpportunityContacts make a re-run
+    // write only what's genuinely new.
     const D = window.__DATA || {};
     const contactsByCompany = new Set(
       (D.contacts || [])
         .filter(c => c && c.contact_id && c.company_id)
         .map(c => c.company_id)
     );
-    const idsToSync = ids.filter(cid => !contactsByCompany.has(cid));
-    const skipped = ids.length - idsToSync.length;
+    const toSync = plan.filter(e =>
+      (e.reason === 'first' || e.reason === 'new') ? !contactsByCompany.has(e.id) : true
+    );
+    const skipped = plan.length - toSync.length;
     if(skipped){
-      console.log('[LeadCheck Auto-Sync] skipping', skipped, 'companies that already have contacts');
+      console.log('[LeadCheck Auto-Sync] skipping', skipped, 'first-sync companies that already have contacts');
     }
-    if(!idsToSync.length){ hideAutoSyncStatus(); return; }
+    if(!toSync.length){ hideAutoSyncStatus(); return; }
 
-    const total = idsToSync.length;
+    const REASON_LABEL = {
+      'new':      'New account — analyzing',
+      'first':    'First contact sync',
+      'changed':  'New notes detected — re-analyzing',
+      'backfill': 'Verifying full history'
+    };
+    const total = toSync.length;
     for(let i=0;i<total;i++){
-      const cid = idsToSync[i];
+      const entry = toSync[i];
+      const cid = entry.id;
       const co = (window.__INDEX && window.__INDEX.companyById && window.__INDEX.companyById[cid]) || null;
       const name = co ? (co.name||'') : '';
-      showAutoSyncStatus('Syncing opportunities & partners '+(i+1)+' of '+total+(name ? ' · '+name : '')+'…');
+      const label = REASON_LABEL[entry.reason] || 'Syncing';
+      showAutoSyncStatus(label+' '+(i+1)+' of '+total+(name ? ' · '+name : '')+'…');
       try {
         await syncOpportunityContacts(cid, { silent: true, skipReload: true });
       } catch(err){
@@ -10036,12 +10247,17 @@ if(trMountEl){
 // Bootstrap: fast pure read from Google Sheets first (so the UI paints
 // immediately from each Companies row's saved `account_type`, hydrated into
 // _sources by loadAllData), then automatically run the full sync in the
-// background. The auto-sync calls the Apps Script backend to list the current
-// Opportunities/Partners companies, surfaces any newly-added partner or
-// opportunity accounts, and extracts contacts for the new ones via Anthropic —
-// so opening the app always reflects the latest partner sheet without the user
-// having to click Refresh. The Refresh button re-runs the same pass on demand.
-// See syncAccountsFromSheets() above.
+// background. The auto-sync asks the Apps Script backend for every current
+// Opportunities/Partners account WITH a content signature over all of its
+// notes, documents and transcripts, surfaces any newly-added partner or
+// opportunity accounts immediately, and runs the Anthropic contact analysis
+// for exactly the accounts that have something new — new accounts, and
+// existing accounts whose signature no longer matches the one saved after
+// their last analysis. So opening the app always reflects the latest source
+// data without the user having to click Refresh, and unchanged accounts cost
+// nothing. While the app stays open, the near-live hooks (tab-focus + poll,
+// see nearLiveSyncCheck) repeat the same cheap check. The Refresh button
+// re-runs the same pass on demand. See syncAccountsFromSheets() above.
 showDataLoading();
 loadAllData()
   .then(()=>{
