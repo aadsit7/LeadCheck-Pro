@@ -82,8 +82,9 @@ var SYNC_MAX_NOTE_CHARS = 120000;
 // ------------------------------------------------------------
 
 // Opportunity (prospective-customer) account sync. Finds every Opportunities row
-// whose customer_name OR deal_name matches companyName, reads all of their
-// description + notes, and reasons out the customer-side people.
+// whose customer_name OR deal_name matches companyName, reads ALL of their notes
+// — the inline description/notes columns AND every Opportunity_Descriptions
+// history row for those deals — and reasons out the customer-side people.
 function doSyncOpportunities(companyName) {
   companyName = String(companyName || '').trim();
   if (!companyName) return lcSync_emptyContacts_();
@@ -97,7 +98,7 @@ function doSyncOpportunities(companyName) {
   });
   if (!matched.length) return lcSync_emptyContacts_();
 
-  var notes = lcSync_gatherOpportunityNotes_(matched);
+  var notes = lcSync_gatherOpportunityNotes_(ss, matched);
   if (!notes) return lcSync_emptyContacts_();
 
   return lcSync_extractContacts_(companyName, 'opportunity (prospective customer)', notes);
@@ -166,7 +167,30 @@ function doListPartnerCompanies() {
 // Note gathering
 // ------------------------------------------------------------
 
-function lcSync_gatherOpportunityNotes_(rows) {
+// All of an opportunity account's description notes. Reads BOTH places the
+// portal stores them, so nothing is missed:
+//   (a) the inline `description` + `notes` columns on the matched Opportunities
+//       rows, and
+//   (b) every `Opportunity_Descriptions.description_text` row keyed to those
+//       opportunity_ids — the full history of meeting recaps / documents (there
+//       are typically several per deal).
+function lcSync_gatherOpportunityNotes_(ss, rows) {
+  var oppIds = {};
+  rows.forEach(function (o) {
+    var id = String(o.opportunity_id == null ? '' : o.opportunity_id).trim();
+    if (id) oppIds[id] = true;
+  });
+
+  var parts = [
+    lcSync_inlineOppNotes_(rows),
+    lcSync_oppDescriptionNotes_(ss, oppIds)
+  ].filter(Boolean);
+
+  return lcSync_capNotes_(parts.join('\n\n'));
+}
+
+// The `description` + `notes` columns stored directly on the Opportunities rows.
+function lcSync_inlineOppNotes_(rows) {
   var parts = [];
   rows.forEach(function (o) {
     var header = [];
@@ -175,19 +199,38 @@ function lcSync_gatherOpportunityNotes_(rows) {
     if (o.stage)         header.push('Stage: ' + o.stage);
     if (o.status)        header.push('Status: ' + o.status);
 
-    var body = [];
-    var desc = lcSync_htmlToText_(o.description);
-    var note = lcSync_htmlToText_(o.notes);
-    if (desc) body.push(desc);
-    if (note) body.push(note);
-
-    if (body.length) {
+    var body = [lcSync_htmlToText_(o.description), lcSync_htmlToText_(o.notes)]
+      .filter(Boolean).join('\n\n');
+    if (body) {
       parts.push('=== OPPORTUNITY NOTE ===\n' +
-        (header.length ? header.join(' | ') + '\n' : '') +
-        body.join('\n\n'));
+        (header.length ? header.join(' | ') + '\n' : '') + body);
     }
   });
-  return lcSync_capNotes_(parts.join('\n\n'));
+  return parts.join('\n\n');
+}
+
+// Every Opportunity_Descriptions.description_text row whose opportunity_id is in
+// the given set — the deal's full recap/document history.
+function lcSync_oppDescriptionNotes_(ss, oppIdSet) {
+  if (!oppIdSet) return '';
+  var has = false;
+  for (var k in oppIdSet) { if (oppIdSet[k]) { has = true; break; } }
+  if (!has) return '';
+
+  var parts = [];
+  lcSync_sheetObjects_(ss, 'Opportunity_Descriptions').forEach(function (d) {
+    var id = String(d.opportunity_id == null ? '' : d.opportunity_id).trim();
+    if (!id || !oppIdSet[id]) return;
+
+    var body = lcSync_htmlToText_(d.description_text);
+    if (!body) return;
+    var head = [];
+    if (d.deal_name)        head.push('Deal: ' + d.deal_name);
+    if (d.description_date)  head.push('Date: ' + d.description_date);
+    parts.push('=== OPPORTUNITY DESCRIPTION ===\n' +
+      (head.length ? head.join(' | ') + '\n' : '') + body);
+  });
+  return parts.join('\n\n');
 }
 
 function lcSync_gatherPartnerNotes_(ss, companyName, partnerIds) {
@@ -209,23 +252,31 @@ function lcSync_gatherPartnerNotes_(ss, companyName, partnerIds) {
       (head.length ? head.join(' | ') + '\n' : '') + body);
   });
 
-  // 2. Opportunities where this partner is ALSO the customer (i.e. the partner
-  //    buying for itself) — those notes describe the partner's own people.
+  // 2. Deals where this partner is ALSO the customer (i.e. the partner buying
+  //    for itself) — those notes describe the partner's own people, and we pull
+  //    both the inline columns and the full Opportunity_Descriptions history.
   //    Deals the partner registered for OTHER end customers are intentionally
   //    left out here: those people belong to the opportunity account and are
   //    picked up by doSyncOpportunities(thatCustomer) instead, so the partner
   //    roster never gets contaminated with an unrelated customer's staff.
-  lcSync_sheetObjects_(ss, 'Opportunities').forEach(function (o) {
+  var selfDeals = lcSync_sheetObjects_(ss, 'Opportunities').filter(function (o) {
     var id = String(o.partner_id == null ? '' : o.partner_id).trim();
     var underPartner = id && partnerIds[id];
     var aboutPartner = lcSync_accountMatches_(companyName, o.customer_name) ||
                        lcSync_accountMatches_(companyName, o.deal_name);
-    if (!underPartner || !aboutPartner) return;
-
-    var body = [lcSync_htmlToText_(o.description), lcSync_htmlToText_(o.notes)]
-      .filter(Boolean).join('\n\n');
-    if (body) parts.push('=== PARTNER DEAL NOTE ===\n' + body);
+    return underPartner && aboutPartner;
   });
+  if (selfDeals.length) {
+    var inline = lcSync_inlineOppNotes_(selfDeals);
+    if (inline) parts.push(inline);
+    var ids = {};
+    selfDeals.forEach(function (o) {
+      var id = String(o.opportunity_id == null ? '' : o.opportunity_id).trim();
+      if (id) ids[id] = true;
+    });
+    var hist = lcSync_oppDescriptionNotes_(ss, ids);
+    if (hist) parts.push(hist);
+  }
 
   return lcSync_capNotes_(parts.join('\n\n'));
 }

@@ -70,8 +70,10 @@ if it ever moves.
 
 | Action | Source tab | Account name | Notes read |
 | --- | --- | --- | --- |
-| `syncOpportunities` / `listOpportunityCompanies` | `Opportunities` | `customer_name` → `deal_name` | `description` + `notes` |
-| `syncPartners` / `listPartnerCompanies` | `Partners` | `display_name` | `Transcripts.transcript_text` (+ self-deals) |
+| `syncOpportunities` / `listOpportunityCompanies` | `Opportunities` | `customer_name` → `deal_name` | inline `description` + `notes`, **plus** every `Opportunity_Descriptions.description_text` row for the matched `opportunity_id` (the deal's full recap/document history) |
+| `syncPartners` / `listPartnerCompanies` | `Partners` | `display_name` | `Transcripts.transcript_text` (+ self-deal notes & descriptions) |
+
+> Opportunity notes live in **two** places — the inline `Opportunities.description`/`notes` cells and the one-to-many `Opportunity_Descriptions` tab (several recaps per deal). The sync reads **both** so no meeting history is missed.
 
 ### Install (one-time)
 
