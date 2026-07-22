@@ -26,6 +26,14 @@ It includes everything the front-end uses:
 - `reasonOrg` — Deep-infer org reasoning (see `reason-org.gs` notes below).
 - `listOpportunityCompanies` / `listPartnerCompanies` and
   `syncOpportunities` / `syncPartners` (see `sync-accounts.gs` notes below).
+- `listSourceAccounts` — the **near-live change feed** (see below): every
+  partner & opportunity account in the source spreadsheet plus an MD5 content
+  signature over all of that account's notes/documents/transcripts, so the
+  front-end can detect new accounts and new content on open (and while the
+  app stays open) without any AI cost. Alongside it, the `append`/`update`
+  actions auto-create two sync-state columns on `Companies`
+  (`sync_signature`, `sync_checked`) the first time the front-end persists a
+  signature — no manual sheet edit needed.
 
 **Deploying an update:** after pasting the new code, use
 **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy**.
@@ -100,10 +108,58 @@ if it ever moves.
 
 | Action | Source tab | Account name | Notes read |
 | --- | --- | --- | --- |
-| `syncOpportunities` / `listOpportunityCompanies` | `Opportunities` | `customer_name` → `deal_name` | inline `description` + `notes`, **plus** every `Opportunity_Descriptions.description_text` row for the matched `opportunity_id` (the deal's full recap/document history) |
-| `syncPartners` / `listPartnerCompanies` | `Partners` | `display_name` | `Transcripts.transcript_text` (+ self-deal notes & descriptions) |
+| `syncOpportunities` / `listOpportunityCompanies` | `Opportunities` | `customer_name` → `deal_name` | inline `description` + `notes`, **plus** every `Opportunity_Descriptions.description_text` row for the matched `opportunity_id` (the deal's full recap/document history), **plus** every `Opportunity_Documents` attached-file record (file name/type/date — the bodies live in Drive) |
+| `syncPartners` / `listPartnerCompanies` | `Partners` | `display_name` | `Transcripts.transcript_text`, **plus** `Meeting_Index` rows (attendees / summary / key decisions / topics), **plus** `Partner_Documents` bodies (`html_content`, de-HTML'd), **plus** self-deal notes, descriptions & attached-file records |
 
-> Opportunity notes live in **two** places — the inline `Opportunities.description`/`notes` cells and the one-to-many `Opportunity_Descriptions` tab (several recaps per deal). The sync reads **both** so no meeting history is missed.
+> Opportunity notes live in **several** places — the inline
+> `Opportunities.description`/`notes` cells, the one-to-many
+> `Opportunity_Descriptions` tab (several recaps per deal), and the
+> `Opportunity_Documents` attachments. Partner content likewise spans
+> `Transcripts`, `Meeting_Index` and `Partner_Documents`. The sync reads
+> **all of them** so no meeting history, document or attachment is missed —
+> and because the change signatures (below) are computed over this same
+> gathered text, adding content to any of these tabs automatically flags the
+> account for re-analysis.
+
+### Near-live auto-sync (`listSourceAccounts` + change signatures)
+
+This is what makes the app pick up **new partner accounts, new opportunities
+and new notes automatically** — on open, whenever the user returns to the tab,
+and on a gentle 3-minute poll while the app stays open — while re-running the
+AI analysis **only for accounts whose content actually changed**:
+
+1. The front-end calls `listSourceAccounts`. For every account (union of
+   `Opportunities.customer_name` and `Partners.display_name`) the backend
+   gathers **exactly** the note text the extraction would receive — both the
+   opportunity side and the partner side, via the same shared functions the
+   sync actions use — and returns an MD5 signature of it.
+2. The front-end compares each signature with the `sync_signature` stored on
+   that account's `Companies` row:
+   - **name not in Companies** → new account → added to the database
+     immediately (visible right away), then analyzed;
+   - **signature differs** (or none stored yet) → something new → the account
+     is re-analyzed and only genuinely-new people/facts are written (all
+     writes go through the merge logic + server-side duplicate guards, so a
+     re-run can never duplicate contacts);
+   - **signature matches** → analyzed already → skipped, zero AI cost.
+3. After a **fully successful** analysis (both sources responded, every write
+   landed), the front-end saves the signature captured at list time to
+   `sync_signature`/`sync_checked` on the Companies row. Saving the
+   list-time signature means notes added *mid-analysis* leave the stored
+   signature stale, so the next check re-analyzes — staleness can only cause
+   an extra re-check, never a missed change.
+
+**First run after deploying:** existing accounts that already have contacts
+carry no signature yet, so each gets one full "Verifying full history" pass
+(the status bar shows progress). That one-time backfill guarantees nothing
+historic was missed; every account then has a signature and later opens only
+touch real changes. Signatures persist per account as each completes, so
+closing the page mid-backfill loses nothing.
+
+**Graceful degradation:** until the new `Code.gs` is deployed, the front-end
+detects that `listSourceAccounts` is unavailable and falls back to the legacy
+name-only lists with the legacy behavior (auto-analyze only accounts with no
+saved contacts). Nothing breaks in the interim.
 
 ### Install (one-time)
 
@@ -112,15 +168,24 @@ if it ever moves.
    It reuses the `ANTHROPIC_API_KEY` constant and the `jsonResponse` helper
    already defined there; every private helper is prefixed `lcSync_` to avoid
    clashes. **If your project already defines `syncPartners` /
-   `syncOpportunities` / `listPartnerCompanies` / `listOpportunityCompanies`
-   handlers, replace those older implementations with these** — this is the fix.
-3. In `doPost(e)`, route the four actions (add or replace the matching branches):
+   `syncOpportunities` / `listPartnerCompanies` / `listOpportunityCompanies` /
+   `listSourceAccounts` handlers, replace those older implementations with
+   these** — this is the fix.
+3. In `doPost(e)`, route the five actions (add or replace the matching branches):
 
    ```javascript
    if (payload.action === 'listPartnerCompanies')     return doListPartnerCompanies();
    if (payload.action === 'listOpportunityCompanies') return doListOpportunityCompanies();
    if (payload.action === 'syncPartners')             return doSyncPartners(payload.companyName);
    if (payload.action === 'syncOpportunities')        return doSyncOpportunities(payload.companyName);
+   if (payload.action === 'listSourceAccounts')       return doListSourceAccounts();
+   ```
+
+   and, right after `doPost` reads the header row, add the line that lets the
+   sync-state columns auto-create on the Companies tab:
+
+   ```javascript
+   if (tab === 'Companies') headers = lcEnsureSyncColumns_(sheet, headers, data);
    ```
 
 4. **Deploy → Manage deployments → Edit → New version → Deploy.**
