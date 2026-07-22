@@ -31,6 +31,74 @@ public sources via web search) and falling back to comparable-company reasoning
 
 4. **Deploy → Manage deployments → Edit → New version → Deploy.**
 
+## `sync-accounts.gs` — the Contact Sync actions
+
+This add-on powers **Sync contacts** (and the auto-sync when the app opens) for
+both **Partner accounts** and **Opportunity accounts**. When the front-end syncs
+a company it POSTs `{ action, companyName }`; this code finds the relevant
+account in the source spreadsheet, reads **all** of its description notes, and
+runs an advanced reasoning pass (Claude, extended thinking) to pull out the real
+people who work at that account — so they can be reconciled into the Contacts
+sheet.
+
+It fixes three things end-to-end, prioritising accuracy:
+
+1. **Searches for the *relevant* account.** `companyName` is matched against the
+   account name with tolerant, legal-suffix-aware logic (`lcSync_accountMatches_`),
+   so "Insight", "Insight Enterprises" and "Insight Enterprises, Inc." all resolve
+   to the same account, and "Greenshield" matches "Green Shield". Opportunities are
+   matched on **both** `customer_name` and `deal_name`.
+2. **Reads *all* the description notes.** Every matching row's notes are gathered
+   and de-HTML'd to clean text with nothing truncated — for opportunities that is
+   the `description` + `notes` columns; for partners it is the `Transcripts`
+   (`transcript_text`, keyed by `partner_id`/`partner_name`) plus any deal where
+   the partner is itself the customer.
+3. **Reasons over the notes.** Claude extracts only the people who actually work
+   at the target account, explicitly **excluding** the vendor/seller side (Recast)
+   and unrelated third parties (distributors, competitors, other customers), and
+   returns them with title, role-in-deal, reports-to, sentiment, priorities and a
+   grounded context note — the exact JSON the front-end's
+   `syncOpportunityContacts()` already consumes.
+
+### Where the data comes from
+
+The accounts and their notes live in the **Partner_Portal_Database** spreadsheet
+(the "web API worksheet"), which is a *different* spreadsheet from the LeadCheck
+database the Web App writes contacts back to — so this code opens it by id.
+Override the id at runtime with a Script property named `PARTNER_PORTAL_SHEET_ID`
+if it ever moves.
+
+| Action | Source tab | Account name | Notes read |
+| --- | --- | --- | --- |
+| `syncOpportunities` / `listOpportunityCompanies` | `Opportunities` | `customer_name` → `deal_name` | `description` + `notes` |
+| `syncPartners` / `listPartnerCompanies` | `Partners` | `display_name` | `Transcripts.transcript_text` (+ self-deals) |
+
+### Install (one-time)
+
+1. Open your existing Apps Script project (the one behind `CONFIG.WEB_APP_URL`).
+2. Paste everything from [`sync-accounts.gs`](./sync-accounts.gs) into `Code.gs`.
+   It reuses the `ANTHROPIC_API_KEY` constant and the `jsonResponse` helper
+   already defined there; every private helper is prefixed `lcSync_` to avoid
+   clashes. **If your project already defines `syncPartners` /
+   `syncOpportunities` / `listPartnerCompanies` / `listOpportunityCompanies`
+   handlers, replace those older implementations with these** — this is the fix.
+3. In `doPost(e)`, route the four actions (add or replace the matching branches):
+
+   ```javascript
+   if (payload.action === 'listPartnerCompanies')     return doListPartnerCompanies();
+   if (payload.action === 'listOpportunityCompanies') return doListOpportunityCompanies();
+   if (payload.action === 'syncPartners')             return doSyncPartners(payload.companyName);
+   if (payload.action === 'syncOpportunities')        return doSyncOpportunities(payload.companyName);
+   ```
+
+4. **Deploy → Manage deployments → Edit → New version → Deploy.**
+
+The `SYNC_EXTRACTION_MODEL` constant defaults to `claude-opus-4-8` (strongest
+reasoning). If your key lacks access, change it to a model it does have (e.g.
+`claude-sonnet-4-20250514`). The extraction makes a first pass with extended
+thinking and, if that leaves no text block, automatically retries once without
+thinking so the front-end always receives the JSON.
+
 ## Storing the API key securely (Script properties)
 
 Never hard-code your Anthropic API key in the source. Store it in the project's
