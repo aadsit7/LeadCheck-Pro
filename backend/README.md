@@ -2,8 +2,38 @@
 
 The app's front-end (`index.html`) talks to a Google Apps Script Web App
 (`CONFIG.WEB_APP_URL`) that proxies to the Anthropic API and reads/writes the
-Google Sheets. That script lives in your Apps Script project, **not** in this
-repo, so its API key and Sheet IDs are never committed here.
+Google Sheets.
+
+## `Code.gs` — the complete deployed script
+
+**`Code.gs` in this folder is the full, current backend** — paste it over the
+`Code.gs` in your Apps Script project to update the deployment. It contains no
+secrets: the Anthropic API key is read from **Project Settings → Script
+properties** (property name `ANTHROPIC_API_KEY`).
+
+It includes everything the front-end uses:
+
+- All sheet actions (`append` / `update` / `delete`) — now with **server-side
+  duplicate guards**: an `append` to `Companies` with a name that already
+  exists (case/whitespace-insensitive), or to `Contacts` with a `full_name`
+  that already exists at the same `company_id`, is **not** written twice.
+  Instead the backend returns `{ok:true, deduped:true, existing_company_id}`
+  (or `existing_contact_id`) and the front-end re-points at the existing row.
+  This makes duplicate database rows impossible no matter how many browser
+  tabs or clients write at once.
+- `research` — person/company research, **including partner-qualification
+  mode** (`research_mode` / `partner_research_instructions`, see below).
+- `reasonOrg` — Deep-infer org reasoning (see `reason-org.gs` notes below).
+- `listOpportunityCompanies` / `listPartnerCompanies` and
+  `syncOpportunities` / `syncPartners` (see `sync-accounts.gs` notes below).
+
+**Deploying an update:** after pasting the new code, use
+**Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy**.
+The `/exec` URL only serves the newly pasted code once a new version is
+deployed — saving the file alone is not enough.
+
+The `reason-org.gs` and `sync-accounts.gs` files remain as annotated reference
+copies of those subsystems; `Code.gs` already contains all of them.
 
 ## `reason-org.gs` — the `reasonOrg` action
 

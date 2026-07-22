@@ -2132,7 +2132,13 @@ async function promoteOpportunityPlaceholders(placeholders){
       const fields = { company_id: realId, name: name, date_added: today };
       const acctType = sourcesToAccountType(ph._sources);
       if(acctType) fields.account_type = acctType;
-      await postToSheet({ action: 'append', tab: 'Companies', data: fields });
+      const res = await postToSheet({ action: 'append', tab: 'Companies', data: fields });
+      // Server-side duplicate guard fired: the company already exists in the
+      // sheet under another id. Skip it here — the real row loads next sync.
+      if(res && res.deduped){
+        console.log('[LeadCheck] promotion deduped by backend — already in Companies:', name, res.existing_company_id||'');
+        continue;
+      }
       const realRow = Object.assign({}, fields, {
         partners: [],
         badges: [],
@@ -5029,15 +5035,22 @@ async function coOrgAddContact(companyId, name, title, reportsToContactId){
     verified:'', date_added:new Date().toISOString(),
     last_updated:new Date().toISOString()
   };
-  await postToSheet({action:'append', tab:'Contacts', data:contactRow});
-  (D.contacts || (D.contacts=[])).push(contactRow);
+  const resAdd=await postToSheet({action:'append', tab:'Contacts', data:contactRow});
+  // Server-side duplicate guard: this person already exists at the company —
+  // link to the existing record instead of creating a second one.
+  const effectiveContactId=(resAdd && resAdd.deduped && resAdd.existing_contact_id)?resAdd.existing_contact_id:contact_id;
+  if(resAdd && resAdd.deduped){
+    if(typeof showToast==='function') showToast(`${name} is already in the database — using the existing record`);
+  } else {
+    (D.contacts || (D.contacts=[])).push(contactRow);
+  }
   if(reportsToContactId){
     const parent=(D.contacts||[]).find(c=>c.contact_id===reportsToContactId);
     const org_id=genId('OC');
     const orgRow={
       org_id, contact_id:reportsToContactId,
       role_type:'directReport', name, title:title||'',
-      linked_contact_id:contact_id, display_order:0,
+      linked_contact_id:effectiveContactId, display_order:0,
       confidence:'', source_url:'', note:'', source:'DATABASE'
     };
     await postToSheet({action:'append', tab:'Org_Chart', data:orgRow});
@@ -7507,7 +7520,15 @@ document.getElementById('modal-save').addEventListener('click',async()=>{
   if(statusEl) statusEl.textContent='Saving contact…';
 
   try {
-    await postToSheet(payload);
+    const saveRes=await postToSheet(payload);
+    // Server-side duplicate guard: a contact with this name already exists at
+    // the company — everything below (child rows, navigation) targets the
+    // existing record instead of a phantom new id.
+    if(saveRes && saveRes.deduped && saveRes.existing_contact_id && !editingId){
+      contactId=saveRes.existing_contact_id;
+      fields.contact_id=contactId;
+      if(statusEl) statusEl.textContent='Contact already existed — updating…';
+    }
 
     // Optimistic local update so UI reflects the change before refetch.
     const D=window.__DATA;
@@ -7518,6 +7539,9 @@ document.getElementById('modal-save').addEventListener('click',async()=>{
     if(editingId){
       const i=(D.contacts||[]).findIndex(c=>c.contact_id===editingId);
       if(i>=0) Object.assign(D.contacts[i], optimistic);
+    } else if(saveRes && saveRes.deduped){
+      const i=(D.contacts||[]).findIndex(c=>c.contact_id===contactId);
+      if(i>=0) Object.assign(D.contacts[i], optimistic); else D.contacts.push(optimistic);
     } else {
       D.contacts.push(optimistic);
     }
@@ -8550,13 +8574,20 @@ async function syncOpportunityContacts(companyId, opts){
         verified:'FALSE',
         date_added:today
       };
-      await postToSheet({action:'append',tab:'Contacts',data:fields});
-      const optimistic=Object.assign({},fields,{
-        themes:splitPipe(fields.themes),
-        certifications:splitPipe(fields.certifications)
-      });
-      D.contacts.push(optimistic);
-      createdContacts.push({id:contactId, name:fullName, reportsTo});
+      const resNew=await postToSheet({action:'append',tab:'Contacts',data:fields});
+      if(resNew && resNew.deduped){
+        // Server-side duplicate guard: this person already has a row — skip the
+        // local insert so the UI can't show a phantom second record.
+        console.log('[LeadCheck Sync] contact append deduped by backend:', fullName, resNew.existing_contact_id||'');
+        if(resNew.existing_contact_id) createdContacts.push({id:resNew.existing_contact_id, name:fullName, reportsTo});
+      } else {
+        const optimistic=Object.assign({},fields,{
+          themes:splitPipe(fields.themes),
+          certifications:splitPipe(fields.certifications)
+        });
+        D.contacts.push(optimistic);
+        createdContacts.push({id:contactId, name:fullName, reportsTo});
+      }
       await new Promise(r=>setTimeout(r,300));
     }
 
@@ -8871,19 +8902,33 @@ async function createCompanyFromResearch(resolvedName, companyInfo){
   if(ci.email_format) data.email_format = ci.email_format;
   if(ci.email_format_confidence) data.email_format_confidence = String(ci.email_format_confidence);
   if(ci.website) data.website = ci.website;
-  await postToSheet({ action:'append', tab:'Companies', data });
+  const res = await postToSheet({ action:'append', tab:'Companies', data });
   const D = window.__DATA || (window.__DATA = {});
   if(!Array.isArray(D.companies)) D.companies = [];
-  D.companies.push(Object.assign({}, data, {
-    partners: Array.isArray(ci.partners) ? ci.partners : [],
-    badges: Array.isArray(ci.badges) ? ci.badges : []
-  }));
+  // Server-side duplicate guard fired: reuse the sheet's existing row instead
+  // of tracking a phantom id that doesn't exist in the Companies tab.
+  const finalId = (res && res.deduped && res.existing_company_id) ? res.existing_company_id : newCoId;
+  if(res && res.deduped){
+    if(!D.companies.some(co=>co && co.company_id===finalId)){
+      D.companies.push(Object.assign({}, data, {
+        company_id: finalId,
+        partners: Array.isArray(ci.partners) ? ci.partners : [],
+        badges: Array.isArray(ci.badges) ? ci.badges : []
+      }));
+    }
+    console.log('[LeadCheck] company append deduped by backend — reusing', finalId);
+  } else {
+    D.companies.push(Object.assign({}, data, {
+      partners: Array.isArray(ci.partners) ? ci.partners : [],
+      badges: Array.isArray(ci.badges) ? ci.badges : []
+    }));
+  }
   buildIndexes();
   populateCompanySelect();
   const sel = document.getElementById('f-company');
-  if(sel) sel.value = newCoId;
+  if(sel) sel.value = finalId;
   toggleNewCompanyField();
-  return newCoId;
+  return finalId;
 }
 
 document.getElementById('research-btn').addEventListener('click', async () => {
@@ -9082,7 +9127,7 @@ async function smartLookup(inputText){
     const fullName=parsed.name || (parsed.email ? parsed.email.split('@')[0] : subject);
     const shortName=(fullName.split(/\s+/)[0] || '').trim();
     const today=new Date().toISOString().slice(0,10);
-    const contactId='C'+String(Date.now()).slice(-6);
+    let contactId='C'+String(Date.now()).slice(-6);
 
     const contactFields={
       contact_id: contactId,
@@ -9109,14 +9154,27 @@ async function smartLookup(inputText){
     };
 
     updateLookupStatus('Saving to database…', 'Adding '+fullName+' to your contacts');
-    await postToSheet({ action:'append', tab:'Contacts', data:contactFields });
+    const lookupRes=await postToSheet({ action:'append', tab:'Contacts', data:contactFields });
     if(lookupCancelled) return;
 
-    // Optimistic local insert so the navigate-to-profile render has data.
-    D.contacts.push(Object.assign({}, contactFields, {
-      themes: splitPipe(contactFields.themes),
-      certifications: splitPipe(contactFields.certifications)
-    }));
+    // Server-side duplicate guard: the person already has a row — attach the
+    // research to the existing record and navigate there instead.
+    if(lookupRes && lookupRes.deduped && lookupRes.existing_contact_id){
+      contactId=lookupRes.existing_contact_id;
+      contactFields.contact_id=contactId;
+      const exI=(D.contacts||[]).findIndex(c=>c.contact_id===contactId);
+      const merged=Object.assign({}, contactFields, {
+        themes: splitPipe(contactFields.themes),
+        certifications: splitPipe(contactFields.certifications)
+      });
+      if(exI>=0) Object.assign(D.contacts[exI], merged); else D.contacts.push(merged);
+    } else {
+      // Optimistic local insert so the navigate-to-profile render has data.
+      D.contacts.push(Object.assign({}, contactFields, {
+        themes: splitPipe(contactFields.themes),
+        certifications: splitPipe(contactFields.certifications)
+      }));
+    }
     buildIndexes();
 
     // Child tab rows (activities, org chart, sources, confidence checks, etc.)
@@ -9303,8 +9361,17 @@ async function saveCoToSheet(resolvedName, ci){
   } else {
     companyId='CO'+String(Date.now()).slice(-6);
     const data=buildFields({company_id:companyId, name:resolvedName});
-    await postToSheet({action:'append',tab:'Companies',data});
-    D.companies.push(data);
+    const resCo=await postToSheet({action:'append',tab:'Companies',data});
+    if(resCo && resCo.deduped && resCo.existing_company_id){
+      // Server-side duplicate guard: the sheet already has this company —
+      // attach everything (achievements, patterns, links) to the real row.
+      companyId=resCo.existing_company_id;
+      if(!D.companies.some(co=>co && co.company_id===companyId)){
+        D.companies.push(Object.assign({}, data, {company_id:companyId}));
+      }
+    } else {
+      D.companies.push(data);
+    }
   }
 
   const achv=Array.isArray(ci.achievements)?ci.achievements.filter(a=>a&&(a.label||a.description)):[];
