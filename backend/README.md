@@ -179,3 +179,41 @@ This is fixed on **two** levels:
    The front-end passes the raw Anthropic message straight through, so it already
    surfaces `stop_reason` in the console — check there to confirm which case
    (`max_tokens` vs `pause_turn`) you're hitting before tuning.
+
+## Partner research mode (`research_mode` / `partner_research_instructions`)
+
+The Partners workspace ("Discover Partners" page and the partner scout) calls the
+existing `research` action with **two additional JSON fields**:
+
+```json
+{
+  "action": "research",
+  "name": "Computacenter",
+  "company": "Computacenter",
+  "research_mode": "partner_qualification",
+  "partner_research_instructions": "<the qualification rubric from the front-end>"
+}
+```
+
+Older deployments simply **ignore the extra fields** — nothing breaks; partner
+research runs as a normal company research and the front-end falls back to
+keyword-based qualification over `company_info`. To make the qualification
+rubric actually reach Claude (recommended), add this to your `research` handler
+in the Apps Script **before** building the Anthropic request:
+
+```js
+var researchMode = String(payload.research_mode || '');
+var partnerInstructions = String(payload.partner_research_instructions || '');
+var prompt = buildResearchPrompt(name, company);   // however your handler builds it today
+if (researchMode === 'partner_qualification' && partnerInstructions) {
+  prompt = partnerInstructions + '\n\n' + prompt +
+    '\n\nADDITIONAL OUTPUT REQUIREMENT: inside "company_info", also include a ' +
+    '"partner_qualification" object with fields: status ("QUALIFIED" | "NOT QUALIFIED"), ' +
+    'score (0-100), partner_type, evidence, joint_value, overlap_risk, disqualifiers, sources.';
+}
+```
+
+The front-end (`qualifyPartnerResult` in `index.html`) prefers the returned
+`company_info.partner_qualification` block when present and only falls back to
+its keyword heuristics when it is absent, so this change upgrades result quality
+without requiring a coordinated deploy.
