@@ -2373,8 +2373,12 @@ function computeDuplicateIndex(){
       const a=group[i], b=group[j], key=dedupPairKey(a.id,b.id);
       if(separated.has(key)) continue;
       const {score,reason}=dedupPairScore(a,b);
-      if(score>=DEDUP_AUTO){ union(a.id,b.id); noteLink(a,b,score,reason); }
-      else if(score>=DEDUP_SUGGEST && find(a.id)!==find(b.id)){ suggestions.push({aId:a.id,bId:b.id,score,reason}); }
+      // Even a high-confidence name match must not SILENTLY merge two records
+      // whose titles describe clearly different roles — surface it for review
+      // instead of auto-hiding one of the two people.
+      const titleClash=titlesConflict(a.row,b.row);
+      if(score>=DEDUP_AUTO && !titleClash){ union(a.id,b.id); noteLink(a,b,score,reason); }
+      else if(score>=DEDUP_SUGGEST && find(a.id)!==find(b.id)){ suggestions.push({aId:a.id,bId:b.id,score,reason:titleClash?(reason+' — but their titles differ; confirm they are the same person'):reason}); }
     }
   });
 
@@ -2389,6 +2393,12 @@ function computeDuplicateIndex(){
       if(cands.length===1){
         const key=dedupPairKey(solo.id,cands[0].id);
         const c0=cands[0];
+        // A bare first name is only an ALIAS worth folding when nothing about the
+        // solo record contradicts the match. If the solo carries its own title
+        // and it conflicts with the candidate's (a verified "James" COO vs
+        // "James Deem" in IT), they are two different people who merely share a
+        // first name — keep them separate and NEVER silently hide one.
+        if(titlesConflict(solo.row, c0.row)) return;
         const variant=(solo.first!==c0.first && !firstNamesMatch(solo.first,c0.first));
         const why=variant
           ? '“'+solo.row.full_name+'” looks like a misspelling of “'+c0.row.full_name+'” at this company'
@@ -7803,6 +7813,41 @@ function firstNamesFuzzyMatch(a, b){
 
 // Capitalise a single lowercase token for human-readable dedup reasons.
 function capName(s){ s = String(s||''); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+// --- Title-conflict guard for duplicate reasoning -------------------------
+// Two records at the same company can share a first name yet be different
+// people — a bare "James" who is a verified Chief Operating Officer is NOT
+// "James Deem" in IT. A job title is independent identifying evidence: when
+// BOTH records carry a title and those titles share no meaningful word, that is
+// positive evidence they are DIFFERENT people, so a soft name match (a
+// first-name-only fold, or a nickname/typo guess) must not silently merge them.
+// An empty title is inconclusive (no conflict), so the common bare-record fold
+// still works. Generic seniority/structure words are ignored so that
+// "compatible" requires sharing a substantive, role-defining term.
+const TITLE_STOPWORDS = new Set([
+  'the','of','and','for','to','a','an','in','at','on','with','by','or',
+  'sr','senior','jr','junior','lead','leads','head','staff','principal',
+  'manager','mgr','management','director','dir','vp','vice','president','pres',
+  'chief','officer','exec','executive','global','regional','corporate',
+  'group','team','dept','department','organization','org','division','unit',
+  'owner','member','associate','assistant','coordinator','specialist'
+]);
+function titleTokens(t){
+  const out = new Set();
+  String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').split(' ').forEach(w=>{
+    if(w.length > 1 && !TITLE_STOPWORDS.has(w)) out.add(w);
+  });
+  return out;
+}
+// True only when BOTH records have a usable title and the two titles share no
+// meaningful word — i.e. their roles clearly differ, so they are not the same
+// person even if a name heuristic thinks they might be.
+function titlesConflict(a, b){
+  const ta = titleTokens(a && a.title), tb = titleTokens(b && b.title);
+  if(!ta.size || !tb.size) return false;              // at least one has no usable title → can't say they differ
+  for(const t of ta){ if(tb.has(t)) return false; }   // any shared meaningful word → compatible roles
+  return true;                                        // both titled, zero overlap → different roles
+}
 
 // Merge fields from `source` into `target` in place. Concatenates context
 // (only when the snippet isn't already present), fills blank scalar fields,
